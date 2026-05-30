@@ -1,0 +1,6 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+  <!-- pfQuest Retail Locale: koKR -->
+  <Script file="..\db\retail\koKR\units.lua"/>
+  <Script file="..\db\retail\koKR\objects.lua"/>
+  <Script file="..\db\retail\koKR\quests.lua"/>
+</Ui>

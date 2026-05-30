@@ -15,4 +15,5 @@
   <Include file="..\journal.lua"/>
   <Include file="..\menu.lua"/>
   <Include file="..\updatenotify.lua"/>
+  <Script file="..\db\retail\zone_bridge.lua"/>
 </Ui>
