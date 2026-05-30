@@ -37,7 +37,7 @@ local ymin, ymax, xmin, ymax
 local function getcluster(tbl, name)
   local count = 0
   best.index, best.neighbors = 1, 0
-  cacheindex = string.format("%s:%s", name, table.getn(tbl))
+  cacheindex = string.format("%s:%s", name, #tbl)
 
   -- calculate new cluster if nothing is cached
   if not cache[cacheindex] then
@@ -166,7 +166,7 @@ end
 -- track all previous meta selections on login
 pfDatabase.tracking = CreateFrame("Frame", "pfDatabaseMetaTracking", UIParent)
 pfDatabase.tracking:RegisterEvent("PLAYER_ENTERING_WORLD")
-pfDatabase.tracking:SetScript("OnEvent", function()
+pfDatabase.tracking:SetScript("OnEvent", function(self, event)
   -- break on empty config
   if not pfQuest_track then return end
 
@@ -176,7 +176,7 @@ pfDatabase.tracking:SetScript("OnEvent", function()
   end
 
   -- remove events
-  this:UnregisterAllEvents()
+  self:UnregisterAllEvents()
 end)
 
 -- track questitems to maintain object requirements
@@ -192,33 +192,33 @@ pfDatabase.TrackQuestItemDependency = function(self, item, qid)
 end
 
 pfDatabase.itemlist:RegisterEvent("BAG_UPDATE")
-pfDatabase.itemlist:SetScript("OnEvent", function()
-  this.update = GetTime() + .5
-  this:Show()
+pfDatabase.itemlist:SetScript("OnEvent", function(self, event)
+  self.update = GetTime() + .5
+  self:Show()
 end)
 
-pfDatabase.itemlist:SetScript("OnUpdate", function()
-  if GetTime() < this.update then return end
+pfDatabase.itemlist:SetScript("OnUpdate", function(self)
+  if GetTime() < self.update then return end
 
   -- remove obsolete registry entries
-  for item, qid in pairs(this.registry) do
+  for item, qid in pairs(self.registry) do
     if not pfQuest.questlog[qid] then
-      this.registry[item] = nil
+      self.registry[item] = nil
     end
   end
 
   -- save and clean previous items
-  local previous = this.db
-  this.db = {}
+  local previous = self.db
+  self.db = {}
 
   -- fill new item db with bag items
   for bag = 4, 0, -1 do
     for slot = 1, GetContainerNumSlots(bag) do
       local link = GetContainerItemLink(bag,slot)
-      local _, _, parse = strfind((link or ""), "(%d+):")
+      local _, _, parse = string.find((link or ""), "(%d+):")
       if parse then
         local item = GetItemInfo(parse)
-        if item then this.db[item] = true end
+        if item then self.db[item] = true end
       end
     end
   end
@@ -228,42 +228,42 @@ pfDatabase.itemlist:SetScript("OnUpdate", function()
     if GetInventoryItemLink("player", i) then
       local _, _, link = string.find(GetInventoryItemLink("player", i), "(item:%d+:%d+:%d+:%d+)");
       local item = GetItemInfo(link)
-      if item then this.db[item] = true end
+      if item then self.db[item] = true end
     end
   end
 
   -- find new items
-  for item in pairs(this.db) do
-    if not previous[item] and this.registry[item] then
-      pfQuest.questlog[this.registry[item]] = nil
+  for item in pairs(self.db) do
+    if not previous[item] and self.registry[item] then
+      pfQuest.questlog[self.registry[item]] = nil
       pfQuest:UpdateQuestlog()
     end
   end
 
   -- find removed items
   for item in pairs(previous) do
-    if not this.db[item] and this.registry[item] then
-      pfQuest.questlog[this.registry[item]] = nil
+    if not self.db[item] and self.registry[item] then
+      pfQuest.questlog[self.registry[item]] = nil
       pfQuest:UpdateQuestlog()
     end
   end
 
-  this:Hide()
+  self:Hide()
 end)
 
 -- check for unlocalized servers and fallback to enUS databases when the server
 -- returns item names that are different to the database ones. (check via. Hearthstone)
-CreateFrame("Frame", "pfQuestLocaleCheck", UIParent):SetScript("OnUpdate", function()
+CreateFrame("Frame", "pfQuestLocaleCheck", UIParent):SetScript("OnUpdate", function(self)
   -- throttle to to one item per second
-  if ( this.tick or 0) > GetTime() then return else this.tick = GetTime() + .1 end
+  if ( self.tick or 0) > GetTime() then return else self.tick = GetTime() + .1 end
 
-  if not this.dryrun then
+  if not self.dryrun then
     -- give the server one iteration to return the itemname.
     -- this is required for clients that use a clean wdb folder.
     ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE")
     ItemRefTooltip:SetHyperlink("item:6948:0:0:0")
     ItemRefTooltip:Hide()
-    this.dryrun = true
+    self.dryrun = true
     return
   end
 
@@ -279,7 +279,7 @@ CreateFrame("Frame", "pfQuestLocaleCheck", UIParent):SetScript("OnUpdate", funct
 
     -- check for noloc
     if name and name ~= "" and pfDB["items"][loc] and pfDB["items"][loc][6948] then
-      if not strfind(name, pfDB["items"][loc][6948], 1) then
+      if not string.find(name, pfDB["items"][loc][6948], 1) then
         pfDatabase.dbstring = ""
         for id, db in pairs(dbs) do
           -- assign existing locale and update dbstring
@@ -289,26 +289,26 @@ CreateFrame("Frame", "pfQuestLocaleCheck", UIParent):SetScript("OnUpdate", funct
       end
 
       pfDatabase.localized = true
-      this:Hide()
+      self:Hide()
     end
   end
 
   -- set a detection timeout to 15 seconds
   if GetTime() > 15 then
     pfDatabase.localized = true
-    this:Hide()
+    self:Hide()
   end
 end)
 
 -- sanity check the databases
 if isempty(pfDB["quests"]["loc"]) then
-  CreateFrame("Frame"):SetScript("OnUpdate", function()
+  CreateFrame("Frame"):SetScript("OnUpdate", function(self)
     if GetTime() < 3 then return end
     DEFAULT_CHAT_FRAME:AddMessage("|cffff5555 !! |cffffaaaaWrong version of |cff33ffccpf|cffffffffQuest|cffffaaaa detected.|cffff5555 !!")
     DEFAULT_CHAT_FRAME:AddMessage("|cffffccccThe language pack does not match the gameclient's language.")
     DEFAULT_CHAT_FRAME:AddMessage("|cffffccccYou'd either need to pick the complete or the " .. GetLocale().."-version.")
     DEFAULT_CHAT_FRAME:AddMessage("|cffffccccFor more details, see: https://shagu.org/pfQuest")
-    this:Hide()
+    self:Hide()
   end)
 end
 
@@ -415,7 +415,7 @@ end
 -- Draws quest informations into a tooltip
 function pfDatabase:ShowExtendedTooltip(id, tooltip, parent, anchor, offx, offy)
   local tooltip = tooltip or GameTooltip
-  local parent = parent or this
+  local parent = parent or self
   local anchor = anchor or "ANCHOR_LEFT"
 
   tooltip:SetOwner(parent, anchor, offx, offy)
@@ -607,9 +607,9 @@ function pfDatabase:GetIDByName(name, db, partial, server)
 
     local custom = server and pfQuest_server[db] and pfQuest_server[db][id] or not server
     if loc and name then
-      if partial == true and strfind(strlower(loc), strlower(name), 1, true) and custom then
+      if partial == true and string.find(string.lower(loc), string.lower(name), 1, true) and custom then
         ret[id] = loc
-      elseif partial == "LOWER" and strlower(loc) == strlower(name) and custom then
+      elseif partial == "LOWER" and string.lower(loc) == string.lower(name) and custom then
         ret[id] = loc
       elseif loc == name and custom then
         ret[id] = loc
@@ -629,7 +629,7 @@ function pfDatabase:GetIDByIDPart(idPart, db)
   for id, loc in pairs(pfDB[db]["loc"]) do
     if db == "quests" then loc = loc["T"] end
 
-    if idPart and loc and strfind(tostring(id), idPart) then
+    if idPart and loc and string.find(tostring(id), idPart) then
       ret[id] = loc
     end
   end
@@ -1155,7 +1155,7 @@ function pfDatabase:SearchQuestID(id, meta, maps)
 
           if meta["qlogid"] then
             local _, _, _, _, _, complete = compat.GetQuestLogTitle(meta["qlogid"])
-            complete = complete or GetNumQuestLeaderBoards(meta["qlogid"]) == 0 and true or nil
+            complete = complete or compat.GetNumQuestLeaderBoards(meta["qlogid"]) == 0 and true or nil
             if complete == true or complete == 1 then
               meta["texture"] = pfQuestConfig.path.."\\img\\complete_c"
             else
@@ -1177,7 +1177,7 @@ function pfDatabase:SearchQuestID(id, meta, maps)
 
           if meta["qlogid"] then
             local _, _, _, _, _, complete = compat.GetQuestLogTitle(meta["qlogid"])
-            complete = complete or GetNumQuestLeaderBoards(meta["qlogid"]) == 0 and true or nil
+            complete = complete or compat.GetNumQuestLeaderBoards(meta["qlogid"]) == 0 and true or nil
             if complete then
               meta["texture"] = pfQuestConfig.path.."\\img\\complete_c"
             else
@@ -1203,17 +1203,19 @@ function pfDatabase:SearchQuestID(id, meta, maps)
 
   -- If QuestLogID is given, scan and add all finished objectives to blacklist
   if meta["qlogid"] then
-    local objectives = GetNumQuestLeaderBoards(meta["qlogid"])
+    local objectives = compat.GetNumQuestLeaderBoards(meta["qlogid"])
     local _, _, _, _, _, complete = compat.GetQuestLogTitle(meta["qlogid"])
     if complete then return maps end
 
     if objectives then
       for i=1, objectives, 1 do
-        local text, type, done = GetQuestLogLeaderBoard(i, meta["qlogid"])
+        local _dbo = compat.GetQuestObjectives(meta["qlogid"])
+        local _do = _dbo[i] or {}
+        local text, type, done = _do[1], _do[2], _do[3]
 
         -- spawn data
         if type == "monster" then
-          local i, j, monsterName, objNum, objNeeded = strfind(text, pfUI.api.SanitizePattern(QUEST_MONSTERS_KILLED))
+          local i, j, monsterName, objNum, objNeeded = string.find(text, pfUI.api.SanitizePattern(QUEST_MONSTERS_KILLED))
           for id in pairs(pfDatabase:GetIDByName(monsterName, "units")) do
             parse_obj["U"][id] = ( objNum + 0 >= objNeeded + 0 or done ) and "DONE" or "PROG"
           end
@@ -1225,7 +1227,7 @@ function pfDatabase:SearchQuestID(id, meta, maps)
 
         -- item data
         if type == "item" then
-          local i, j, itemName, objNum, objNeeded = strfind(text, pfUI.api.SanitizePattern(QUEST_OBJECTS_FOUND))
+          local i, j, itemName, objNum, objNeeded = string.find(text, pfUI.api.SanitizePattern(QUEST_OBJECTS_FOUND))
           for id in pairs(pfDatabase:GetIDByName(itemName, "items")) do
             parse_obj["I"][id] = ( objNum + 0 >= objNeeded + 0 or done ) and "DONE" or "PROG"
           end
@@ -1508,7 +1510,7 @@ function pfDatabase:SearchQuests(meta, maps)
         if quests[id]["start"]["U"] then
           meta["QTYPE"] = "NPC_START"
           for _, unit in pairs(quests[id]["start"]["U"]) do
-            if units[unit] and strfind(units[unit]["fac"] or pfaction, pfaction) then
+            if units[unit] and string.find(units[unit]["fac"] or pfaction, pfaction) then
               maps = pfDatabase:SearchMobID(unit, meta, maps)
             end
           end
@@ -1518,7 +1520,7 @@ function pfDatabase:SearchQuests(meta, maps)
         if quests[id]["start"]["O"] then
           meta["QTYPE"] = "OBJECT_START"
           for _, object in pairs(quests[id]["start"]["O"]) do
-            if objects[object] and strfind(objects[object]["fac"] or pfaction, pfaction) then
+            if objects[object] and string.find(objects[object]["fac"] or pfaction, pfaction) then
               maps = pfDatabase:SearchObjectID(object, meta, maps)
             end
           end
@@ -1550,8 +1552,8 @@ end
 
 function pfDatabase:FormatQuestText(questText)
   questText = string.gsub(questText, "$[Nn]", UnitName("player"))
-  questText = string.gsub(questText, "$[Cc]", strlower(UnitClass("player")))
-  questText = string.gsub(questText, "$[Rr]", strlower(UnitRace("player")))
+  questText = string.gsub(questText, "$[Cc]", string.lower(UnitClass("player")))
+  questText = string.gsub(questText, "$[Rr]", string.lower(UnitRace("player")))
   questText = string.gsub(questText, "$[Bb]", "\n")
   -- UnitSex("player") returns 2 for male and 3 for female
   -- that's why there is an unused capture group around the $[Gg]
@@ -1565,7 +1567,7 @@ function pfDatabase:GetQuestIDs(qid)
   if GetQuestLink then
     local questLink = GetQuestLink(qid)
       if questLink then
-      local _, _, id = strfind(questLink, "|c.*|Hquest:([%d]+):([-]?[%d]+)|h%[(.*)%]|h|r")
+      local _, _, id = string.find(questLink, "|c.*|Hquest:([%d]+):([-]?[%d]+)|h%[(.*)%]|h|r")
       if id then return { [1] = tonumber(id) } end
     end
   end
@@ -1693,7 +1695,7 @@ pfDatabase.lastSearchResults = {["items"] = {}, ["quests"] = {}, ["objects"] = {
 -- If the query doesn't satisfy the minimum search length requiered for its
 -- type (number/string), the favourites for the `searchType` are returned.
 function pfDatabase:BrowserSearch(query, searchType)
-  local queryLength = strlen(query) -- needed for some checks
+  local queryLength = string.len(query) -- needed for some checks
   local queryNumber = tonumber(query) -- if nil, the query is NOT a number
   local results = {} -- save results
   local resultCount = 0; -- count results
@@ -1703,7 +1705,7 @@ function pfDatabase:BrowserSearch(query, searchType)
   local minInts = 1
   if (queryLength >= minChars) or (queryNumber and (queryLength >= minInts)) then -- make sure this is no fav display
     if ((queryLength > minChars) or (queryNumber and (queryLength > minInts)))
-       and (pfDatabase.lastSearchQuery ~= "" and queryLength > strlen(pfDatabase.lastSearchQuery))
+       and (pfDatabase.lastSearchQuery ~= "" and queryLength > string.len(pfDatabase.lastSearchQuery))
     then
       -- there are previous search results to use
       local searchDatabase = pfDatabase.lastSearchResults[searchType]
@@ -1718,15 +1720,15 @@ function pfDatabase:BrowserSearch(query, searchType)
             compare = tostring(id)
           else
             -- do name search
-            search = strlower(query)
+            search = string.lower(query)
             if (searchType == "quests") then
-              compare = strlower(dbLocale["T"])
+              compare = string.lower(dbLocale["T"])
             else
-              compare = strlower(dbLocale)
+              compare = string.lower(dbLocale)
             end
           end
           -- search and save on match
-          if (strfind(compare, search)) then
+          if (string.find(compare, search)) then
             results[id] = dbLocale
             resultCount = resultCount + 1
           end
@@ -1783,33 +1785,33 @@ pfServerScan.header:SetJustifyH("CENTER")
 pfServerScan.header:SetPoint("CENTER", 0, 0)
 
 pfServerScan:RegisterEvent("VARIABLES_LOADED")
-pfServerScan:SetScript("OnEvent", function()
+pfServerScan:SetScript("OnEvent", function(self, event)
   pfQuest_server = pfQuest_server or { }
   pfQuest_server["items"] = pfQuest_server["items"] or {}
   LoadCustomData()
 end)
 
-pfServerScan:SetScript("OnHide", function()
+pfServerScan:SetScript("OnHide", function(self)
   ItemRefTooltip:Show()
   LoadCustomData(true)
 end)
 
-pfServerScan:SetScript("OnShow", function()
-  this.scanID = 1
+pfServerScan:SetScript("OnShow", function(self)
+  self.scanID = 1
   pfQuest_server["items"] = {}
   DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: " .. pfQuest_Loc["Server scan started..."])
 end)
 
 local ignore, custom_id, custom_skip = {}, nil, nil
-pfServerScan:SetScript("OnUpdate", function()
-  if this.scanID >= this.max then
-    this:Hide()
+pfServerScan:SetScript("OnUpdate", function(self)
+  if self.scanID >= self.max then
+    self:Hide()
     return
   end
 
   -- scan X items per update
-  for i=this.scanID,this.scanID+this.perloop do
-    pfServerScan.header:SetText(pfQuest_Loc["Scanning server for items..."] .. " " .. string.format("%.1f",100*i/this.max) .. "%")
+  for i=self.scanID,self.scanID+self.perloop do
+    pfServerScan.header:SetText(pfQuest_Loc["Scanning server for items..."] .. " " .. string.format("%.1f",100*i/self.max) .. "%")
     local link = "item:" .. i .. ":0:0:0"
 
     ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE")
@@ -1846,7 +1848,7 @@ pfServerScan:SetScript("OnUpdate", function()
     end
   end
 
-  this.scanID = this.scanID+this.perloop
+  self.scanID = self.scanID+self.perloop
 end)
 
 function pfDatabase:ScanServer()

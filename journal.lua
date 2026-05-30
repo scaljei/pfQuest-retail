@@ -9,23 +9,23 @@ local function tablesize(tbl)
 end
 
 local function OnUpdate()
-  if not this.column and MouseIsOver(this) then
-    this.remove:Show()
-    this.bg:Show()
+  if not self.column and MouseIsOver(self) then
+    self.remove:Show()
+    self.bg:Show()
   else
-    this.remove:Hide()
-    this.bg:Hide()
+    self.remove:Hide()
+    self.bg:Hide()
   end
 end
 
 local function OnEnter()
-  if this.id then
+  if self.id then
     -- show extended quest tooltip
-    pfDatabase:ShowExtendedTooltip(this.id, GameTooltip, this, "ANCHOR_LEFT", 0, -10)
+    pfDatabase:ShowExtendedTooltip(self.id, GameTooltip, self, "ANCHOR_LEFT", 0, -10)
 
     -- add level of completion
-    if pfQuest_history[this.id] and pfQuest_history[this.id][2] then
-      local level = pfQuest_history[this.id][2]
+    if pfQuest_history[self.id] and pfQuest_history[self.id][2] then
+      local level = pfQuest_history[self.id][2]
       local color = pfQuestCompat.GetDifficultyColor(level)
       GameTooltip:AddLine("|cffffffff" .. pfQuest_Loc["Completed Level"] .. ": |r" .. level, color.r, color.g, color.b)
     end
@@ -38,25 +38,25 @@ local function OnLeave()
 end
 
 local function OnClick()
-  if this.id and IsShiftKeyDown() then
-    if tonumber(this.id) then
-      pfQuestCompat.InsertQuestLink(this.id)
+  if self.id and IsShiftKeyDown() then
+    if tonumber(self.id) then
+      pfQuestCompat.InsertQuestLink(self.id)
     else
-      pfQuestCompat.InsertQuestLink(0, this.id)
+      pfQuestCompat.InsertQuestLink(0, self.id)
     end
-  elseif this.id then
-    local maps = pfDatabase:SearchQuestID(this.id, meta)
+  elseif self.id then
+    local maps = pfDatabase:SearchQuestID(self.id, meta)
     pfMap:ShowMapID(pfDatabase:GetBestMap(maps))
-  elseif this.column then
-    collapsed[this.column] = not collapsed[this.column]
-    this.remove.view:ReloadJournal()
+  elseif self.column then
+    collapsed[self.column] = not collapsed[self.column]
+    self.remove.view:ReloadJournal()
   end
 end
 
 local function RemoveOnClick()
-  if this.entry.id then
-    pfQuest_history[this.entry.id] = nil
-    this.view:ReloadJournal()
+  if self.entry.id then
+    pfQuest_history[self.entry.id] = nil
+    self.view:ReloadJournal()
   end
 end
 
@@ -141,13 +141,13 @@ local function ReloadJournal(self)
     end
   end
 
-  for index=index, table.getn(journal) do
+  for index=index, #journal do
     journal[index] = nil
   end
 
   -- push offset into limits
   self.offset = self.offset or 0
-  self.offset = min(table.getn(journal) - maxcolumns + 1, self.offset)
+  self.offset = min(#journal - maxcolumns + 1, self.offset)
   self.offset = max(0, self.offset)
 
   -- draw journal into view
@@ -169,11 +169,11 @@ pfJournal:SetFrameStrata("FULLSCREEN_DIALOG")
 pfJournal:SetMovable(true)
 pfJournal:EnableMouse(true)
 pfJournal:SetScript("OnMouseDown",function()
-  this:StartMoving()
+  self:StartMoving()
 end)
 
 pfJournal:SetScript("OnMouseUp",function()
-  this:StopMovingOrSizing()
+  self:StopMovingOrSizing()
 end)
 
 pfUI.api.CreateBackdrop(pfJournal, nil, true, 0.75)
@@ -190,7 +190,7 @@ pfJournal.close = CreateFrame("Button", "pfQuestJournalClose", pfJournal)
 pfJournal.close:SetPoint("TOPRIGHT", -5, -5)
 pfJournal.close:SetHeight(20)
 pfJournal.close:SetWidth(20)
-pfJournal.close:SetScript("OnClick", function() this:GetParent():Hide() end)
+pfJournal.close:SetScript("OnClick", function() self:GetParent():Hide() end)
 pfJournal.close.texture = pfJournal.close:CreateTexture("pfQuestionDialogCloseTex")
 pfJournal.close.texture:SetTexture(pfQuestConfig.path.."\\compat\\close")
 pfJournal.close.texture:ClearAllPoints()
@@ -204,15 +204,15 @@ pfJournal.entries.ReloadJournal = ReloadJournal
 pfJournal.entries:EnableMouseWheel(true)
 pfJournal.entries:SetPoint("TOPLEFT", pfJournal, "TOPLEFT", 10, -35)
 pfJournal.entries:SetPoint("BOTTOMRIGHT", pfJournal, "BOTTOMRIGHT", -10, 10)
-pfJournal.entries:SetScript("OnMouseWheel", function()
-  this.offset = this.offset and this.offset - arg1 or 0
-  this:ReloadJournal()
+pfJournal.entries:SetScript("OnMouseWheel", function(self, delta)
+  self.offset = self.offset and self.offset - delta or 0
+  self:ReloadJournal()
 end)
 
 pfJournal.entries:SetScript("OnClick", pfJournal.entries.ReloadJournal)
-pfJournal.entries:SetScript("OnUpdate", function()
-  if ( this.tick or 1) > GetTime() then return else this.tick = GetTime() + 1 end
-  this:ReloadJournal()
+pfJournal.entries:SetScript("OnUpdate", function(self)
+  if ( self.tick or 1) > GetTime() then return else self.tick = GetTime() + 1 end
+  self:ReloadJournal()
 end)
 
 pfUI.api.CreateBackdrop(pfJournal.entries)

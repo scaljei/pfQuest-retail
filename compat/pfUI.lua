@@ -70,7 +70,7 @@ pfUI.api.strsplit = pfUI.api.strsplit or function(delimiter, subject)
   if not subject then return nil end
   local delimiter, fields = delimiter or ":", {}
   local pattern = string.format("([^%s]+)", delimiter)
-  string.gsub(subject, pattern, function(c) fields[table.getn(fields)+1] = c end)
+  string.gsub(subject, pattern, function(c) fields[#fields+1] = c end)
   return unpack(fields)
 end
 
@@ -79,15 +79,15 @@ pfUI.api.SanitizePattern = pfUI.api.SanitizePattern or function(pattern, dbg)
   if not sanitize_cache[pattern] then
     local ret = pattern
     -- escape magic characters
-    ret = gsub(ret, "([%+%-%*%(%)%?%[%]%^])", "%%%1")
+    ret = string.gsub(ret, "([%+%-%*%(%)%?%[%]%^])", "%%%1")
     -- remove capture indexes
-    ret = gsub(ret, "%d%$","")
+    ret = string.gsub(ret, "%d%$","")
     -- catch all characters
-    ret = gsub(ret, "(%%%a)","%(%1+%)")
+    ret = string.gsub(ret, "(%%%a)","%(%1+%)")
     -- convert all %s to .+
-    ret = gsub(ret, "%%s%+",".+")
+    ret = string.gsub(ret, "%%s%+",".+")
     -- set priority to numbers over strings
-    ret = gsub(ret, "%(.%+%)%(%%d%+%)","%(.-%)%(%%d%+%)")
+    ret = string.gsub(ret, "%(.%+%)%(%%d%+%)","%(.-%)%(%%d%+%)")
     -- cache it
     sanitize_cache[pattern] = ret
   end
@@ -151,7 +151,7 @@ pfUI.api.CreateBackdrop = pfUI.api.CreateBackdrop or function(f, inset, legacy, 
 end
 
 pfUI.api.SkinButton = pfUI.api.SkinButton or function(button, cr, cg, cb)
-  local b = getglobal(button)
+  local b = (type(button) == 'string' and _G[button]) or button
   if not b then b = button end
   if not b then return end
   if not cr or not cg or not cb then
@@ -166,12 +166,12 @@ pfUI.api.SkinButton = pfUI.api.SkinButton or function(button, cr, cg, cb)
   b:SetDisabledTexture(nil)
   local funce = b:GetScript("OnEnter")
   local funcl = b:GetScript("OnLeave")
-  b:SetScript("OnEnter", function()
+  b:SetScript("OnEnter", function(self)
     if funce then funce() end
     pfUI.api.CreateBackdrop(b, nil, true)
     b:SetBackdropBorderColor(cr,cg,cb,1)
   end)
-  b:SetScript("OnLeave", function()
+  b:SetScript("OnLeave", function(self)
     if funcl then funcl() end
     pfUI.api.CreateBackdrop(b, nil, true)
   end)
@@ -192,10 +192,10 @@ pfUI.api.CreateScrollFrame = pfUI.api.CreateScrollFrame or function(name, parent
   f.slider.thumb:SetTexture(.3,1,.8,.5)
 
   local selfevent = false
-  f.slider:SetScript("OnValueChanged", function()
+  f.slider:SetScript("OnValueChanged", function(self)
     if selfevent then return end
     selfevent = true
-    f:SetVerticalScroll(this:GetValue())
+    f:SetVerticalScroll(self:GetValue())
     f.UpdateScrollState()
     selfevent = false
   end)
@@ -236,8 +236,8 @@ pfUI.api.CreateScrollFrame = pfUI.api.CreateScrollFrame or function(name, parent
   end
 
   f:EnableMouseWheel(1)
-  f:SetScript("OnMouseWheel", function()
-    this:Scroll(arg1*10)
+  f:SetScript("OnMouseWheel", function(self, delta)
+    self:Scroll(delta*10)
   end)
 
   return f
@@ -253,8 +253,8 @@ pfUI.api.CreateScrollChild = pfUI.api.CreateScrollChild or function(name, parent
 
   parent:SetScrollChild(f)
 
-  f:SetScript("OnUpdate", function()
-    this:GetParent():UpdateScrollState()
+  f:SetScript("OnUpdate", function(self)
+    self:GetParent():UpdateScrollState()
   end)
 
   return f
@@ -288,7 +288,7 @@ pfUI.api.rgbhex = pfUI.api.rgbhex or function(r, g, b, a)
     local _r,_g,_b,_a
     if r.r then
       _r,_g,_b,_a = r.r, r.g, r.b, r.a or 1
-    elseif table.getn(r) >= 3 then
+    elseif #r >= 3 then
       _r,_g,_b,_a = r[1], r[2], r[3], r[4] or 1
     end
     if _r and _g and _b and _a then

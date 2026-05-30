@@ -2,7 +2,7 @@ local function strsplit(delimiter, subject)
   if not subject then return nil end
   local delimiter, fields = delimiter or ":", {}
   local pattern = string.format("([^%s]+)", delimiter)
-  string.gsub(subject, pattern, function(c) fields[table.getn(fields)+1] = c end)
+  string.gsub(subject, pattern, function(c) fields[#fields+1] = c end)
   return unpack(fields)
 end
 
@@ -13,10 +13,10 @@ versioncheck:RegisterEvent("ADDON_LOADED")
 versioncheck:RegisterEvent("CHAT_MSG_ADDON")
 versioncheck:RegisterEvent("PARTY_MEMBERS_CHANGED")
 versioncheck:RegisterEvent("PLAYER_ENTERING_WORLD")
-versioncheck:SetScript("OnEvent", function()
+versioncheck:SetScript("OnEvent", function(self, event)
   if event == "ADDON_LOADED" then
-    if arg1 == "pfQuest" or arg1 == "pfQuest-tbc" or arg1 == "pfQuest-wotlk" then
-      major, minor, fix = strsplit(".", tostring(GetAddOnMetadata(arg1, "Version")))
+    if delta == "pfQuest" or delta == "pfQuest-tbc" or delta == "pfQuest-wotlk" then
+      major, minor, fix = strsplit(".", tostring(GetAddOnMetadata(delta, "Version")))
       major = tonumber(major) or 0
       minor = tonumber(minor) or 0
       fix = tonumber(fix) or 0
@@ -25,7 +25,7 @@ versioncheck:SetScript("OnEvent", function()
     end
 
     return
-  elseif event == "CHAT_MSG_ADDON" and arg1 == "pfQuest" then
+  elseif event == "CHAT_MSG_ADDON" and delta == "pfQuest" then
     local v, remoteversion = strsplit(":", arg2)
     local remoteversion = tonumber(remoteversion)
     if v == "VERSION" and remoteversion then

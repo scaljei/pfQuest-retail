@@ -178,8 +178,8 @@ pfQuestConfig:SetMovable(true)
 pfQuestConfig:EnableMouse(true)
 pfQuestConfig:SetClampedToScreen(true)
 pfQuestConfig:RegisterEvent("ADDON_LOADED")
-pfQuestConfig:SetScript("OnEvent", function()
-  if arg1 == "pfQuest" or arg1 == "pfQuest-tbc" or arg1 == "pfQuest-wotlk" then
+pfQuestConfig:SetScript("OnEvent", function(self, event)
+  if delta == "pfQuest" or delta == "pfQuest-tbc" or delta == "pfQuest-wotlk" then
     pfQuestConfig:LoadConfig()
     pfQuestConfig:MigrateHistory()
     pfQuestConfig:CreateConfigEntries(pfQuest_defconfig)
@@ -203,15 +203,15 @@ pfQuestConfig:SetScript("OnEvent", function()
 end)
 
 pfQuestConfig:SetScript("OnMouseDown", function()
-  this:StartMoving()
+  self:StartMoving()
 end)
 
 pfQuestConfig:SetScript("OnMouseUp", function()
-  this:StopMovingOrSizing()
+  self:StopMovingOrSizing()
 end)
 
-pfQuestConfig:SetScript("OnShow", function()
-  this:UpdateConfigEntries()
+pfQuestConfig:SetScript("OnShow", function(self)
+  self:UpdateConfigEntries()
 end)
 
 pfQuestConfig.vpos = 40
@@ -223,7 +223,7 @@ table.insert(UISpecialFrames, "pfQuestConfig")
 local tocs = { "", "-master", "-tbc", "-wotlk" }
 for _, name in pairs(tocs) do
   local current = string.format("pfQuest%s", name)
-  local _, title = GetAddOnInfo(current)
+  local _, title = ((C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo)(current)
   if title then
     pfQuestConfig.path = "Interface\\AddOns\\" .. current
     pfQuestConfig.version = tostring(GetAddOnMetadata(current, "Version"))
@@ -250,8 +250,8 @@ pfQuestConfig.close.texture:SetPoint("BOTTOMRIGHT", pfQuestConfig.close, "BOTTOM
 
 pfQuestConfig.close.texture:SetVertexColor(1,.25,.25,1)
 pfUI.api.SkinButton(pfQuestConfig.close, 1, .5, .5)
-pfQuestConfig.close:SetScript("OnClick", function()
-  this:GetParent():Hide()
+pfQuestConfig.close:SetScript("OnClick", function(self, button)
+  self:GetParent():Hide()
 end)
 
 pfQuestConfig.welcome = CreateFrame("Button", "pfQuestConfigWelcome", pfQuestConfig)
@@ -354,10 +354,10 @@ function pfQuestConfig:CreateConfigEntries(config)
         end
 
         frame.input:SetScript("OnClick", function ()
-          if this:GetChecked() then
-            pfQuest_config[this.config] = "1"
+          if self:GetChecked() then
+            pfQuest_config[self.config] = "1"
           else
-            pfQuest_config[this.config] = "0"
+            pfQuest_config[self.config] = "0"
           end
 
           pfQuest:ResetAll()
@@ -374,14 +374,14 @@ function pfQuestConfig:CreateConfigEntries(config)
         frame.input:SetFontObject(GameFontNormal)
         frame.input:SetAutoFocus(false)
         frame.input:SetScript("OnEscapePressed", function(self)
-          this:ClearFocus()
+          self:ClearFocus()
         end)
 
         frame.input.config = data.config
         frame.input:SetText(pfQuest_config[data.config])
 
         frame.input:SetScript("OnTextChanged", function(self)
-          pfQuest_config[this.config] = this:GetText()
+          pfQuest_config[self.config] = self:GetText()
         end)
 
         pfUI.api.CreateBackdrop(frame.input, nil, true)
@@ -481,14 +481,14 @@ do -- welcome/init popup dialog
   pfQuestInit:SetPoint("CENTER", 0, 0)
   pfQuestInit:RegisterEvent("PLAYER_ENTERING_WORLD")
   pfQuestInit:SetScript("OnMouseDown", function()
-    this:StartMoving()
+    self:StartMoving()
   end)
 
   pfQuestInit:SetScript("OnMouseUp", function()
-    this:StopMovingOrSizing()
+    self:StopMovingOrSizing()
   end)
 
-  pfQuestInit:SetScript("OnEvent", function()
+  pfQuestInit:SetScript("OnEvent", function(self, event)
     if pfQuest_config.welcome ~= "1" then
       -- parse current config
       if pfQuest_config["showspawn"] == "0" and pfQuest_config["showcluster"] == "1" then
@@ -503,10 +503,10 @@ do -- welcome/init popup dialog
 
       pfQuestInit:Show()
     end
-    this:UnregisterAllEvents()
+    self:UnregisterAllEvents()
   end)
 
-  pfQuestInit:SetScript("OnShow", function()
+  pfQuestInit:SetScript("OnShow", function(self)
     -- reload ui elements
     desaturate(pfQuestInit[1].bg, true)
     desaturate(pfQuestInit[2].bg, true)
@@ -553,21 +553,21 @@ do -- welcome/init popup dialog
 
     pfUI.api.SkinButton(pfQuestInit[i])
 
-    pfQuestInit[i]:SetScript("OnClick", function()
+    pfQuestInit[i]:SetScript("OnClick", function(self, button)
       desaturate(pfQuestInit[1].bg, true)
       desaturate(pfQuestInit[2].bg, true)
       desaturate(pfQuestInit[3].bg, true)
-      desaturate(pfQuestInit[this:GetID()].bg, false)
-      config_stage.mode = this:GetID()
+      desaturate(pfQuestInit[self:GetID()].bg, false)
+      config_stage.mode = self:GetID()
     end)
 
     local OnEnter = pfQuestInit[i]:GetScript("OnEnter")
     pfQuestInit[i]:SetScript("OnEnter", function()
       if OnEnter then OnEnter() end
-      GameTooltip_SetDefaultAnchor(GameTooltip, this)
+      GameTooltip_SetDefaultAnchor(GameTooltip, self)
 
-      GameTooltip:SetText(this.caption:GetText())
-      GameTooltip:AddLine(buttons[this:GetID()].tooltip, 1, 1, 1, true)
+      GameTooltip:SetText(self.caption:GetText())
+      GameTooltip:AddLine(buttons[self:GetID()].tooltip, 1, 1, 1, true)
       GameTooltip:SetWidth(100)
       GameTooltip:Show()
     end)
@@ -593,12 +593,12 @@ do -- welcome/init popup dialog
   pfQuestInit.checkbox.caption:SetPoint("LEFT", pfQuestInit.checkbox, "RIGHT", 5, 0)
   pfQuestInit.checkbox.caption:SetJustifyH("LEFT")
   pfQuestInit.checkbox.caption:SetText(L["Show Navigation Arrow"])
-  pfQuestInit.checkbox:SetScript("OnClick", function()
-    config_stage.arrow = this:GetChecked()
+  pfQuestInit.checkbox:SetScript("OnClick", function(self, button)
+    config_stage.arrow = self:GetChecked()
   end)
 
   pfQuestInit.checkbox:SetScript("OnEnter", function()
-    GameTooltip_SetDefaultAnchor(GameTooltip, this)
+    GameTooltip_SetDefaultAnchor(GameTooltip, self)
     GameTooltip:SetText(L["Navigation Arrow"])
     GameTooltip:AddLine(L["Show navigation arrow that points you to the nearest quest location."], 1, 1, 1, true)
     GameTooltip:SetWidth(100)
@@ -620,7 +620,7 @@ do -- welcome/init popup dialog
 
   pfUI.api.SkinButton(pfQuestInit.save)
 
-  pfQuestInit.save:SetScript("OnClick", function()
+  pfQuestInit.save:SetScript("OnClick", function(self, button)
     -- write current config
     if config_stage.mode == 1 then
       pfQuest_config["showspawn"] = "0"

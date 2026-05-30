@@ -11,14 +11,18 @@ local minimapbreakers = {
 
 local compatnamefake = CreateFrame("Frame")
 compatnamefake:RegisterEvent("PLAYER_ENTERING_WORLD")
-compatnamefake:SetScript("OnEvent", function()
-  -- only run once on login
-  this:UnregisterAllEvents()
+compatnamefake:SetScript("OnEvent", function(self)
+  -- only run once on login (retail: use self, not implicit this)
+  self:UnregisterAllEvents()
 
-  -- scan through all addons to identify button collectors
-  for i=1, GetNumAddOns() do
-    local name, title, notes, enabled = GetAddOnInfo(i)
-    if enabled and minimapbreakers[name] then
+  -- C_AddOns replaces GetNumAddOns/GetAddOnInfo in retail 11.x
+  local numAddOns = (C_AddOns and C_AddOns.GetNumAddOns and C_AddOns.GetNumAddOns())
+                 or (GetNumAddOns and GetNumAddOns()) or 0
+  local getInfo   = (C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo
+
+  for i = 1, numAddOns do
+    local name, _, _, loadable = getInfo(i)
+    if loadable and minimapbreakers[name] then
       nodename = "GatherNoteCompatFake"
     end
   end
@@ -28,8 +32,8 @@ end)
 -- this loop puts it into one place and only updates it every .2 seconds
 -- it also only updates the key if the mouse is over a relevant frame
 local controlkey = CreateFrame("Frame", "pfQuestControlKey", UIParent)
-controlkey:SetScript("OnUpdate", function()
-  if ( this.throttle or .2) > GetTime() then return else this.throttle = GetTime() + .2 end
+controlkey:SetScript("OnUpdate", function(self)
+  if ( self.throttle or .2) > GetTime() then return else self.throttle = GetTime() + .2 end
   if WorldMapFrame:IsShown() and MouseIsOver(WorldMapFrame) or MouseIsOver(pfMap.drawlayer) then
     controlkey.pressed = IsControlKeyDown()
   end
@@ -178,7 +182,7 @@ end
 -- put player position above everything on worldmap
 for k, v in pairs({WorldMapFrame:GetChildren()}) do
   if v:IsObjectType("Model") and not v:GetName() then
-    if string.find(strlower(v:GetModel()), "interface\\minimap\\minimaparrow") then
+    if string.find(string.lower(v:GetModel()), "interface\\minimap\\minimaparrow") then
       v:SetFrameLevel(255)
       break
     end
@@ -204,12 +208,12 @@ pfMap.tooltip:SetScript("OnShow", function()
   -- abort on pfQuest nodes
   if focus and focus.title then return end
   -- abort on quest timers
-  if focus and focus.GetName and strsub((focus:GetName() or ""),0,10) == "QuestTimer" then return end
+  if focus and focus.GetName and string.sub((focus:GetName() or ""),1,10) == "QuestTimer" then return end
   -- abort if tooltips are disabled
   if pfQuest_config.showtooltips == "0" then return end
 
-  local name = getglobal("GameTooltipTextLeft1") and getglobal("GameTooltipTextLeft1"):GetText() or "__NONE__"
-  local zone = pfMap:GetMapID(GetCurrentMapContinent(), GetCurrentMapZone())
+  local name = _G["GameTooltipTextLeft1"] and _G["GameTooltipTextLeft1"]:GetText() or "__NONE__"
+  local zone = pfMap:GetCurrentMapID()
 
   -- remove all colors from received tooltip text
   name = string.gsub(name, "|c%x%x%x%x%x%x%x%x", "")
@@ -270,12 +274,14 @@ function pfMap:ShowTooltip(meta, tooltip)
   -- add quest data
   if meta["quest"] then
     -- scan all quest entries for matches
-    for qid=1, GetNumQuestLogEntries() do
+    local _numEntries = compat.GetNumQuestLogEntries()
+    for qid=1, _numEntries do
       local qtitle, _, _, _, _, complete = compat.GetQuestLogTitle(qid)
 
       if meta["quest"] == qtitle then
         -- handle active quests
-        local objectives = GetNumQuestLeaderBoards(qid)
+        local _objs = compat.GetQuestObjectives(qid)
+        local objectives = #_objs
         catch = true
 
         local symbol = ( complete or objectives == 0 ) and "|cff555555[|cffffcc00?|cff555555]|r " or "|cff555555[|cffffcc00!|cff555555]|r "
@@ -283,19 +289,20 @@ function pfMap:ShowTooltip(meta, tooltip)
 
         if objectives then
           for i=1, objectives, 1 do
-            local text, type, finished = GetQuestLogLeaderBoard(i, qid)
+            local _o = _objs[i] or {}
+            local text, type, finished = _o[1], _o[2], _o[3]
 
             if type == "monster" then
               -- kill
-              local i, j, monsterName, objNum, objNeeded = strfind(text, pfUI.api.SanitizePattern(QUEST_MONSTERS_KILLED))
+              local i, j, monsterName, objNum, objNeeded = string.find(text, pfUI.api.SanitizePattern(QUEST_MONSTERS_KILLED))
               if monsterName and meta["spawn"] == monsterName then
                 catch_obj = true
                 local r,g,b = pfMap.tooltip:GetColor(objNum, objNeeded)
                 tooltip:AddLine("|cffaaaaaa- |r" .. monsterName .. ": " .. objNum .. "/" .. objNeeded, r, g, b)
               end
-            elseif table.getn(meta["item"]) > 0 and type == "item" and meta["droprate"] then
+            elseif #meta["item"] > 0 and type == "item" and meta["droprate"] then
               -- loot
-              local i, j, itemName, objNum, objNeeded = strfind(text, pfUI.api.SanitizePattern(QUEST_OBJECTS_FOUND))
+              local i, j, itemName, objNum, objNeeded = string.find(text, pfUI.api.SanitizePattern(QUEST_OBJECTS_FOUND))
 
               for mid, item in pairs(meta["item"]) do
                 if item == itemName then
@@ -306,9 +313,9 @@ function pfMap:ShowTooltip(meta, tooltip)
                   tooltip:AddLine("|cffaaaaaa- |r" .. itemName .. ": " .. objNum .. "/" .. objNeeded .. " |cff555555[|cff" .. lootcolor .. meta["droprate"] .. "%|cff555555]", r, g, b)
                 end
               end
-            elseif table.getn(meta["item"]) > 0 and type == "item" and meta["sellcount"] then
+            elseif #meta["item"] > 0 and type == "item" and meta["sellcount"] then
               -- vendor
-              local i, j, itemName, objNum, objNeeded = strfind(text, pfUI.api.SanitizePattern(QUEST_OBJECTS_FOUND))
+              local i, j, itemName, objNum, objNeeded = string.find(text, pfUI.api.SanitizePattern(QUEST_OBJECTS_FOUND))
 
               for mid, item in pairs(meta["item"]) do
                 if item == itemName then
@@ -409,13 +416,12 @@ end
 
 function pfMap:ShowMapID(map)
   if map then
-    if ToggleWorldMap then
-      -- vanilla & tbc
-      if not WorldMapFrame:IsShown() then
-        ToggleWorldMap()
-      end
+    -- retail 11.x: OpenWorldMap() replaces ToggleWorldMap()
+    if OpenWorldMap then
+      OpenWorldMap()
+    elseif ToggleWorldMap then
+      if not WorldMapFrame:IsShown() then ToggleWorldMap() end
     else
-      -- wotlk
       WorldMapFrame:Show()
     end
 
@@ -430,11 +436,25 @@ end
 function pfMap:SetMapByID(id)
   local search = pfDB["zones"]["loc"][id]
 
-  for cid, cname in pairs({GetMapContinents()}) do
-    for mid, mname in pairs({GetMapZones(cid)}) do
-      if mname == search then
-        SetMapZoom(cid, mid)
+  -- retail 11.x: use C_Map to find and open the zone
+  if C_Map and C_Map.GetMapChildrenInfo then
+    local allMaps = C_Map.GetMapChildrenInfo(946, nil, true) or {}
+    for _, mapInfo in ipairs(allMaps) do
+      if mapInfo.name == search then
+        if OpenWorldMap then OpenWorldMap(mapInfo.mapID) end
         return
+      end
+    end
+    return
+  end
+  -- legacy path
+  if GetMapContinents then
+    for cid, cname in pairs({GetMapContinents()}) do
+      for mid, mname in pairs({GetMapZones(cid)}) do
+        if mname == search then
+          SetMapZoom(cid, mid)
+          return
+        end
       end
     end
   end
@@ -444,22 +464,46 @@ local customids = {
   ["AlteracValley"] = 2597,
 }
 
-local map_zone_cache = { }
+-- ---------------------------------------------------------------------------
+-- pfMap:GetCurrentMapID()
+-- Retail 11.x replacement for GetCurrentMapContinent() + GetCurrentMapZone().
+-- Returns the pfDB internal zone id for the player's current zone.
+-- ---------------------------------------------------------------------------
+function pfMap:GetCurrentMapID()
+  if C_Map and C_Map.GetBestMapForUnit then
+    local uiMapID = C_Map.GetBestMapForUnit("player")
+    if uiMapID then
+      local mapInfo = C_Map.GetMapInfo(uiMapID)
+      if mapInfo then
+        return pfMap:GetMapIDByName(mapInfo.name)
+      end
+    end
+    return nil
+  end
+  -- legacy fallback
+  if GetCurrentMapContinent and GetCurrentMapZone then
+    return pfMap:GetMapID(GetCurrentMapContinent(), GetCurrentMapZone())
+  end
+end
+
+local map_zone_cache = {}
 function pfMap:GetMapID(cid, mid)
+  -- retail: no continent/zone API; delegate
+  if not (GetCurrentMapContinent and GetCurrentMapZone) then
+    return pfMap:GetCurrentMapID()
+  end
+
   cid = cid or GetCurrentMapContinent()
   mid = mid or GetCurrentMapZone()
 
-  -- GetMapZones() should always return the same amount
-  -- of zones for each continent, so we can cache it to
-  -- avoid further creations of the same table.
   if not map_zone_cache[cid] then
     map_zone_cache[cid] = { GetMapZones(cid) }
   end
 
   local list = map_zone_cache[cid]
   local name = list[mid]
-  local id = pfMap:GetMapIDByName(name)
-  id = id or customids[GetMapInfo()]
+  local id   = pfMap:GetMapIDByName(name)
+  id = id or customids[GetMapInfo and GetMapInfo()]
 
   return id
 end
@@ -493,7 +537,7 @@ function pfMap:AddNode(meta)
 
   -- skip early on existing nodes
   if pfMap.nodes[addon][map][coords][title] then
-    if item and table.getn(pfMap.nodes[addon][map][coords][title].item) > 0 then
+    if item and #pfMap.nodes[addon][map][coords][title].item > 0 then
       -- check if item already exists
       for id, name in pairs(pfMap.nodes[addon][map][coords][title].item) do
         if name == item then return end
@@ -604,50 +648,60 @@ function pfMap:DeleteNode(addon, title)
   pfMap.queue_update = GetTime()
 end
 
-function pfMap:NodeClick()
+function pfMap:NodeClick(self)
+  -- retail: OnClick passes (self, button); legacy used implicit "this"
+  local btn = self or this
   if IsShiftKeyDown() then
-    if this.questid and this.texture and this.layer < 5 then
+    if btn.questid and btn.texture and btn.layer < 5 then
       -- mark questnode as done
-      pfQuest_history[this.questid] = { time(), UnitLevel("player") }
+      pfQuest_history[btn.questid] = { time(), UnitLevel("player") }
     end
 
-    if this.node and this.title and this.node[this.title] then
+    if btn.node and btn.title and btn.node[btn.title] then
       -- delete node from map
-      pfMap:DeleteNode(this.node[this.title].addon, this.title)
+      pfMap:DeleteNode(btn.node[btn.title].addon, btn.title)
     end
 
     pfQuest.updateQuestGivers = true
-  elseif this.texture and pfQuest.route and
-   (( pfQuest_config["routecluster"] == "1" and this.layer >= 9 ) or
-    ( pfQuest_config["routeender"] == "1" and this.layer == 4) or
-    ( pfQuest_config["routestarter"] == "1" and this.layer == 1) or
-    ( pfQuest_config["routestarter"] == "1" and this.layer == 2))
+  elseif btn.texture and pfQuest.route and
+   (( pfQuest_config["routecluster"] == "1" and btn.layer >= 9 ) or
+    ( pfQuest_config["routeender"] == "1" and btn.layer == 4) or
+    ( pfQuest_config["routestarter"] == "1" and btn.layer == 1) or
+    ( pfQuest_config["routestarter"] == "1" and btn.layer == 2))
   then
     -- set as arrow target priority
-    pfQuest.route.SetTarget((not pfQuest.route.IsTarget(this) and this))
+    pfQuest.route.SetTarget((not pfQuest.route.IsTarget(btn) and btn))
     pfMap.queue_update = GetTime()
   else
     -- switch color
-    pfQuest_colors[this.color] = { str2rgb(this.color .. GetTime()) }
+    pfQuest_colors[btn.color] = { str2rgb(btn.color .. GetTime()) }
     pfMap.queue_update = GetTime()
   end
 end
 
-function pfMap:NodeEnter()
-  -- wotlk: need to disable blop tooltips first
-  if compat.client >= 30300 then
+function pfMap:NodeEnter(self)
+  local btn = self or this
+
+  -- Disable blob tooltips where still applicable (WotLK / early retail)
+  if compat.client >= 30300 and WorldMapPOIFrame and WorldMapPOIFrame.allowBlobTooltip ~= nil then
     WorldMapPOIFrame.allowBlobTooltip = false
   end
 
-  local tooltip = this:GetParent() == WorldMapButton and WorldMapTooltip or GameTooltip
-  tooltip:SetOwner(this, "ANCHOR_LEFT")
-  this.spawn = this.spawn or UNKNOWN
-  tooltip:SetText(this.spawn..(pfQuest_config.showids == "1" and " |cffcccccc("..this.spawnid..")|r" or ""), .3, 1, .8)
-  tooltip:AddDoubleLine(pfQuest_Loc["Level"] .. ":", (this.level or UNKNOWN), .8,.8,.8, 1,1,1)
-  tooltip:AddDoubleLine(pfQuest_Loc["Type"] .. ":", (this.spawntype or UNKNOWN), .8,.8,.8, 1,1,1)
-  tooltip:AddDoubleLine(pfQuest_Loc["Respawn"] .. ":", (this.respawn or UNKNOWN), .8,.8,.8, 1,1,1)
+  -- retail 11.x: WorldMapButton and WorldMapTooltip are removed.
+  -- Detect the map canvas dynamically and fall back to GameTooltip.
+  local mapCanvas = WorldMapButton
+    or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child)
+  local tooltip = (mapCanvas and btn:GetParent() == mapCanvas)
+    and (WorldMapTooltip or GameTooltip) or GameTooltip
 
-  for title, meta in pairs(this.node) do
+  tooltip:SetOwner(btn, "ANCHOR_LEFT")
+  btn.spawn = btn.spawn or UNKNOWN
+  tooltip:SetText(btn.spawn..(pfQuest_config.showids == "1" and " |cffcccccc("..btn.spawnid..")|r" or ""), .3, 1, .8)
+  tooltip:AddDoubleLine(pfQuest_Loc["Level"] .. ":", (btn.level or UNKNOWN), .8,.8,.8, 1,1,1)
+  tooltip:AddDoubleLine(pfQuest_Loc["Type"] .. ":", (btn.spawntype or UNKNOWN), .8,.8,.8, 1,1,1)
+  tooltip:AddDoubleLine(pfQuest_Loc["Respawn"] .. ":", (btn.respawn or UNKNOWN), .8,.8,.8, 1,1,1)
+
+  for title, meta in pairs(btn.node) do
     pfMap:ShowTooltip(meta, tooltip)
   end
 
@@ -655,31 +709,35 @@ function pfMap:NodeEnter()
   if pfQuest_config["tooltiphelp"] == "1" then
     local text = pfQuest_Loc["Use <Shift>-Click To Remove Nodes"]
 
-    if this.cluster then
+    if btn.cluster then
       text = pfQuest_Loc["Hold <Ctrl> To Hide Cluster"]
     elseif tooltip == GameTooltip then
       text = pfQuest_Loc["Hold <Ctrl> To Hide Minimap Nodes"]
-    elseif not this.texture then
+    elseif not btn.texture then
       text = pfQuest_Loc["Click Node To Change Color"]
-    elseif this.questid and this.texture and this.layer < 5 then
+    elseif btn.questid and btn.texture and btn.layer < 5 then
       text = pfQuest_Loc["Use <Shift>-Click To Mark Quest As Done"]
     end
 
-    -- update tooltip and sizes
     tooltip:AddLine(text, .6, .6, .6)
     tooltip:Show()
   end
 
-  pfMap.highlight = pfQuest_config["mouseover"] == "1" and this.title
+  pfMap.highlight = pfQuest_config["mouseover"] == "1" and btn.title
 end
 
-function pfMap:NodeLeave()
-  -- wotlk: re-enable blop tooltips
-  if compat.client >= 30300 then
+function pfMap:NodeLeave(self)
+  local btn = self or this
+
+  if compat.client >= 30300 and WorldMapPOIFrame and WorldMapPOIFrame.allowBlobTooltip ~= nil then
     WorldMapPOIFrame.allowBlobTooltip = true
   end
 
-  local tooltip = this:GetParent() == WorldMapButton and WorldMapTooltip or GameTooltip
+  local mapCanvas = WorldMapButton
+    or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child)
+  local tooltip = (mapCanvas and btn:GetParent() == mapCanvas)
+    and (WorldMapTooltip or GameTooltip) or GameTooltip
+
   tooltip:Hide()
   pfMap.highlight = nil
 end
@@ -687,13 +745,16 @@ end
 function pfMap:BuildNode(name, parent)
   local f = CreateFrame("Button", name, parent)
 
-  if parent == WorldMapButton then
+  -- retail 11.x: WorldMapButton removed; detect map canvas dynamically
+  local mapCanvas = WorldMapButton
+    or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child)
+  if parent == mapCanvas then
     f.defalpha = tonumber(pfQuest_config["worldmaptransp"]) or 1
-    f.defsize = 14
+    f.defsize  = 14
   else
     f.defalpha = tonumber(pfQuest_config["minimaptransp"]) or 1
-    f.defsize = 14
-    f.minimap = true
+    f.defsize  = 14
+    f.minimap  = true
   end
 
   f:SetWidth(f.defsize)
@@ -856,7 +917,7 @@ function pfMap:UpdateNodes()
   pfQuest:Debug("Update Nodes")
 
   local color = pfQuest_config["spawncolors"] == "1" and "spawn" or "title"
-  local map = pfMap:GetMapID(GetCurrentMapContinent(), GetCurrentMapZone())
+  local map = pfMap:GetCurrentMapID()
   local i = 1
 
   -- reset tracker
@@ -870,13 +931,17 @@ function pfMap:UpdateNodes()
     if pfMap.nodes[addon][map] then
       for coords, node in pairs(pfMap.nodes[addon][map]) do
         if not pfMap.pins[i] then
-          pfMap.pins[i] = pfMap:BuildNode("pfMapPin" .. i, WorldMapButton)
+          -- retail 11.x: resolve map canvas at call time
+          local _mapCanvas = WorldMapButton
+            or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child)
+            or WorldMapFrame
+          pfMap.pins[i] = pfMap:BuildNode("pfMapPin" .. i, _mapCanvas)
         end
 
         pfMap:UpdateNode(pfMap.pins[i], node, color)
 
         -- set position
-        local _, _, x, y = strfind(coords, "(.*)|(.*)")
+        local _, _, x, y = string.find(coords, "(.*)|(.*)")
 
         -- write points to the route plan
         if ( pfQuest_config["routecluster"] == "1" and pfMap.pins[i].layer >= 9 ) or
@@ -900,11 +965,14 @@ function pfMap:UpdateNodes()
             pfQuest.tracker.ButtonAdd(title, node)
           end
 
-          x = x / 100 * WorldMapButton:GetWidth()
-          y = y / 100 * WorldMapButton:GetHeight()
+          local _mapCanvas = WorldMapButton
+            or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child)
+            or WorldMapFrame
+          x = x / 100 * _mapCanvas:GetWidth()
+          y = y / 100 * _mapCanvas:GetHeight()
 
           pfMap.pins[i]:ClearAllPoints()
-          pfMap.pins[i]:SetPoint("CENTER", WorldMapButton, "TOPLEFT", x, -y)
+          pfMap.pins[i]:SetPoint("CENTER", _mapCanvas, "TOPLEFT", x, -y)
 
           pfMap.pins[i]:Show()
         end
@@ -915,12 +983,13 @@ function pfMap:UpdateNodes()
   end
 
   -- hide remaining pins
-  for j=i, table.getn(pfMap.pins) do
+  for j=i, #pfMap.pins do
     if pfMap.pins[j] then pfMap.pins[j]:Hide() end
   end
 end
 
 local coord_cache = {}
+local _mmState = {}  -- replaces implicit "this" storage
 function pfMap:UpdateMinimap()
   -- check for disabled minimap nodes
   if pfQuest_config["minimapnodes"] == "0" then
@@ -929,7 +998,7 @@ function pfMap:UpdateMinimap()
 
   -- hide all minimap nodes while shift is pressed
   if controlkey.pressed and MouseIsOver(pfMap.drawlayer) then
-    this.xPlayer = nil
+    _mmState.xPlayer = nil
 
     for id, pin in pairs(pfMap.mpins) do
       pin:Hide()
@@ -938,10 +1007,20 @@ function pfMap:UpdateMinimap()
     return
   end
 
-  -- hide nodes and skip further processing in dungeons
-  local xPlayer, yPlayer = GetPlayerMapPosition("player")
-  if xPlayer == 0 and yPlayer == 0 then
-    for pins, pin in pairs(pfMap.mpins) do pin:Hide() end
+  -- hide nodes / skip in instances where position is unavailable
+  local xPlayer, yPlayer
+  if C_Map and C_Map.GetPlayerMapPosition then
+    local uiMapID = C_Map.GetBestMapForUnit("player")
+    if uiMapID then
+      local pos = C_Map.GetPlayerMapPosition(uiMapID, "player")
+      if pos then xPlayer, yPlayer = pos:GetXY() end
+    end
+  elseif GetPlayerMapPosition then
+    xPlayer, yPlayer = GetPlayerMapPosition("player")
+  end
+
+  if not xPlayer or (xPlayer == 0 and yPlayer == 0) then
+    for _, pin in pairs(pfMap.mpins) do pin:Hide() end
     return
   end
 
@@ -949,13 +1028,24 @@ function pfMap:UpdateMinimap()
   xPlayer, yPlayer = xPlayer * 100, yPlayer * 100
 
   -- force refresh every second even without changed values, otherwise skip
-  if this.xPlayer == xPlayer and this.yPlayer == yPlayer and this.mZoom == mZoom then
-    if ( this.tick or 1) > GetTime() then return else this.tick = GetTime() + 1 end
+  if _mmState.xPlayer == xPlayer and _mmState.yPlayer == yPlayer and _mmState.mZoom == mZoom then
+    if (_mmState.tick or 1) > GetTime() then return else _mmState.tick = GetTime() + 1 end
   end
 
-  this.xPlayer, this.yPlayer, this.mZoom = xPlayer, yPlayer, mZoom
+  _mmState.xPlayer, _mmState.yPlayer, _mmState.mZoom = xPlayer, yPlayer, mZoom
   local color = pfQuest_config["spawncolors"] == "1" and "spawn" or "title"
-  local mapID = pfMap:GetMapIDByName(GetRealZoneText())
+
+  -- Retail: C_Map is more reliable than GetRealZoneText for the current zone name
+  local _zoneName
+  if C_Map and C_Map.GetBestMapForUnit then
+    local _uid = C_Map.GetBestMapForUnit("player")
+    if _uid then
+      local _mi = C_Map.GetMapInfo(_uid)
+      _zoneName = _mi and _mi.name
+    end
+  end
+  _zoneName = _zoneName or (GetRealZoneText and GetRealZoneText()) or ""
+  local mapID = pfMap:GetMapIDByName(_zoneName)
   local mapZoom = minimap_zoom[minimap_indoor()][mZoom]
   local mapWidth = minimap_sizes[mapID] and minimap_sizes[mapID][1] or 0
   local mapHeight = minimap_sizes[mapID] and minimap_sizes[mapID][2] or 0
@@ -977,7 +1067,7 @@ function pfMap:UpdateMinimap()
         if coord_cache[coords] then
           x, y = coord_cache[coords][1], coord_cache[coords][2]
         else
-          local _, _, strx, stry = strfind(coords, "(.*)|(.*)")
+          local _, _, strx, stry = string.find(coords, "(.*)|(.*)")
           x, y = strx + 0, stry + 0
           coord_cache[coords] = { x, y }
         end
@@ -986,22 +1076,20 @@ function pfMap:UpdateMinimap()
         local yPos = ( y - yPlayer) * yDraw
 
         if pfQuestCompat.rotateMinimap then
-          -- TODO: this part is broken and does not work yet.
-          local sinFacing = sin(pfQuestCompat.GetPlayerFacing())
-          local cosFacing = cos(pfQuestCompat.GetPlayerFacing())
-
+          local _facing = pfQuestCompat.GetPlayerFacing()
+          local sinF, cosF = math.sin(_facing), math.cos(_facing)
           local dx, dy = xPos, -yPos
-          xPos = (dx * cosFacing) + (dy * sinFacing)
-          yPos = -((-dx * sinFacing) + (dy * cosFacing))
+          xPos = (dx * cosF) + (dy * sinF)
+          yPos = -((-dx * sinF) + (dy * cosF))
         end
 
         local display = nil
         local distance = sqrt(xPos * xPos + yPos * yPos)
 
-        if pfUI.minimap then
-          display = ( abs(xPos) + 8 < pfMap.drawlayer:GetWidth() / 2 and abs(yPos) + 8 < pfMap.drawlayer:GetHeight()/2 ) and true or nil
+        if pfUI and pfUI.minimap then
+          display = (math.abs(xPos) + 8 < pfMap.drawlayer:GetWidth()/2 and math.abs(yPos) + 8 < pfMap.drawlayer:GetHeight()/2) and true or nil
         else
-          display = ( distance + 8 < pfMap.drawlayer:GetWidth() / 2 ) and true or nil
+          display = (distance + 8 < pfMap.drawlayer:GetWidth()/2) and true or nil
         end
 
         if display then
@@ -1030,7 +1118,7 @@ function pfMap:UpdateMinimap()
   end
 
   -- hide remaining pins
-  for j=i, table.getn(pfMap.mpins) do
+  for j=i, #pfMap.mpins do
     if pfMap.mpins[j] then pfMap.mpins[j]:Hide() end
   end
 end
@@ -1040,26 +1128,30 @@ pfMap:RegisterEvent("ZONE_CHANGED")
 pfMap:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 pfMap:RegisterEvent("MINIMAP_ZONE_CHANGED")
 pfMap:RegisterEvent("WORLD_MAP_UPDATE")
-pfMap:SetScript("OnEvent", function()
-  -- save current zone
-  zone = GetCurrentMapZone()
+pfMap:SetScript("OnEvent", function(self, event)
+  -- retail: track zone by C_Map uiMapID; legacy by GetCurrentMapZone()
+  if C_Map and C_Map.GetBestMapForUnit then
+    zone = C_Map.GetBestMapForUnit("player")
+  elseif GetCurrentMapZone then
+    zone = GetCurrentMapZone()
+  end
 
-  -- set map to current zone when possible
   if event == "ZONE_CHANGED" or event == "MINIMAP_ZONE_CHANGED" or event == "ZONE_CHANGED_NEW_AREA" then
     if not WorldMapFrame:IsShown() then
-      SetMapToCurrentZone()
+      -- SetMapToCurrentZone removed in retail; C_Map handles this automatically
+      if SetMapToCurrentZone then SetMapToCurrentZone() end
     end
   end
 
-  -- update nodes on world map changes
   if event == "WORLD_MAP_UPDATE" and last_zone ~= zone then
-    pfMap.UpdateNodes()
+    pfMap:UpdateNodes()
     last_zone = zone
   end
 end)
 
 local hlstate, shiftstate, transition, hidecluster, fps, resetmap
-pfMap:SetScript("OnUpdate", function()
+local _mapThrottle = 0
+pfMap:SetScript("OnUpdate", function(self)
   -- handle highlights and animations
   if pfMap.queue_update or transition or pfMap.highlight ~= hlstate or shiftstate ~= hidecluster then
     hlstate, shiftstate, transition = pfMap.highlight, hidecluster, nil
@@ -1088,7 +1180,7 @@ pfMap:SetScript("OnUpdate", function()
   end
 
   -- limit all map updates to once per .05 seconds
-  if ( this.throttle or .2) > GetTime() then return else this.throttle = GetTime() + .05 end
+  if _mapThrottle > GetTime() then return else _mapThrottle = GetTime() + .05 end
 
   -- process node updates if required
   if pfMap.queue_update and pfMap.queue_update + .25 < GetTime() then
@@ -1100,7 +1192,7 @@ pfMap:SetScript("OnUpdate", function()
   if WorldMapFrame:IsShown() then
     resetmap = true
   elseif resetmap == true then
-    SetMapToCurrentZone()
+    if SetMapToCurrentZone then SetMapToCurrentZone() end
     resetmap = nil
   end
 
@@ -1115,28 +1207,42 @@ pfMap:SetScript("OnUpdate", function()
   end
 end)
 
--- only hook for 3.3.5
-if compat.client >= 30300 then
-  -- Initialize a variable to track the previous clicked title
+-- ---------------------------------------------------------------------------
+-- Retail 11.x quest highlight hook
+-- WorldMapQuestFrame_OnMouseUp / WorldMapBlobFrame no longer exist.
+-- Use the QUEST_LOG_SELECTION_CHANGED event and C_QuestLog instead.
+-- WotLK (3.3.5) hook is retained for that client version.
+-- ---------------------------------------------------------------------------
+if compat.client >= 110000 then
+  local _qlsFrame = CreateFrame("Frame")
+  _qlsFrame:RegisterEvent("QUEST_LOG_SELECTION_CHANGED")
+  _qlsFrame:SetScript("OnEvent", function(self, event)
+    local questID = C_QuestLog and C_QuestLog.GetSelectedQuest and C_QuestLog.GetSelectedQuest()
+    if not questID then return end
+    local info  = C_QuestLog.GetInfo and C_QuestLog.GetInfo(questID)
+    local title = info and info.title
+    if title then
+      pfMap.highlight = title
+      pfMap.queue_update = GetTime()
+    end
+  end)
+
+elseif compat.client >= 30300 then
   local previousTitle = nil
-  -- Highlight Map Quest Log Selection Nodes
   local pfHookWorldMapQuestFrame_OnMouseUp = WorldMapQuestFrame_OnMouseUp
   WorldMapQuestFrame_OnMouseUp = function(self)
     pfHookWorldMapQuestFrame_OnMouseUp(self)
-    WorldMapBlobFrame:Hide()
-    WorldMapFrame_ClearQuestPOIs()
+    if WorldMapBlobFrame then WorldMapBlobFrame:Hide() end
+    if WorldMapFrame_ClearQuestPOIs then WorldMapFrame_ClearQuestPOIs() end
     if not IsShiftKeyDown() then
       pfMap.highlight = nil
       local questLogIndex = GetQuestLogSelection()
       local title = GetQuestLogTitle(questLogIndex)
-
       if title then
         if previousTitle == title then
-          -- Reset the highlight if the same title is clicked again
           pfMap.highlight = nil
           previousTitle = nil
         else
-          -- Logic for highlighting nodes associated with the clicked quest
           pfMap.highlight = title
           previousTitle = title
           pfMap.queue_update = GetTime()

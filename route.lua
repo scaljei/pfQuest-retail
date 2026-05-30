@@ -54,12 +54,31 @@ local function DrawLine(path,x,y,nx,ny,hl,minimap)
   local xplayer, yplayer, xdraw, ydraw
   if minimap then
     -- player coords
+    if C_Map and C_Map.GetPlayerMapPosition then
+      local _uid = C_Map.GetBestMapForUnit("player")
+      if _uid then
+        local _pos = C_Map.GetPlayerMapPosition(_uid, "player")
+        if _pos then xplayer, yplayer = _pos:GetXY() end
+      end
+    elseif GetPlayerMapPosition then
+      if C_Map and C_Map.GetPlayerMapPosition then
+    local _uid = C_Map.GetBestMapForUnit("player")
+    if _uid then local _p = C_Map.GetPlayerMapPosition(_uid,"player"); if _p then xplayer, yplayer = _p:GetXY() end end
+  elseif GetPlayerMapPosition then
     xplayer, yplayer = GetPlayerMapPosition("player")
+  end
+    end
     xplayer, yplayer = xplayer * 100, yplayer * 100
 
     -- query minimap zoom/size data
     local mZoom = pfMap.drawlayer:GetZoom()
-    local mapID = pfMap:GetMapIDByName(GetRealZoneText())
+    local _zn = nil
+    if C_Map and C_Map.GetBestMapForUnit then
+      local _uid = C_Map.GetBestMapForUnit("player")
+      if _uid then local _mi = C_Map.GetMapInfo(_uid); _zn = _mi and _mi.name end
+    end
+    _zn = _zn or (GetRealZoneText and GetRealZoneText()) or ""
+    local mapID = pfMap:GetMapIDByName(_zn)
     local mapZoom = pfMap.minimap_zoom[pfMap.minimap_indoor()][mZoom]
     local mapWidth = pfMap.minimap_sizes[mapID] and pfMap.minimap_sizes[mapID][1] or 0
     local mapHeight = pfMap.minimap_sizes[mapID] and pfMap.minimap_sizes[mapID][2] or 0
@@ -92,8 +111,9 @@ local function DrawLine(path,x,y,nx,ny,hl,minimap)
       end
     else
       -- adjust values to worldmap
-      xpos = xpos / 100 * WorldMapButton:GetWidth()
-      ypos = ypos / 100 * WorldMapButton:GetHeight()
+      local _rc = WorldMapButton or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child) or WorldMapFrame
+      xpos = xpos / 100 * _rc:GetWidth()
+      ypos = ypos / 100 * _rc:GetHeight()
     end
 
     if display then
@@ -102,7 +122,8 @@ local function DrawLine(path,x,y,nx,ny,hl,minimap)
         if not tex.enable then nline = id break end
       end
 
-      path[nline] = path[nline] or (minimap and pfMap.drawlayer or WorldMapButton.routes):CreateTexture(nil, "OVERLAY")
+      local _rcr = WorldMapButton or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child) or WorldMapFrame
+      path[nline] = path[nline] or (minimap and pfMap.drawlayer or _rcr.routes):CreateTexture(nil, "OVERLAY")
       path[nline]:SetWidth(4)
       path[nline]:SetHeight(4)
       path[nline]:SetTexture(pfQuestConfig.path.."\\img\\route")
@@ -119,7 +140,7 @@ local function DrawLine(path,x,y,nx,ny,hl,minimap)
       if minimap then -- draw minimap
         path[nline]:SetPoint("CENTER", pfMap.drawlayer, "CENTER", -xpos, ypos)
       else -- draw worldmap
-        path[nline]:SetPoint("CENTER", WorldMapButton, "TOPLEFT", xpos, -ypos)
+        path[nline]:SetPoint("CENTER", _rc, "TOPLEFT", xpos, -ypos)
       end
 
       path[nline]:Show()
@@ -173,38 +194,44 @@ end
 
 local lastpos, completed = 0, 0
 local function sortfunc(a,b) return a[4] < b[4] end
-pfQuest.route:SetScript("OnUpdate", function()
-  local xplayer, yplayer = GetPlayerMapPosition("player")
+pfQuest.route:SetScript("OnUpdate", function(self)
+  local xplayer, yplayer
+  if C_Map and C_Map.GetPlayerMapPosition then
+    local _uid = C_Map.GetBestMapForUnit("player")
+    if _uid then local _p = C_Map.GetPlayerMapPosition(_uid,"player"); if _p then xplayer, yplayer = _p:GetXY() end end
+  elseif GetPlayerMapPosition then
+    xplayer, yplayer = GetPlayerMapPosition("player")
+  end
   local wrongmap = xplayer == 0 and yplayer == 0 and true or nil
   local curpos = xplayer + yplayer
 
   -- limit distance and route updates to once per .1 seconds
-  if ( this.tick or 5) > GetTime() and lastpos == curpos then return else this.tick = GetTime() + 1 end
+  if ( self.tick or 5) > GetTime() and lastpos == curpos then return else self.tick = GetTime() + 1 end
 
   -- limit to a maxium of each .05 seconds even on position change
-  if ( this.throttle or .2) > GetTime() then return else this.throttle = GetTime() + .05 end
+  if ( self.throttle or .2) > GetTime() then return else self.throttle = GetTime() + .05 end
 
   -- save current position
   lastpos = curpos
 
   -- update distances to player
-  for id, data in pairs(this.coords) do
+  for id, data in pairs(self.coords) do
     if data[1] and data[2] then
       local x, y = (xplayer*100 - data[1])*1.5, yplayer*100 - data[2]
-      this.coords[id][4] = ceil(math.sqrt(x*x+y*y)*100)/100
+      self.coords[id][4] = ceil(math.sqrt(x*x+y*y)*100)/100
     end
   end
 
   -- sort all coords by distance only once per second
-  if not this.recalculate or this.recalculate < GetTime() then
-    table.sort(this.coords, sortfunc)
+  if not self.recalculate or self.recalculate < GetTime() then
+    table.sort(self.coords, sortfunc)
 
     -- order list on custom targets
-    if targetTitle and this.coords[1] and not pfQuest.route.IsTarget(this.coords[1][3]) then
+    if targetTitle and self.coords[1] and not pfQuest.route.IsTarget(self.coords[1][3]) then
       local target = nil
 
       -- check for the old index of the target
-      for id, data in pairs(this.coords) do
+      for id, data in pairs(self.coords) do
         if pfQuest.route.IsTarget(data[3]) then
           target = id
           break
@@ -214,28 +241,28 @@ pfQuest.route:SetScript("OnUpdate", function()
       -- rearrange coordinates
       if target then
         local tmp = {}
-        table.insert(tmp, this.coords[target])
+        table.insert(tmp, self.coords[target])
 
-        for id, data in pairs(this.coords) do
+        for id, data in pairs(self.coords) do
           if id ~= target then
-            table.insert(tmp, this.coords[id])
+            table.insert(tmp, self.coords[id])
           end
         end
 
-        this.coords = tmp
+        self.coords = tmp
       end
     end
 
-    this.recalculate = GetTime() + 1
+    self.recalculate = GetTime() + 1
   end
 
   -- show arrow when route exists and is stable
-  if not wrongmap and this.coords[1] and this.coords[1][4] and not this.arrow:IsShown() and pfQuest_config["arrow"] == "1" and GetTime() > completed + 1 then
-    this.arrow:Show()
+  if not wrongmap and self.coords[1] and self.coords[1][4] and not self.arrow:IsShown() and pfQuest_config["arrow"] == "1" and GetTime() > completed + 1 then
+    self.arrow:Show()
   end
 
   -- abort without any nodes or distances
-  if not this.coords[1] or not this.coords[1][4] or pfQuest_config["routes"] == "0" then
+  if not self.coords[1] or not self.coords[1][4] or pfQuest_config["routes"] == "0" then
     ClearPath(objectivepath)
     ClearPath(playerpath)
     ClearPath(mplayerpath)
@@ -243,20 +270,20 @@ pfQuest.route:SetScript("OnUpdate", function()
   end
 
   -- check first node for changes
-  if this.firstnode ~= tostring(this.coords[1][1]..this.coords[1][2]) then
-    this.firstnode = tostring(this.coords[1][1]..this.coords[1][2])
+  if self.firstnode ~= tostring(self.coords[1][1]..self.coords[1][2]) then
+    self.firstnode = tostring(self.coords[1][1]..self.coords[1][2])
 
     -- recalculate objective paths
-    local route = { [1] = this.coords[1] }
+    local route = { [1] = self.coords[1] }
     local blacklist = { [1] = true }
-    for i=2, table.getn(this.coords) do
+    for i=2, #self.coords do
       if route[i-1] then -- make sure the route was not blacklisted
-        route[i] = GetNearest(route[i-1][1],route[i-1][2],this.coords, blacklist)
+        route[i] = GetNearest(route[i-1][1],route[i-1][2],self.coords, blacklist)
       end
 
       -- remove other item requirement gameobjects of same type from route
       if route[i] and route[i][3] and route[i][3].itemreq then
-        for id, data in pairs(this.coords) do
+        for id, data in pairs(self.coords) do
           if not blacklist[id] and data[1] and data[2] and data[3]
             and data[3].itemreq and data[3].itemreq == route[i][3].itemreq
           then
@@ -285,21 +312,22 @@ pfQuest.route:SetScript("OnUpdate", function()
     -- draw player-to-object path
     ClearPath(playerpath)
     ClearPath(mplayerpath)
-    DrawLine(playerpath,xplayer*100,yplayer*100,this.coords[1][1],this.coords[1][2],true)
+    DrawLine(playerpath,xplayer*100,yplayer*100,self.coords[1][1],self.coords[1][2],true)
 
     -- also draw minimap path if enabled
     if pfQuest_config["routeminimap"] == "1" then
-      DrawLine(mplayerpath,xplayer*100,yplayer*100,this.coords[1][1],this.coords[1][2],true,true)
+      DrawLine(mplayerpath,xplayer*100,yplayer*100,self.coords[1][1],self.coords[1][2],true,true)
     end
   end
 end)
 
-pfQuest.route.drawlayer = CreateFrame("Frame", "pfQuestRouteDrawLayer", WorldMapButton)
+local _routeCanvas = WorldMapButton or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child) or WorldMapFrame
+pfQuest.route.drawlayer = CreateFrame("Frame", "pfQuestRouteDrawLayer", _routeCanvas)
 pfQuest.route.drawlayer:SetFrameLevel(113)
 pfQuest.route.drawlayer:SetAllPoints()
 
-WorldMapButton.routes = CreateFrame("Frame", "pfQuestRouteDisplay", pfQuest.route.drawlayer)
-WorldMapButton.routes:SetAllPoints()
+_routeCanvas.routes = CreateFrame("Frame", "pfQuestRouteDisplay", pfQuest.route.drawlayer)
+_routeCanvas.routes:SetAllPoints()
 
 pfQuest.route.arrow = CreateFrame("Frame", "pfQuestRouteArrow", UIParent)
 pfQuest.route.arrow:SetPoint("CENTER", 0, -100)
@@ -311,12 +339,12 @@ pfQuest.route.arrow:EnableMouse(true)
 pfQuest.route.arrow:RegisterForDrag('LeftButton')
 pfQuest.route.arrow:SetScript("OnDragStart", function()
   if IsShiftKeyDown() then
-    this:StartMoving()
+    self:StartMoving()
   end
 end)
 
 pfQuest.route.arrow:SetScript("OnDragStop", function()
-  this:StopMovingOrSizing()
+  self:StopMovingOrSizing()
 end)
 
 local invalid, lasttarget
@@ -327,18 +355,23 @@ local area, alpha, texalpha, color
 local defcolor = "|cffffcc00"
 local r, g, b
 
-pfQuest.route.arrow:SetScript("OnUpdate", function()
+pfQuest.route.arrow:SetScript("OnUpdate", function(self)
   -- abort if the frame is not initialized yet
-  if not this.parent then return end
+  if not self.parent then return end
 
-  xplayer, yplayer = GetPlayerMapPosition("player")
+  if C_Map and C_Map.GetPlayerMapPosition then
+    local _uid = C_Map.GetBestMapForUnit("player")
+    if _uid then local _p = C_Map.GetPlayerMapPosition(_uid,"player"); if _p then xplayer, yplayer = _p:GetXY() end end
+  elseif GetPlayerMapPosition then
+    xplayer, yplayer = GetPlayerMapPosition("player")
+  end
   wrongmap = xplayer == 0 and yplayer == 0 and true or nil
-  target = this.parent.coords and this.parent.coords[1] and this.parent.coords[1][4] and this.parent.coords[1] or nil
+  target = self.parent.coords and self.parent.coords[1] and self.parent.coords[1][4] and self.parent.coords[1] or nil
 
   -- disable arrow on invalid map/route
   if not target or wrongmap or pfQuest_config["arrow"] == "0" then
     if invalid and invalid < GetTime() then
-      this:Hide()
+      self:Hide()
     elseif not invalid then
       invalid = GetTime() + 1
     end
@@ -387,8 +420,8 @@ pfQuest.route.arrow:SetScript("OnUpdate", function()
   r, g, b = r + texalpha, g + texalpha, b + texalpha
 
   -- update arrow
-  this.model:SetTexCoord(xstart,xend,ystart,yend)
-  this.model:SetVertexColor(r,g,b)
+  self.model:SetTexCoord(xstart,xend,ystart,yend)
+  self.model:SetVertexColor(r,g,b)
 
   -- recalculate values on target change
   if target ~= lasttarget then
@@ -400,42 +433,42 @@ pfQuest.route.arrow:SetScript("OnUpdate", function()
 
     -- update node texture
     if target[3].texture then
-      this.texture:SetTexture(target[3].texture)
+      self.texture:SetTexture(target[3].texture)
 
       if target[3].vertex and ( target[3].vertex[1] > 0
         or target[3].vertex[2] > 0
         or target[3].vertex[3] > 0 )
       then
-        this.texture:SetVertexColor(unpack(target[3].vertex))
+        self.texture:SetVertexColor(unpack(target[3].vertex))
       else
-        this.texture:SetVertexColor(1,1,1,1)
+        self.texture:SetVertexColor(1,1,1,1)
       end
     else
-      this.texture:SetTexture(pfQuestConfig.path.."\\img\\node")
-      this.texture:SetVertexColor(pfMap.str2rgb(target[3].title))
+      self.texture:SetTexture(pfQuestConfig.path.."\\img\\node")
+      self.texture:SetVertexColor(pfMap.str2rgb(target[3].title))
     end
 
     -- update arrow texts
     local level = target[3].qlvl and "[" .. target[3].qlvl .. "] " or ""
-    this.title:SetText(color..level..target[3].title.."|r")
+    self.title:SetText(color..level..target[3].title.."|r")
     local desc = target[3].description or ""
     if not pfUI or not pfUI.uf then
-      this.description:SetTextColor(1,.9,.7,1)
+      self.description:SetTextColor(1,.9,.7,1)
       desc = string.gsub(desc, "ff33ffcc", "ffffffff")
     end
-    this.description:SetText(desc.."|r.")
+    self.description:SetText(desc.."|r.")
   end
 
   -- only refresh distance text on change
   local distance = floor(target[4]*10)/10
-  if distance ~= this.distance.number then
-    this.distance:SetText("|cffaaaaaa" .. pfQuest_Loc["Distance"] .. ": "..string.format("%.1f", distance))
-    this.distance.number = distance
+  if distance ~= self.distance.number then
+    self.distance:SetText("|cffaaaaaa" .. pfQuest_Loc["Distance"] .. ": "..string.format("%.1f", distance))
+    self.distance.number = distance
   end
 
   -- update transparencies
-  this.texture:SetAlpha(texalpha)
-  this.model:SetAlpha(alpha)
+  self.texture:SetAlpha(texalpha)
+  self.model:SetAlpha(alpha)
 end)
 
 pfQuest.route.arrow.texture = pfQuest.route.arrow:CreateTexture("pfQuestRouteNodeTexture", "OVERLAY")

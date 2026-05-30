@@ -14,15 +14,15 @@ do -- minimap icon
 
   pfQuestIcon:SetScript("OnDragStart", function()
     if IsShiftKeyDown() then
-      this:StartMoving()
+      self:StartMoving()
     end
   end)
 
   pfQuestIcon:SetScript("OnDragStop", function()
-    this:StopMovingOrSizing()
+    self:StopMovingOrSizing()
   end)
 
-  pfQuestIcon:SetScript("OnClick", function()
+  pfQuestIcon:SetScript("OnClick", function(self, button)
     if pfQuestMenu:IsShown() then
       pfQuestMenu:Hide()
     else
@@ -43,11 +43,11 @@ do -- minimap icon
   end)
 
   pfQuestIcon:RegisterEvent("PLAYER_ENTERING_WORLD")
-  pfQuestIcon:SetScript("OnEvent", function()
+  pfQuestIcon:SetScript("OnEvent", function(self, event)
     if pfQuest_config["minimapbutton"] == "0" then
-      this:Hide()
+      self:Hide()
     else
-      this:Show()
+      self:Show()
     end
   end)
 
@@ -67,26 +67,26 @@ end
 
 do -- tracking menu
   local function MenuButtonEnter()
-    this.title:SetTextColor(1,.8,0)
-    this.highlight:Show()
+    self.title:SetTextColor(1,.8,0)
+    self.highlight:Show()
   end
 
   local function MenuButtonLeave()
-    this.title:SetTextColor(1,1,1)
-    this.highlight:Hide()
+    self.title:SetTextColor(1,1,1)
+    self.highlight:Hide()
   end
 
   local function MenuButtonClick()
-    this.state = this.check and not this.check:GetChecked()
+    self.state = self.check and not self.check:GetChecked()
 
-    if this.check then
-      this.check:SetChecked(this.state)
+    if self.check then
+      self.check:SetChecked(self.state)
     else
-      this:GetParent():Hide()
+      self:GetParent():Hide()
     end
 
-    if this.onclick then
-      this.onclick(nil, this.name, this.state)
+    if self.onclick then
+      self.onclick(nil, self.name, self.state)
     end
   end
 
@@ -175,7 +175,7 @@ do -- tracking menu
     -- the usual menu hide events
     table.insert(UIMenus, name)
     frame:RegisterEvent("CURSOR_UPDATE")
-    frame:SetScript("OnEvent", function() this:Hide() end)
+    frame:SetScript("OnEvent", function() self:Hide() end)
 
     return frame
   end
@@ -211,9 +211,9 @@ do -- tracking menu
   }
 
   pfQuestMenu = CreateMenu(menu, "pfQuestMenu")
-  pfQuestMenu:SetScript("OnShow", function()
+  pfQuestMenu:SetScript("OnShow", function(self)
     -- create shortcuts
-    local anchor = this.anchor or pfQuestIcon
+    local anchor = self.anchor or pfQuestIcon
     local config = pfQuest_track
     local frame = this
 

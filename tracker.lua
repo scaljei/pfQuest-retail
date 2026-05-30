@@ -10,29 +10,31 @@ local function HideTooltip()
 end
 
 local function ShowTooltip()
-  if this.tooltip then
+  if self.tooltip then
     GameTooltip:ClearLines()
     GameTooltip_SetDefaultAnchor(GameTooltip, this)
-    if this.text then
-      GameTooltip:SetText(this.text:GetText())
-      GameTooltip:SetText(this.text:GetText(), this.text:GetTextColor())
+    if self.text then
+      GameTooltip:SetText(self.text:GetText())
+      GameTooltip:SetText(self.text:GetText(), self.text:GetTextColor())
     else
       GameTooltip:SetText("|cff33ffccpf|cffffffffQuest")
     end
 
-    if this.node and this.node.questid then
-      if pfDB["quests"] and pfDB["quests"]["loc"] and pfDB["quests"]["loc"][this.node.questid] and pfDB["quests"]["loc"][this.node.questid]["O"] then
-        GameTooltip:AddLine(pfDatabase:FormatQuestText(pfDB["quests"]["loc"][this.node.questid]["O"]), 1,1,1,1)
+    if self.node and self.node.questid then
+      if pfDB["quests"] and pfDB["quests"]["loc"] and pfDB["quests"]["loc"][self.node.questid] and pfDB["quests"]["loc"][self.node.questid]["O"] then
+        GameTooltip:AddLine(pfDatabase:FormatQuestText(pfDB["quests"]["loc"][self.node.questid]["O"]), 1,1,1,1)
         GameTooltip:AddLine(" ")
       end
 
-      local qlogid = pfQuest.questlog[this.node.questid] and pfQuest.questlog[this.node.questid].qlogid
+      local qlogid = pfQuest.questlog[self.node.questid] and pfQuest.questlog[self.node.questid].qlogid
       if qlogid then
-        local objectives = GetNumQuestLeaderBoards(qlogid)
+        local objectives = compat.GetNumQuestLeaderBoards(qlogid)
         if objectives and objectives > 0 then
           for i=1, objectives, 1 do
-            local text, _, done = GetQuestLogLeaderBoard(i, qlogid)
-            local _, _, obj, cur, req = strfind(gsub(text, "\239\188\154", ":"), "(.*):%s*([%d]+)%s*/%s*([%d]+)")
+            local _qo = compat.GetQuestObjectives(qlogid)
+          local _o = _qo[i] or {}
+          local text, _, done = _o[1], _o[2], _o[3]
+            local _, _, obj, cur, req = string.find(gsub(text, "\239\188\154", ":"), "(.*):%s*([%d]+)%s*/%s*([%d]+)")
             if done then
               GameTooltip:AddLine(" - " .. text, 0,1,0)
             elseif cur and req then
@@ -47,7 +49,7 @@ local function ShowTooltip()
       end
     end
 
-    GameTooltip:AddLine(this.tooltip, 1,1,1)
+    GameTooltip:AddLine(self.tooltip, 1,1,1)
     GameTooltip:Show()
   end
 end
@@ -62,53 +64,53 @@ tracker:SetMovable(true)
 tracker:EnableMouse(true)
 tracker:SetClampedToScreen(true)
 tracker:RegisterEvent("PLAYER_ENTERING_WORLD")
-tracker:SetScript("OnEvent", function()
+tracker:SetScript("OnEvent", function(self, event)
   -- update font sizes according to config
   fontsize = tonumber(pfQuest_config["trackerfontsize"]) or 12
   entryheight = ceil(fontsize*1.6)
 
   -- restore tracker state
   if pfQuest_config["showtracker"] and pfQuest_config["showtracker"] == "0" then
-    this:Hide()
+    self:Hide()
   else
-    this:Show()
+    self:Show()
   end
 end)
 
 tracker:SetScript("OnMouseDown",function()
   if not pfQuest_config.lock then
-    this:StartMoving()
+    self:StartMoving()
   end
 end)
 
 tracker:SetScript("OnMouseUp",function()
-  this:StopMovingOrSizing()
+  self:StopMovingOrSizing()
   local anchor, x, y = pfUI.api.ConvertFrameAnchor(this, pfUI.api.GetBestAnchor(this))
-  this:ClearAllPoints()
-  this:SetPoint(anchor, x, y)
+  self:ClearAllPoints()
+  self:SetPoint(anchor, x, y)
 
   -- save position
   pfQuest_config.trackerpos = { anchor, x, y }
 end)
 
-tracker:SetScript("OnUpdate", function()
+tracker:SetScript("OnUpdate", function(self)
   if WorldMapFrame:IsShown() then
-    if this.strata ~= "FULLSCREEN_DIALOG" then
-      this:SetFrameStrata("FULLSCREEN_DIALOG")
-      this.strata = "FULLSCREEN_DIALOG"
+    if self.strata ~= "FULLSCREEN_DIALOG" then
+      self:SetFrameStrata("FULLSCREEN_DIALOG")
+      self.strata = "FULLSCREEN_DIALOG"
     end
   else
-    if this.strata ~= "BACKGROUND" then
-      this:SetFrameStrata("BACKGROUND")
-      this.strata = "BACKGROUND"
+    if self.strata ~= "BACKGROUND" then
+      self:SetFrameStrata("BACKGROUND")
+      self.strata = "BACKGROUND"
     end
   end
 
-  local alpha = this.backdrop:GetAlpha()
+  local alpha = self.backdrop:GetAlpha()
   local content = tracker.buttons[1] and not tracker.buttons[1].empty and true or nil
   local goal = ( content and not MouseIsOver(this) ) and 0 or not content and not MouseIsOver(this) and 0.5 or 1
   if ceil(alpha*10) ~= ceil(goal*10)then
-    this.backdrop:SetAlpha(alpha + ((goal - alpha) > 0 and .1 or (goal - alpha) < 0 and -.1 or 0))
+    self.backdrop:SetAlpha(alpha + ((goal - alpha) > 0 and .1 or (goal - alpha) < 0 and -.1 or 0))
   end
 
   if pfQuestCompat.QuestWatchFrame:IsShown() then
@@ -116,17 +118,17 @@ tracker:SetScript("OnUpdate", function()
   end
 end)
 
-tracker:SetScript("OnShow", function()
+tracker:SetScript("OnShow", function(self)
   pfQuest_config["showtracker"] = "1"
 
   -- load tracker position if exists
    if pfQuest_config.trackerpos then
-     this:ClearAllPoints()
-     this:SetPoint(unpack(pfQuest_config.trackerpos))
+     self:ClearAllPoints()
+     self:SetPoint(unpack(pfQuest_config.trackerpos))
    end
 end)
 
-tracker:SetScript("OnHide", function()
+tracker:SetScript("OnHide", function(self)
   pfQuest_config["showtracker"] = "0"
 end)
 
@@ -158,7 +160,7 @@ do -- button panel
     b.icon = b:CreateTexture(nil, "BACKGROUND")
     b.icon:SetAllPoints()
     b.icon:SetTexture(pfQuestConfig.path.."\\img\\tracker_"..icon)
-    if table.getn(buttons) == 0 then b.icon:SetVertexColor(.2,1,.8) end
+    if #buttons == 0 then b.icon:SetVertexColor(.2,1,.8) end
 
     b:SetPoint(anchor, pos, -1)
     b:SetWidth(panelheight-2)
@@ -169,12 +171,12 @@ do -- button panel
 
     if anchor == "TOPLEFT" then
       table.insert(buttons, b)
-      b:SetScript("OnClick", function()
+      b:SetScript("OnClick", function(self, button)
         if func then func() end
         for id, button in pairs(buttons) do
           button.icon:SetVertexColor(1,1,1)
         end
-        this.icon:SetVertexColor(.2,1,.8)
+        self.icon:SetVertexColor(.2,1,.8)
       end)
     else
       b:SetScript("OnClick", func)
@@ -218,7 +220,7 @@ do -- button panel
 end
 
 function tracker.ButtonEnter()
-  pfMap.highlight = this.title
+  pfMap.highlight = self.title
   ShowTooltip()
 end
 
@@ -230,29 +232,29 @@ end
 function tracker.ButtonUpdate()
   local alpha = tonumber((pfQuest_config["trackeralpha"] or .2)) or .2
 
-  if not this.alpha or this.alpha ~= alpha then
-    this.bg:SetTexture(0,0,0,alpha)
-    this.bg:SetAlpha(alpha)
-    this.alpha = alpha
+  if not self.alpha or self.alpha ~= alpha then
+    self.bg:SetTexture(0,0,0,alpha)
+    self.bg:SetAlpha(alpha)
+    self.alpha = alpha
   end
 
-  if pfMap.highlight and pfMap.highlight == this.title then
-    if not this.highlight then
-      this.bg:SetTexture(1,1,1,math.max(.2, alpha))
-      this.bg:SetAlpha(math.max(.5, alpha))
-      this.highlight = true
+  if pfMap.highlight and pfMap.highlight == self.title then
+    if not self.highlight then
+      self.bg:SetTexture(1,1,1,math.max(.2, alpha))
+      self.bg:SetAlpha(math.max(.5, alpha))
+      self.highlight = true
     end
-  elseif this.highlight then
-    this.bg:SetTexture(0,0,0,alpha)
-    this.bg:SetAlpha(alpha)
-    this.highlight = nil
+  elseif self.highlight then
+    self.bg:SetTexture(0,0,0,alpha)
+    self.bg:SetAlpha(alpha)
+    self.highlight = nil
   end
 end
 
 function tracker.ButtonClick()
-  if arg1 == "RightButton" then
+  if delta == "RightButton" then
     for questid, data in pairs(pfQuest.questlog) do
-      if data.title == this.title then
+      if data.title == self.title then
         -- show questlog
         HideUIPanel(QuestLogFrame)
         SelectQuestLogEntry(data.qlogid)
@@ -262,19 +264,21 @@ function tracker.ButtonClick()
     end
   elseif IsShiftKeyDown() then
     -- mark as done if node is quest and not in questlog
-    if this.node.questid and not this.node.qlogid then
+    if self.node.questid and not self.node.qlogid then
       -- mark as done in history
-      pfQuest_history[this.node.questid] = { time(), UnitLevel("player") }
-      UIErrorsFrame:AddMessage(string.format("The Quest |cffffcc00[%s]|r (id:%s) is now marked as done.", this.title, this.node.questid), 1,1,1)
+      pfQuest_history[self.node.questid] = { time(), UnitLevel("player") }
+      UIErrorsFrame:AddMessage(string.format("The Quest |cffffcc00[%s]|r (id:%s) is now marked as done.", self.title, self.node.questid), 1,1,1)
     end
 
-    pfMap:DeleteNode(this.node.addon, this.title)
+    pfMap:DeleteNode(self.node.addon, self.title)
     pfMap:UpdateNodes()
 
     pfQuest.updateQuestGivers = true
   elseif IsControlKeyDown() and not WorldMapFrame:IsShown() then
     -- show world map
-    if ToggleWorldMap then
+    if OpenWorldMap then
+      OpenWorldMap()
+    elseif ToggleWorldMap then
       -- vanilla & tbc
       ToggleWorldMap()
     else
@@ -283,13 +287,13 @@ function tracker.ButtonClick()
     end
   elseif IsControlKeyDown() and pfQuest_config["spawncolors"] == "0" then
     -- switch color
-    pfQuest_colors[this.title] = { pfMap.str2rgb(this.title .. GetTime()) }
+    pfQuest_colors[self.title] = { pfMap.str2rgb(self.title .. GetTime()) }
     pfMap:UpdateNodes()
-  elseif expand_states[this.title] == 0 then
-    expand_states[this.title] = 1
+  elseif expand_states[self.title] == 0 then
+    expand_states[self.title] = 1
     tracker.ButtonEvent(this)
-  elseif expand_states[this.title] == 1 then
-    expand_states[this.title] = 0
+  elseif expand_states[self.title] == 1 then
+    expand_states[self.title] = 0
     tracker.ButtonEvent(this)
   end
 end
@@ -351,7 +355,7 @@ function tracker.ButtonEvent(self)
     local qlogid = pfQuest.questlog[qid] and pfQuest.questlog[qid].qlogid or 0
     local qtitle, level, tag, header, collapsed, complete = compat.GetQuestLogTitle(qlogid)
     if not qlogid or not qtitle then return end
-    local objectives = GetNumQuestLeaderBoards(qlogid)
+    local objectives = compat.GetNumQuestLeaderBoards(qlogid)
     local watched = IsQuestWatched(qlogid)
     local color = pfQuestCompat.GetDifficultyColor(level)
     local cur,max = 0,0
@@ -366,8 +370,8 @@ function tracker.ButtonEvent(self)
 
     if objectives and objectives > 0 then
       for i=1, objectives, 1 do
-        local text, _, done = GetQuestLogLeaderBoard(i, qlogid)
-        local _, _, obj, objNum, objNeeded = strfind(gsub(text, "\239\188\154", ":"), "(.*):%s*([%d]+)%s*/%s*([%d]+)")
+        local _trobs = compat.GetQuestObjectives(qlogid); local _tro = _trobs[i] or {}; local text, _, done = _tro[1], _tro[2], _tro[3]
+        local _, _, obj, objNum, objNeeded = string.find(gsub(text, "\239\188\154", ":"), "(.*):%s*([%d]+)%s*/%s*([%d]+)")
         if objNum and objNeeded then
           max = max + objNeeded
           cur = cur + objNum
@@ -389,8 +393,8 @@ function tracker.ButtonEvent(self)
       self:SetHeight(entryheight + objectives * fontsize)
 
       for i=1, objectives, 1 do
-        local text, _, done = GetQuestLogLeaderBoard(i, qlogid)
-        local _, _, obj, objNum, objNeeded = strfind(gsub(text, "\239\188\154", ":"), "(.*):%s*([%d]+)%s*/%s*([%d]+)")
+        local _trobs = compat.GetQuestObjectives(qlogid); local _tro = _trobs[i] or {}; local text, _, done = _tro[1], _tro[2], _tro[3]
+        local _, _, obj, objNum, objNeeded = string.find(gsub(text, "\239\188\154", ":"), "(.*):%s*([%d]+)%s*/%s*([%d]+)")
 
         if not self.objectives[i] then
           self.objectives[i] = self:CreateFontString(nil, "HIGH", "GameFontNormal")
@@ -530,7 +534,7 @@ function tracker.ButtonAdd(title, node)
 
   if not id then
     -- use maxcount + 1 as default id
-    id = table.getn(tracker.buttons)+1
+    id = #tracker.buttons+1
 
     -- detect a reusable button
     for bid, button in pairs(tracker.buttons) do
@@ -596,7 +600,8 @@ function tracker.Reset()
   end
 
   -- add tracked quests
-  local _, numQuests = GetNumQuestLogEntries()
+  local _, numQuests = (C_QuestLog and C_QuestLog.GetNumQuestLogEntries and C_QuestLog.GetNumQuestLogEntries()) or (GetNumQuestLogEntries and GetNumQuestLogEntries()) or 0, 0
+numQuests = numQuests or 0
   local found = 0
 
   -- iterate over all quests

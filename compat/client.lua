@@ -1,150 +1,189 @@
--- some abstraction to allow multi-client code
-local _, _, _, client = GetBuildInfo()
-client = client or 11200
+-- pfQuest compat/client.lua
+-- Retail 11.1.5 port — replaces all TBC/WotLK API calls with their modern equivalents.
+-- Original by Shagu; retail adaptation adds C_Map, C_QuestLog, C_AddOns layers.
 
-local _G = client == 11200 and getfenv(0) or _G
-local gfind = string.gmatch or string.gfind
+-- GetBuildInfo() 4th return is the full interface string e.g. "110105" in retail.
+local _, _, _, clientStr = GetBuildInfo()
+local client = tonumber(clientStr) or 110105
 
 pfQuestCompat = {}
-pfQuestCompat.mod = mod or math.mod
-pfQuestCompat.gfind = string.gmatch or string.gfind
-pfQuestCompat.itemsuffix = client > 11200 and ":0:0:0:0:0:0:0" or ":0:0:0"
-pfQuestCompat.rotateMinimap = client > 11200 and GetCVar("rotateMinimap") ~= "0" and true or nil
 pfQuestCompat.client = client
 
--- addon-compat: use and cache the original function if CTMod overwrites global API calls
-local GetQuestLogTitle = CT_QuestLevels_oldGetQuestLogTitle or GetQuestLogTitle
+-- math.mod was removed; expose via % wrapper
+pfQuestCompat.mod = function(a, b) return a % b end
 
--- tbc+wotlk: change behaviour of later expansions to the vanilla one
+-- string.gmatch replaces string.gfind (Lua 5.0 only)
+pfQuestCompat.gfind = string.gmatch
+
+-- Item suffix: retail uses a 13-field link format
+pfQuestCompat.itemsuffix = ":0:0:0:0:0:0:0:0:0:0:0:0:0"
+
+-- Minimap rotation CVar is still present in retail
+pfQuestCompat.rotateMinimap = GetCVar("rotateMinimap") ~= "0" and true or nil
+
+-- ---------------------------------------------------------------------------
+-- Quest log helpers
+-- C_QuestLog fully replaces the old global functions in retail 11.x.
+-- We normalise to the 6-return signature that the rest of pfQuest expects:
+--   title, level, tag, header, collapsed, complete
+-- ---------------------------------------------------------------------------
 pfQuestCompat.GetQuestLogTitle = function(id)
-  local title, level, tag, group, header, collapsed, complete, daily, _
-  if client <= 11200 then -- vanilla
-    title, level, tag, header, collapsed, complete = GetQuestLogTitle(id)
-  elseif client > 11200 then -- tbc & wotlk
-    title, level, tag, group, header, collapsed, complete, daily = GetQuestLogTitle(id)
+  if C_QuestLog and C_QuestLog.GetInfo then
+    local info = C_QuestLog.GetInfo(id)
+    if not info then return nil end
+    local complete = C_QuestLog.IsComplete and C_QuestLog.IsComplete(info.questID) and 1 or nil
+    return info.title, info.level, nil, info.isHeader, info.isCollapsed, complete
   end
-
-  return title, level, tag, header, collapsed, complete
+  -- legacy fallback (should never be reached on retail)
+  if GetQuestLogTitle then
+    local title, level, tag, group, header, collapsed, complete, daily = GetQuestLogTitle(id)
+    return title, level, tag, header, collapsed, complete
+  end
 end
 
--- wotlk: changed from GetDifficultyColor to GetQuestDifficultyColor in 3.2
-pfQuestCompat.GetDifficultyColor = GetQuestDifficultyColor or GetDifficultyColor
-
--- wotlk: changed from QuestWatchFrame to WatchFrame in 3.3
-pfQuestCompat.QuestWatchFrame = QuestWatchFrame or WatchFrame
-
--- wotlk: changed questlog related frame names in 3.3
-pfQuestCompat.QuestLogQuestTitle = QuestLogQuestTitle or QuestInfoTitleHeader
-pfQuestCompat.QuestLogObjectivesText = QuestLogObjectivesText or QuestInfoObjectivesText
-pfQuestCompat.QuestLogQuestDescription = QuestLogQuestDescription or QuestInfoDescriptionText
-pfQuestCompat.QuestLogDescriptionTitle = QuestLogDescriptionTitle or QuestInfoDescriptionHeader
-
--- wotlk: disable builtin quest progress tooltips
-if client >= 30300 then
-  SetCVar("showQuestTrackingTooltips", 0)
+-- ---------------------------------------------------------------------------
+-- Number of quest log entries
+-- ---------------------------------------------------------------------------
+pfQuestCompat.GetNumQuestLogEntries = function()
+  if C_QuestLog and C_QuestLog.GetNumQuestLogEntries then
+    return C_QuestLog.GetNumQuestLogEntries()
+  end
+  return GetNumQuestLogEntries and GetNumQuestLogEntries() or 0
 end
 
--- vanilla+tbc+wotlk: base function to insert quest links to the chat
+-- ---------------------------------------------------------------------------
+-- Quest objective boards
+-- Returns a list of {text, type, finished} tables matching old leaderboard API.
+-- ---------------------------------------------------------------------------
+pfQuestCompat.GetQuestObjectives = function(qlogid)
+  if C_QuestLog and C_QuestLog.GetInfo and C_QuestLog.GetQuestObjectives then
+    local info = C_QuestLog.GetInfo(qlogid)
+    if not info then return {} end
+    local objs = C_QuestLog.GetQuestObjectives(info.questID) or {}
+    -- normalise to {text, type, finished}
+    local result = {}
+    for _, o in ipairs(objs) do
+      result[#result+1] = { o.text, o.type, o.finished }
+    end
+    return result
+  end
+  -- legacy fallback
+  if GetNumQuestLeaderBoards then
+    local result = {}
+    local n = GetNumQuestLeaderBoards(qlogid) or 0
+    for i = 1, n do
+      local text, t, done = GetQuestLogLeaderBoard(i, qlogid)
+      result[#result+1] = { text, t, done }
+    end
+    return result
+  end
+  return {}
+end
+
+-- Convenience: number of objectives for a quest log index
+pfQuestCompat.GetNumQuestLeaderBoards = function(qlogid)
+  return #pfQuestCompat.GetQuestObjectives(qlogid)
+end
+
+-- ---------------------------------------------------------------------------
+-- Difficulty colouring
+-- ---------------------------------------------------------------------------
+pfQuestCompat.GetDifficultyColor = GetQuestDifficultyColor
+  or (C_PlayerInfo and C_PlayerInfo.GetContentDifficultyCreatureForPlayer)
+  or GetDifficultyColor
+  or function() return { r=1, g=1, b=1 } end
+
+-- ---------------------------------------------------------------------------
+-- Watch frame: ObjectiveTrackerFrame in retail
+-- ---------------------------------------------------------------------------
+pfQuestCompat.QuestWatchFrame = QuestWatchFrame or ObjectiveTrackerFrame or WatchFrame
+
+-- ---------------------------------------------------------------------------
+-- Quest log UI frame names (renamed in WotLK; mostly absent in retail)
+-- ---------------------------------------------------------------------------
+pfQuestCompat.QuestLogQuestTitle      = QuestLogQuestTitle      or QuestInfoTitleHeader
+pfQuestCompat.QuestLogObjectivesText  = QuestLogObjectivesText  or QuestInfoObjectivesText
+pfQuestCompat.QuestLogQuestDescription= QuestLogQuestDescription or QuestInfoDescriptionText
+pfQuestCompat.QuestLogDescriptionTitle= QuestLogDescriptionTitle or QuestInfoDescriptionHeader
+
+-- ---------------------------------------------------------------------------
+-- Chat edit box insert
+-- ChatFrameEditBox was removed; use ChatEdit_GetActiveWindow() in retail.
+-- ---------------------------------------------------------------------------
 pfQuestCompat.InsertQuestLink = function(questid, name)
-  local questid = questid or 0
+  local questid  = questid or 0
   local fallback = name or UNKNOWN
-  local level = pfDB["quests"]["data"][questid] and pfDB["quests"]["data"][questid]["lvl"] or 0
-  local name = pfDB["quests"]["loc"][questid] and pfDB["quests"]["loc"][questid]["T"] or fallback
-  local hex = pfUI.api.rgbhex(pfQuestCompat.GetDifficultyColor(level))
+  local level    = pfDB["quests"]["data"][questid] and pfDB["quests"]["data"][questid]["lvl"] or 0
+  local qname    = pfDB["quests"]["loc"][questid]  and pfDB["quests"]["loc"][questid]["T"]   or fallback
+  local dc       = pfQuestCompat.GetDifficultyColor(level)
+  local hex      = string.format("|cff%02x%02x%02x", (dc.r or 1)*255, (dc.g or 1)*255, (dc.b or 1)*255)
 
-  ChatFrameEditBox:Show()
-  if pfQuest_config["questlinks"] == "1" then
-    ChatFrameEditBox:Insert(hex .. "|Hquest:" .. questid .. ":" .. level .. "|h[" .. name .. "]|h|r")
-  else
-    ChatFrameEditBox:Insert("[" .. name .. "]")
-  end
-end
-
--- vanilla+tbc: do the best to detect the minimap arrow
-local minimaparrow = ({Minimap:GetChildren()})[9]
-for k, v in pairs({Minimap:GetChildren()}) do
-  if v:IsObjectType("Model") and not v:GetName() then
-    if string.find(strlower(v:GetModel()), "interface\\minimap\\minimaparrow") then
-      minimaparrow = v
-      break
+  local editbox = (ChatEdit_GetActiveWindow and ChatEdit_GetActiveWindow())
+               or (ChatFrameEditBox and ChatFrameEditBox:IsShown() and ChatFrameEditBox)
+  if editbox then
+    editbox:Show()
+    if pfQuest_config["questlinks"] == "1" then
+      editbox:Insert(hex .. "|Hquest:" .. questid .. ":" .. level .. "|h[" .. qname .. "]|h|r")
+    else
+      editbox:Insert("[" .. qname .. "]")
     end
   end
 end
 
--- always keep player arrow on top
-if minimaparrow then
-  minimaparrow:SetFrameLevel(8)
-end
-
--- vanilla+tbc: return the player facing based on the minimap arrow
+-- ---------------------------------------------------------------------------
+-- Minimap arrow / player facing
+-- In retail the compass ring / arrow model is no longer a bare unnamed child.
+-- GetPlayerFacing() is still present and works correctly in retail.
+-- ---------------------------------------------------------------------------
 pfQuestCompat.GetPlayerFacing = GetPlayerFacing or function()
-  if pfQuestCompat.rotateMinimap then
+  if pfQuestCompat.rotateMinimap and MiniMapCompassRing and MiniMapCompassRing.GetFacing then
     return (MiniMapCompassRing:GetFacing() * -1)
-  else
-    return minimaparrow:GetFacing()
   end
+  return 0
 end
 
--- vanilla: overwrite the out-of-memory popup on vanilla clients, to provide some help
--- on how to increase the limits, and also displaying a link to an example.
-if client <= 11200 then
-  local memlimit = "The user interface is using more than %dMB of memory.\n\n" ..
-    "Set '|cffffee55Script Memory|r' to '|cffffee550|r' in the addon selection of your character login screen:"
-
-  local striptex = function(frame)
-    for _,v in ipairs({frame:GetRegions()}) do
-      if v.GetTexture and string.find(v:GetTexture(), "ChatInputBorder") then v:Hide() end
-    end
+-- Elevate the minimap arrow frame above pfQuest pins.
+-- Deferred to PLAYER_LOGIN so all frames are guaranteed to exist.
+local function ElevateMinimapArrow()
+  -- retail: named frames come first
+  local arrow = _G["MinimapArrow"] or _G["PlayerArrowEffectFrame"]
+  if arrow and arrow.SetFrameLevel then
+    arrow:SetFrameLevel(8)
+    return
   end
-
-  _G.StaticPopupDialogs["MEMORY_EXHAUSTED"] = {
-    text = TEXT(memlimit),
-    button1 = TEXT(QUIT_NOW),
-    button2 = TEXT(CANCEL),
-    hasEditBox = 1,
-    showAlert = 1,
-    OnShow = function()
-      pfUI.api.CreateBackdrop(getglobal(this:GetName().."EditBox"), 3, true)
-      getglobal(this:GetName().."EditBox"):SetText("https://shagu.org/script-memory.jpg")
-      getglobal(this:GetName().."EditBox"):SetTextInsets(5, 5, 5, 5)
-      getglobal(this:GetName().."EditBox"):SetJustifyH("CENTER")
-      getglobal(this:GetName().."EditBox"):SetWidth(220)
-      getglobal(this:GetName().."EditBox"):SetFocus()
-      getglobal(this:GetName().."Button2"):Disable()
-      striptex(getglobal(this:GetName().."EditBox"))
-    end,
-    OnAccept = function()
-      ForceQuit()
-    end,
-    timeout = 0,
-    whileDead = 1,
-  }
-end
-
--- vanilla: add colors to quest links
-if client <= 11200 then
-  local ParseQuestLevels = function(frame, text, a1, a2, a3, a4, a5)
-    if text then
-      for oldhex, questid, level in gfind(text, "(|c%x+)|Hquest:(.-):(.-)|h") do
-        local questid = tonumber(questid)
-        local level = tonumber(level)
-
-        if not level or level == 0 then
-          level = pfDB["quests"]["data"][questid] and pfDB["quests"]["data"][questid]["lvl"] or 0
-        end
-
-        if level and level > 0 then
-          local newhex = pfUI.api.rgbhex(pfQuestCompat.GetDifficultyColor(level))
-          text = string.gsub(text, oldhex .. "|Hquest:"..questid, newhex.."|Hquest:"..questid)
-        end
+  -- legacy scan for unnamed Model child
+  for _, v in ipairs({Minimap:GetChildren()}) do
+    if v.IsObjectType and v:IsObjectType("Model") and not v:GetName() then
+      local mdl = v:GetModel() or ""
+      if string.find(mdl:lower(), "interface\\minimap\\minimaparrow") then
+        v:SetFrameLevel(8)
+        return
       end
     end
-
-    frame.pfQuestHookAddMessage(frame, text, a1, a2, a3, a4, a5)
   end
+end
 
-  for i=1,NUM_CHAT_WINDOWS do
-    _G["ChatFrame"..i].pfQuestHookAddMessage = _G["ChatFrame"..i].pfQuestHookAddMessage or _G["ChatFrame"..i].AddMessage
-    _G["ChatFrame"..i].AddMessage = ParseQuestLevels
+local _arrowFrame = CreateFrame("Frame")
+_arrowFrame:RegisterEvent("PLAYER_LOGIN")
+_arrowFrame:SetScript("OnEvent", function(self)
+  self:UnregisterAllEvents()
+  ElevateMinimapArrow()
+end)
+
+-- ---------------------------------------------------------------------------
+-- pfUI colour helper shim
+-- pfUI.api.rgbhex may not be available without the real pfUI. Provide a
+-- lightweight version so InsertQuestLink and other callers work standalone.
+-- ---------------------------------------------------------------------------
+if not (pfUI and pfUI.api and pfUI.api.rgbhex) then
+  pfUI = pfUI or { api = {} }
+  pfUI.api = pfUI.api or {}
+  pfUI.api.rgbhex = pfUI.api.rgbhex or function(r, g, b, a)
+    if type(r) == "table" then
+      local t = r
+      r, g, b, a = t.r or t[1], t.g or t[2], t.b or t[3], t.a or t[4] or 1
+    end
+    a = a or 1
+    return string.format("|c%02x%02x%02x%02x", a*255, (r or 1)*255, (g or 1)*255, (b or 1)*255)
   end
 end
