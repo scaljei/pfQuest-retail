@@ -355,8 +355,9 @@ StaticPopupDialogs["PFQUEST_URLCOPY"] = {
 
 function pfQuest:AddQuestLogIntegration()
   if pfQuest_config["questlogbuttons"] ==  "0" then return end
-
+  -- retail 11.x: classic quest log dock UI removed entirely
   local dockFrame = EQL3_QuestLogDetailScrollChildFrame or ShaguQuest_QuestLogDetailScrollChildFrame or QuestLogDetailScrollChildFrame
+  if not dockFrame then return end
   local dockTitle = EQL3_QuestLogDescriptionTitle or ShaguQuest_QuestLogDescriptionTitle or pfQuestCompat.QuestLogDescriptionTitle
 
   dockTitle:SetHeight(dockTitle:GetHeight() + 30)
@@ -396,6 +397,7 @@ function pfQuest:AddQuestLogIntegration()
   pfQuest.buttonLanguage.txt:SetText("|cff000000[|cff333333" .. pfQuest_Loc["Translate"] .. "|cff000000]")
 
   pfQuest.buttonLanguage:SetScript("OnClick", function(self, button)
+    if not UIDropDownMenu_Initialize then return end
     UIDropDownMenu_Initialize(self, function()
       local func = function() pfQuest_config.translate = self.value end
       local info = {}
@@ -422,7 +424,7 @@ function pfQuest:AddQuestLogIntegration()
     if self.translate ~= pfQuest_config.translate then
       pfQuest.buttonLanguage.txt:SetText("|cff000000[|cff3333ff" .. (pfDB.locales[pfQuest_config.translate] or "|cff333333" .. pfQuest_Loc["Translate"]) .. "|cff000000]")
       self.translate = pfQuest_config.translate
-      QuestLog_UpdateQuestDetails(true)
+      if QuestLog_UpdateQuestDetails then QuestLog_UpdateQuestDetails(true) end
       return
     end
 
@@ -496,12 +498,14 @@ function pfQuest:AddQuestLogIntegration()
   end
 end
 
+-- retail 11.x: UIDropDownMenuTemplate removed in 10.0; skip world map dropdown
 function pfQuest:AddWorldMapIntegration()
   if pfQuest_config["worldmapmenu"] ==  "0" then return end
+  if not UIDropDownMenuTemplate and not _G["UIDropDownMenuTemplate"] then return end
 
   -- Quest Display Selection
   local _mqCanvas = WorldMapButton or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child) or WorldMapFrame
-pfQuest.mapButton = CreateFrame("Frame", "pfQuestMapDropdown", _mqCanvas, "UIDropDownMenuTemplate")
+  pfQuest.mapButton = CreateFrame("Frame", "pfQuestMapDropdown", _mqCanvas, "UIDropDownMenuTemplate")
   pfQuest.mapButton:ClearAllPoints()
   pfQuest.mapButton:SetPoint("TOPRIGHT" , 0, -10)
   pfQuest.mapButton:SetScript("OnShow", function(self)
@@ -612,10 +616,14 @@ if C_QuestLog then
 end
 
 -- Save the abandoned questname to remove from history
-local HookAbandonQuest = AbandonQuest
-AbandonQuest = function()
-  pfQuest.abandon = GetAbandonQuestName()
-  HookAbandonQuest()
+-- retail: AbandonQuest/GetAbandonQuestName still exist but guard anyway
+if AbandonQuest then
+  local HookAbandonQuest = AbandonQuest
+  AbandonQuest = function()
+    pfQuest.abandon = (GetAbandonQuestName and GetAbandonQuestName())
+      or (C_QuestLog and C_QuestLog.GetAbandonQuestName and C_QuestLog.GetAbandonQuestName())
+    if HookAbandonQuest then HookAbandonQuest() end
+  end
 end
 
 local function UpdateQuestLevel(button, id)
@@ -627,16 +635,18 @@ local function UpdateQuestLevel(button, id)
 end
 
 -- Update quest id button
+-- retail 11.x: QuestLog_Update removed; quest log is now ObjectiveTracker-based
+if QuestLog_Update then
 local pfHookQuestLog_Update = QuestLog_Update
 QuestLog_Update = function()
   pfHookQuestLog_Update()
 
   if pfQuest_config["questloglevel"] == "1" then
-    if client >= 30300 then
+    if client >= 30300 and QuestLogScrollFrame and QuestLogScrollFrame.buttons then
       for i, button in pairs(QuestLogScrollFrame.buttons) do
         UpdateQuestLevel(button, button:GetID())
       end
-    else
+    elseif FauxScrollFrame_GetOffset and QuestLogListScrollFrame then
       for i=1, QUESTS_DISPLAYED, 1 do
         UpdateQuestLevel(_G["QuestLogTitle"..i], i + FauxScrollFrame_GetOffset(QuestLogListScrollFrame))
       end
@@ -669,31 +679,36 @@ QuestLog_Update = function()
   end
 end
 
+end -- QuestLog_Update exists
+
 -- attach the new function to the scroll frame
-if QuestLogScrollFrame then
+if QuestLog_Update and QuestLogScrollFrame then
   QuestLogScrollFrame.update = QuestLog_Update
 end
 
--- refresh language and url on quest selection
-local pfHookQuestLogTitleButton_OnClick = QuestLogTitleButton_OnClick
-QuestLogTitleButton_OnClick = function(self, button)
-  pfHookQuestLogTitleButton_OnClick(self, button)
-  QuestLog_Update()
+-- refresh language and url on quest selection (classic/wotlk only)
+if QuestLogTitleButton_OnClick then
+  local pfHookQuestLogTitleButton_OnClick = QuestLogTitleButton_OnClick
+  QuestLogTitleButton_OnClick = function(self, button)
+    pfHookQuestLogTitleButton_OnClick(self, button)
+    if QuestLog_Update then QuestLog_Update() end
+  end
 end
 
-if not GetQuestLink then -- Allow to send questlinks from questlog
+if not GetQuestLink and QuestLogTitleButton_OnClick then -- Allow to send questlinks from questlog
   local pfHookQuestLogTitleButton_OnClick = QuestLogTitleButton_OnClick
   QuestLogTitleButton_OnClick = function(button)
     local scrollFrame = EQL3_QuestLogListScrollFrame or ShaguQuest_QuestLogListScrollFrame or QuestLogListScrollFrame
-    local questIndex = self:GetID() + FauxScrollFrame_GetOffset(scrollFrame)
+    local _offset = (FauxScrollFrame_GetOffset and scrollFrame and FauxScrollFrame_GetOffset(scrollFrame)) or 0
+    local questIndex = self:GetID() + _offset
     local questName, questLevel = compat.GetQuestLogTitle(questIndex)
     local questids = pfDatabase:GetQuestIDs(questIndex)
     local questid = questids and tonumber(questids[1]) or 0
 
     if IsShiftKeyDown() and not self.isHeader and (ChatEdit_GetActiveWindow and ChatEdit_GetActiveWindow() or ChatFrameEditBox) and (ChatEdit_GetActiveWindow and ChatEdit_GetActiveWindow() or ChatFrameEditBox):IsVisible() then
       pfQuestCompat.InsertQuestLink(questid, questName)
-      QuestLog_SetSelection(questIndex)
-      QuestLog_Update()
+      if QuestLog_SetSelection then QuestLog_SetSelection(questIndex) end
+      if QuestLog_Update then QuestLog_Update() end
       return
     end
 

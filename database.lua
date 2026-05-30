@@ -1597,8 +1597,7 @@ function pfDatabase:GetQuestIDs(qid)
     local oldID = (GetQuestLogSelection and GetQuestLogSelection()) or 0
     if SelectQuestLogEntry then SelectQuestLogEntry(qid) end
     if GetQuestLogQuestText then text, objective = GetQuestLogQuestText() end
-    local _, lv, _, hdr = compat.GetQuestLogTitle(qid)
-    title, level, header = compat.GetQuestLogTitle(qid)
+    title, level, _, header = compat.GetQuestLogTitle(qid)
     if SelectQuestLogEntry then SelectQuestLogEntry(oldID) end
   end
 
