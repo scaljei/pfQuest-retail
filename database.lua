@@ -212,9 +212,12 @@ pfDatabase.itemlist:SetScript("OnUpdate", function(self)
   self.db = {}
 
   -- fill new item db with bag items
+  -- retail 11.x: GetContainerNumSlots/GetContainerItemLink moved to C_Container
+  local _getSlots = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
+  local _getLink  = (C_Container and C_Container.GetContainerItemLink) or GetContainerItemLink
   for bag = 4, 0, -1 do
-    for slot = 1, GetContainerNumSlots(bag) do
-      local link = GetContainerItemLink(bag,slot)
+    for slot = 1, _getSlots(bag) do
+      local link = _getLink(bag, slot)
       local _, _, parse = string.find((link or ""), "(%d+):")
       if parse then
         local item = GetItemInfo(parse)
@@ -1572,11 +1575,32 @@ function pfDatabase:GetQuestIDs(qid)
     end
   end
 
-  local oldID = GetQuestLogSelection()
-  SelectQuestLogEntry(qid)
-  local text, objective = GetQuestLogQuestText()
-  local title, level, _, header = compat.GetQuestLogTitle(qid)
-  SelectQuestLogEntry(oldID)
+  -- retail 11.x: GetQuestLogSelection/SelectQuestLogEntry/GetQuestLogQuestText
+  -- are all replaced by C_QuestLog equivalents.
+  local title, level, _, header, _, _
+  local text, objective
+
+  if C_QuestLog and C_QuestLog.GetInfo and C_QuestLog.GetQuestObjectives then
+    local info = C_QuestLog.GetInfo(qid)
+    if not info then return end
+    title  = info.title
+    level  = info.level
+    header = info.isHeader
+    -- build a deterministic identifier from objectives
+    local objs = C_QuestLog.GetQuestObjectives(info.questID) or {}
+    local objParts = {}
+    for _, o in ipairs(objs) do objParts[#objParts+1] = o.text or "" end
+    objective = table.concat(objParts, "|")
+    text = ""  -- GetQuestLogQuestText has no direct equivalent; omit safely
+  else
+    -- legacy path (TBC / WotLK)
+    local oldID = (GetQuestLogSelection and GetQuestLogSelection()) or 0
+    if SelectQuestLogEntry then SelectQuestLogEntry(qid) end
+    if GetQuestLogQuestText then text, objective = GetQuestLogQuestText() end
+    local _, lv, _, hdr = compat.GetQuestLogTitle(qid)
+    title, level, header = compat.GetQuestLogTitle(qid)
+    if SelectQuestLogEntry then SelectQuestLogEntry(oldID) end
+  end
 
   if header or not title then return end
   local identifier = title .. ":" .. ( level or "") .. ":" .. ( objective or "") .. ":" .. ( text or "")

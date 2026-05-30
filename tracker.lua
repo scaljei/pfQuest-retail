@@ -256,9 +256,15 @@ function tracker.ButtonClick()
     for questid, data in pairs(pfQuest.questlog) do
       if data.title == self.title then
         -- show questlog
-        HideUIPanel(QuestLogFrame)
-        SelectQuestLogEntry(data.qlogid)
-        ShowUIPanel(QuestLogFrame)
+        -- retail: QuestLogFrame removed; use C_QuestLog.SetSelectedQuest + OpenQuestLog
+        if C_QuestLog and C_QuestLog.SetSelectedQuest then
+          C_QuestLog.SetSelectedQuest(questid)
+          if OpenQuestLog then OpenQuestLog() end
+        elseif SelectQuestLogEntry then
+          HideUIPanel(QuestLogFrame)
+          SelectQuestLogEntry(data.qlogid)
+          ShowUIPanel(QuestLogFrame)
+        end
         break
       end
     end

@@ -628,7 +628,9 @@ QuestLog_Update = function()
   end
 
   if pfQuest_config["questlogbuttons"] ==  "1" then
-    local questids = pfDatabase:GetQuestIDs(GetQuestLogSelection())
+    local _selectedQuest = (C_QuestLog and C_QuestLog.GetSelectedQuest and C_QuestLog.GetSelectedQuest())
+                        or (GetQuestLogSelection and GetQuestLogSelection())
+    local questids = pfDatabase:GetQuestIDs(_selectedQuest)
     if questids and questids[1] and tonumber(questids[1]) and pfQuest.questlog[questids[1]] then
       pfQuest.buttonOnline:SetID(questids[1])
       pfQuest.buttonOnline:Show()

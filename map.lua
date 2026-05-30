@@ -34,7 +34,9 @@ end)
 local controlkey = CreateFrame("Frame", "pfQuestControlKey", UIParent)
 controlkey:SetScript("OnUpdate", function(self)
   if ( self.throttle or .2) > GetTime() then return else self.throttle = GetTime() + .2 end
-  if WorldMapFrame:IsShown() and MouseIsOver(WorldMapFrame) or MouseIsOver(pfMap.drawlayer) then
+  -- pfMap may not be initialised yet on the very first tick; guard against nil
+  if WorldMapFrame:IsShown() and MouseIsOver(WorldMapFrame)
+    or (pfMap and pfMap.drawlayer and MouseIsOver(pfMap.drawlayer)) then
     controlkey.pressed = IsControlKeyDown()
   end
 end)
@@ -1236,8 +1238,8 @@ elseif compat.client >= 30300 then
     if WorldMapFrame_ClearQuestPOIs then WorldMapFrame_ClearQuestPOIs() end
     if not IsShiftKeyDown() then
       pfMap.highlight = nil
-      local questLogIndex = GetQuestLogSelection()
-      local title = GetQuestLogTitle(questLogIndex)
+      local questLogIndex = (GetQuestLogSelection and GetQuestLogSelection()) or 0
+      local title = GetQuestLogTitle and GetQuestLogTitle(questLogIndex)
       if title then
         if previousTitle == title then
           pfMap.highlight = nil
