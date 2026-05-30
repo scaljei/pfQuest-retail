@@ -30,8 +30,8 @@ do -- minimap icon
     end
   end)
 
-  pfQuestIcon:SetScript("OnEnter", function()
-    GameTooltip:SetOwner(self, ANCHOR_BOTTOMLEFT)
+  pfQuestIcon:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
     GameTooltip:SetText("|cff33ffccpf|rQuest", 1, 1, 1, 1)
     GameTooltip:AddDoubleLine(pfQuest_Loc["Left-Click"], pfQuest_Loc["Shortcut Menu"], 1, 1, 1, 1, 1, 1)
     GameTooltip:AddDoubleLine(pfQuest_Loc["Shift-Click"], pfQuest_Loc["Move Button"], 1, 1, 1, 1, 1, 1)

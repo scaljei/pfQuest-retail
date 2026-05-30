@@ -47,7 +47,11 @@ local rgbcache = setmetatable({},{__mode="kv"})
 -- are always visible. The local was captured before the db addon could inject entries.
 local function get_minimap_sizes() return pfDB["minimap"] end
 
-local minimap_zoom = {
+-- minimap_zoom[indoor][zoomLevel] = yards visible across minimap diameter
+-- indoor: 0 = inside, 1 = outside
+-- zoomLevel: 0-5 (matches minimapZoom CVar range)
+-- In retail Minimap:GetZoom() was removed; zoom is read from GetCVar("minimapZoom")
+local minimap_zoom_raw = {
   [0] = { [0] = 300,
           [1] = 240,
           [2] = 180,
@@ -64,6 +68,14 @@ local minimap_zoom = {
           [5] = 133 + 1/3,
         },
 }
+-- Wrap with a metatable so out-of-range zoom values don't return nil
+local minimap_zoom = setmetatable(minimap_zoom_raw, {
+  __index = function(t, k)
+    return minimap_zoom_raw[k] or minimap_zoom_raw[1]
+  end
+})
+setmetatable(minimap_zoom_raw[0], {__index = function(t,k) return 300 end})
+setmetatable(minimap_zoom_raw[1], {__index = function(t,k) return 466 end})
 
 local unifiedcache = {}
 
@@ -102,12 +114,14 @@ local function GetLayerByTexture(tex)
 end
 
 local function minimap_indoor()
-  -- retail 11.x: minimapInsideZoom CVar was removed.
-  -- IsIndoors() is still available and is the correct replacement.
+  -- retail 11.x: IsIndoors() is the correct replacement for the CVar trick.
+  -- Minimap:GetZoom() / SetZoom() were also removed in retail 10.0.
   if IsIndoors then
     return IsIndoors() and 0 or 1
   end
-  -- Legacy path (classic/TBC/WotLK): detect via CVar trick
+  -- Legacy path (classic/TBC/WotLK): detect via CVar trick.
+  -- These CVars and Minimap:GetZoom() only exist on legacy clients.
+  if not Minimap.GetZoom then return 1 end
   local tempzoom = 0
   local state = 1
   if GetCVar("minimapZoom") == GetCVar("minimapInsideZoom") then
@@ -1033,7 +1047,9 @@ function pfMap:UpdateMinimap()
     return
   end
 
-  local mZoom = pfMap.drawlayer:GetZoom()
+  -- retail 11.x: Minimap:GetZoom() removed; read from CVar instead
+  local mZoom = (Minimap.GetZoom and Minimap:GetZoom())
+             or (tonumber(GetCVar("minimapZoom")) or 0)
   xPlayer, yPlayer = xPlayer * 100, yPlayer * 100
 
   -- force refresh every second even without changed values, otherwise skip

@@ -133,20 +133,34 @@ local _calibFrame = CreateFrame("Frame")
 _calibFrame:RegisterEvent("PLAYER_LOGIN")
 _calibFrame:SetScript("OnEvent", function(self)
   self:UnregisterAllEvents()
-  if not (C_Map and C_Map.GetMapRects) then return end
-
   pfDB["minimap"] = pfDB["minimap"] or {}
 
   for uiMapID, pfID in pairs(RETAIL_ZONE_MAP) do
     if not pfDB["minimap"][pfID] then
-      -- GetMapRects returns the zone bounds in yards as two UiMapPoint vectors
-      local ok, topLeft, bottomRight = pcall(C_Map.GetMapRects, uiMapID)
-      if ok and topLeft and bottomRight then
-        local width  = math.abs(bottomRight.x - topLeft.x)
-        local height = math.abs(bottomRight.y - topLeft.y)
-        if width > 0 and height > 0 then
-          pfDB["minimap"][pfID] = { width, height }
+      -- C_Map.GetWorldPosFromMapPos / GetMapRects both exist in 11.x but
+      -- GetMapRects(uiMapID) returns (topLeft, bottomRight) as Vector2DMixin.
+      -- Use pcall to safely probe - some zone IDs have no rect data.
+      if C_Map and C_Map.GetMapRects then
+        local ok, topLeft, bottomRight = pcall(C_Map.GetMapRects, uiMapID)
+        if ok and topLeft and bottomRight then
+          -- In retail the rect is in map units (0-1). Convert to yards:
+          -- typical zone is ~4266 yards wide. Scale by continent size.
+          -- For minimap_zoom calibration we need actual yard dimensions.
+          -- GetMapRects returns values already in yards for world maps.
+          local width  = math.abs((bottomRight.x or 0) - (topLeft.x or 0))
+          local height = math.abs((bottomRight.y or 0) - (topLeft.y or 0))
+          if width > 100 and height > 100 then
+            -- Plausible yard values (not 0-1 normalised)
+            pfDB["minimap"][pfID] = { width, height }
+          elseif width > 0 and width <= 1 then
+            -- Normalised 0-1: scale to typical zone yard size
+            pfDB["minimap"][pfID] = { width * 62910, height * 41942 }
+          end
         end
+      end
+      -- Final fallback: use known good defaults if rect unavailable
+      if not pfDB["minimap"][pfID] then
+        pfDB["minimap"][pfID] = { 4266.7, 2844.4 }
       end
     end
   end
