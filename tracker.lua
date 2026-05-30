@@ -12,7 +12,7 @@ end
 local function ShowTooltip()
   if self.tooltip then
     GameTooltip:ClearLines()
-    GameTooltip_SetDefaultAnchor(GameTooltip, this)
+    GameTooltip_SetDefaultAnchor(GameTooltip, self)
     if self.text then
       GameTooltip:SetText(self.text:GetText())
       GameTooltip:SetText(self.text:GetText(), self.text:GetTextColor())
@@ -85,7 +85,7 @@ end)
 
 tracker:SetScript("OnMouseUp",function()
   self:StopMovingOrSizing()
-  local anchor, x, y = pfUI.api.ConvertFrameAnchor(this, pfUI.api.GetBestAnchor(this))
+  local anchor, x, y = pfUI.api.ConvertFrameAnchor(self, pfUI.api.GetBestAnchor(self))
   self:ClearAllPoints()
   self:SetPoint(anchor, x, y)
 
@@ -108,7 +108,7 @@ tracker:SetScript("OnUpdate", function(self)
 
   local alpha = self.backdrop:GetAlpha()
   local content = tracker.buttons[1] and not tracker.buttons[1].empty and true or nil
-  local goal = ( content and not MouseIsOver(this) ) and 0 or not content and not MouseIsOver(this) and 0.5 or 1
+  local goal = ( content and not MouseIsOver(self) ) and 0 or not content and not MouseIsOver(self) and 0.5 or 1
   if ceil(alpha*10) ~= ceil(goal*10)then
     self.backdrop:SetAlpha(alpha + ((goal - alpha) > 0 and .1 or (goal - alpha) < 0 and -.1 or 0))
   end
@@ -291,10 +291,10 @@ function tracker.ButtonClick()
     pfMap:UpdateNodes()
   elseif expand_states[self.title] == 0 then
     expand_states[self.title] = 1
-    tracker.ButtonEvent(this)
+    tracker.ButtonEvent(self)
   elseif expand_states[self.title] == 1 then
     expand_states[self.title] = 0
-    tracker.ButtonEvent(this)
+    tracker.ButtonEvent(self)
   end
 end
 

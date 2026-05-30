@@ -31,7 +31,7 @@ do -- minimap icon
   end)
 
   pfQuestIcon:SetScript("OnEnter", function()
-    GameTooltip:SetOwner(this, ANCHOR_BOTTOMLEFT)
+    GameTooltip:SetOwner(self, ANCHOR_BOTTOMLEFT)
     GameTooltip:SetText("|cff33ffccpf|rQuest", 1, 1, 1, 1)
     GameTooltip:AddDoubleLine(pfQuest_Loc["Left-Click"], pfQuest_Loc["Shortcut Menu"], 1, 1, 1, 1, 1, 1)
     GameTooltip:AddDoubleLine(pfQuest_Loc["Shift-Click"], pfQuest_Loc["Move Button"], 1, 1, 1, 1, 1, 1)
@@ -215,7 +215,7 @@ do -- tracking menu
     -- create shortcuts
     local anchor = self.anchor or pfQuestIcon
     local config = pfQuest_track
-    local frame = this
+    local frame = self
 
     -- read virtual anchor position
     local x, y = anchor:GetCenter()
