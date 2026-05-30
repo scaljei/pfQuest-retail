@@ -138,12 +138,14 @@ pfQuest:SetScript("OnUpdate", function(self)
   end
 
   if self.updateQuestLog == true and tsize(self.queue) == 0 then
+    if not pfMap then return end
     pfQuest:Debug("Update Quest|cff33ffcc Log")
     pfQuest:UpdateQuestlog()
     self.updateQuestLog = false
   end
 
   if self.updateQuestGivers == true then
+    if not pfMap then return end
     pfQuest:Debug("Update Quest|cff33ffcc Givers")
     if pfQuest_config["trackingmethod"] ~= 4 and
       pfQuest_config["allquestgivers"] == "1"
@@ -155,6 +157,10 @@ pfQuest:SetScript("OnUpdate", function(self)
   end
 
   if tsize(self.queue) == 0 then return end
+
+  -- pfMap is created in map.lua which loads after quest.lua in addon.xml.
+  -- On the very first frames it may not exist yet — defer until it does.
+  if not pfMap then return end
 
   -- process queue
   for id, entry in pairs(self.queue) do
