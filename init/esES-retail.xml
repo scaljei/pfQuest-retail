@@ -1,6 +1,0 @@
-<Ui xmlns="http://www.blizzard.com/wow/ui/">
-  <!-- pfQuest Retail Locale: esES -->
-  <Script file="..\db\retail\esES\units.lua"/>
-  <Script file="..\db\retail\esES\objects.lua"/>
-  <Script file="..\db\retail\esES\quests.lua"/>
-</Ui>
