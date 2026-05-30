@@ -378,7 +378,7 @@ function pfMap:ShowTooltip(meta, tooltip)
   else
     -- handle non-quest objects
     if meta["item"][1] and meta["itemid"] and not meta["itemlink"] then
-      local _, _, itemQuality = GetItemInfo(meta["itemid"])
+      local _, _, itemQuality = compat.GetItemInfo(meta["itemid"])
       if itemQuality then
         local itemColor = "|c" .. string.format("%02x%02x%02x%02x", 255,
             ITEM_QUALITY_COLORS[itemQuality].r * 255,

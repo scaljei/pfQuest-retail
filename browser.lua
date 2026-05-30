@@ -108,7 +108,7 @@ local function ResultButtonUpdate()
     GameTooltip:SetHyperlink("item:" .. self.id .. pfQuestCompat.itemsuffix)
     GameTooltip:Hide()
 
-    local _, _, itemQuality = GetItemInfo(self.id)
+    local _, _, itemQuality = compat.GetItemInfo(self.id)
     if itemQuality then
       local r = ceil(ITEM_QUALITY_COLORS[itemQuality].r*255)
       local g = ceil(ITEM_QUALITY_COLORS[itemQuality].g*255)

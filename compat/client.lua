@@ -225,3 +225,35 @@ pfQuestCompat.RemoveQuestWatch = function(qlogid)
   end
   if RemoveQuestWatch then RemoveQuestWatch(qlogid) end
 end
+
+-- ---------------------------------------------------------------------------
+-- GetItemInfo retail shim
+-- In retail 11.x GetItemInfo() was replaced by C_Item.GetItemInfo() which
+-- returns a table: { itemName, itemLink, itemQuality, itemLevel, ... }
+-- We provide a compat wrapper that always returns the old positional values.
+-- ---------------------------------------------------------------------------
+pfQuestCompat.GetItemInfo = function(itemID)
+  if C_Item and C_Item.GetItemInfo then
+    local info = C_Item.GetItemInfo(itemID)
+    if not info then return nil end
+    return info.itemName,    -- 1: name
+           info.itemLink,    -- 2: link
+           info.itemQuality, -- 3: quality
+           info.itemLevel,   -- 4: level
+           info.itemMinLevel,-- 5: minLevel
+           info.itemType,    -- 6: type
+           info.itemSubType, -- 7: subType
+           info.itemStackCount, -- 8: stackCount
+           info.itemEquipLoc,   -- 9: equipLoc
+           info.itemTexture,    -- 10: texture
+           info.sellPrice,      -- 11: sellPrice
+           info.classID,        -- 12: classID
+           info.subclassID,     -- 13: subclassID
+           info.bindType,       -- 14: bindType
+           info.expacID,        -- 15: expacID
+           info.setID,          -- 16: setID
+           info.isCraftingReagent -- 17: isCraftingReagent
+  end
+  -- legacy fallback
+  return GetItemInfo and GetItemInfo(itemID)
+end
