@@ -362,7 +362,7 @@ function tracker.ButtonEvent(self)
     local qtitle, level, tag, header, collapsed, complete = compat.GetQuestLogTitle(qlogid)
     if not qlogid or not qtitle then return end
     local objectives = compat.GetNumQuestLeaderBoards(qlogid)
-    local watched = IsQuestWatched(qlogid)
+    local watched = compat.IsQuestWatched(qlogid)
     local color = pfQuestCompat.GetDifficultyColor(level)
     local cur,max = 0,0
     local percent = 0
@@ -614,7 +614,7 @@ numQuests = numQuests or 0
   for qlogid=1,40 do
     local title, level, tag, header, collapsed, complete = compat.GetQuestLogTitle(qlogid)
     if title and not header then
-      local watched = IsQuestWatched(qlogid)
+      local watched = compat.IsQuestWatched(qlogid)
       if watched then
         local img = complete and pfQuestConfig.path.."\\img\\complete_c" or pfQuestConfig.path.."\\img\\complete"
         pfQuest.tracker.ButtonAdd(title, { dummy = true, addon = "PFQUEST", texture = img })

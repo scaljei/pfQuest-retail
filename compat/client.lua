@@ -187,3 +187,41 @@ if not (pfUI and pfUI.api and pfUI.api.rgbhex) then
     return string.format("|c%02x%02x%02x%02x", a*255, (r or 1)*255, (g or 1)*255, (b or 1)*255)
   end
 end
+
+-- ---------------------------------------------------------------------------
+-- Quest watch API
+-- IsQuestWatched/AddQuestWatch/RemoveQuestWatch moved to C_QuestLog in retail.
+-- These shims accept a qlogid (log index) and convert to questID internally.
+-- ---------------------------------------------------------------------------
+local function _qlogidToQuestID(qlogid)
+  if C_QuestLog and C_QuestLog.GetInfo then
+    local info = C_QuestLog.GetInfo(qlogid)
+    return info and info.questID
+  end
+end
+
+pfQuestCompat.IsQuestWatched = function(qlogid)
+  if C_QuestLog and C_QuestLog.IsQuestWatched then
+    local questID = _qlogidToQuestID(qlogid)
+    return questID and C_QuestLog.IsQuestWatched(questID) or false
+  end
+  return IsQuestWatched and IsQuestWatched(qlogid) or false
+end
+
+pfQuestCompat.AddQuestWatch = function(qlogid)
+  if C_QuestLog and C_QuestLog.AddQuestWatch then
+    local questID = _qlogidToQuestID(qlogid)
+    if questID then C_QuestLog.AddQuestWatch(questID) end
+    return
+  end
+  if AddQuestWatch then AddQuestWatch(qlogid) end
+end
+
+pfQuestCompat.RemoveQuestWatch = function(qlogid)
+  if C_QuestLog and C_QuestLog.RemoveQuestWatch then
+    local questID = _qlogidToQuestID(qlogid)
+    if questID then C_QuestLog.RemoveQuestWatch(questID) end
+    return
+  end
+  if RemoveQuestWatch then RemoveQuestWatch(qlogid) end
+end

@@ -200,7 +200,7 @@ pfQuest:SetScript("OnUpdate", function(self)
 
         -- skip quest objective detection on manual and tacked mode
         if pfQuest_config["trackingmethod"] ~= 3 and
-          (pfQuest_config["trackingmethod"] ~= 2 or IsQuestWatched(entry[3]))
+          (pfQuest_config["trackingmethod"] ~= 2 or compat.IsQuestWatched(entry[3]))
         then
           local meta = { ["addon"] = "PFQUEST", ["qlogid"] = entry[3] }
           pfDatabase:SearchQuestID(entry[2], meta)
@@ -244,7 +244,7 @@ numQuests = numQuests or 0
     if title and not header then
       questid = pfDatabase:GetQuestIDs(qlogid)
       questid = questid and tonumber(questid[1]) or title
-      watched = IsQuestWatched(qlogid)
+      watched = compat.IsQuestWatched(qlogid)
       state = watched and "track" or ""
 
       -- build state string
@@ -570,10 +570,11 @@ pfQuest.mapButton = CreateFrame("Frame", "pfQuestMapDropdown", _mqCanvas, "UIDro
 end
 
 -- [[ Hook UI Functions ]] --
--- Set certain events on quest watch
+-- retail 11.x: AddQuestWatch/RemoveQuestWatch moved to C_QuestLog.
+-- Hook both the legacy globals (when present) and the compat shims.
 local pfHookRemoveQuestWatch = RemoveQuestWatch
 RemoveQuestWatch = function(questIndex)
-  local ret = pfHookRemoveQuestWatch(questIndex)
+  if pfHookRemoveQuestWatch then pfHookRemoveQuestWatch(questIndex) end
 
   if questIndex then
     local title, _, _, header, _, complete = compat.GetQuestLogTitle(questIndex)
@@ -582,17 +583,32 @@ RemoveQuestWatch = function(questIndex)
 
   pfQuest.updateQuestLog = true
   pfQuest.updateQuestGivers = true
-
-  return ret
 end
 
--- Set certain events on quest unwatch
 local pfHookAddQuestWatch = AddQuestWatch
 AddQuestWatch = function(questIndex)
-  local ret = pfHookAddQuestWatch(questIndex)
+  if pfHookAddQuestWatch then pfHookAddQuestWatch(questIndex) end
   pfQuest.updateQuestLog = true
   pfQuest.updateQuestGivers = true
-  return ret
+end
+
+-- retail: also hook via C_QuestLog events since the globals no longer fire
+if C_QuestLog then
+  local _watchFrame = CreateFrame("Frame")
+  _watchFrame:RegisterEvent("QUEST_WATCH_LIST_CHANGED")
+  _watchFrame:SetScript("OnEvent", function(self, event, questID, isAdded)
+    pfQuest.updateQuestLog = true
+    pfQuest.updateQuestGivers = true
+    if not isAdded and questID then
+      -- find and delete the node for this questID
+      for qid, data in pairs(pfQuest.questlog or {}) do
+        if qid == questID and data.title then
+          pfMap:DeleteNode("PFQUEST", data.title)
+          break
+        end
+      end
+    end
+  end)
 end
 
 -- Save the abandoned questname to remove from history
