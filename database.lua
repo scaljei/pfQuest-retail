@@ -218,20 +218,24 @@ pfDatabase.itemlist:SetScript("OnUpdate", function(self)
   for bag = 4, 0, -1 do
     for slot = 1, _getSlots(bag) do
       local link = _getLink(bag, slot)
-      local _, _, parse = string.find((link or ""), "(%d+):")
+      local _, _, parse = string.find((link or ""), "item:(%d+):")
       if parse then
-        local item = compat.GetItemInfo(parse)
+        local item = compat.GetItemInfo(tonumber(parse))
         if item then self.db[item] = true end
       end
     end
   end
 
   -- fill new item db with equipped items
-  for i=1,19 do
-    if GetInventoryItemLink("player", i) then
-      local _, _, link = string.find(GetInventoryItemLink("player", i), "(item:%d+:%d+:%d+:%d+)");
-      local item = compat.GetItemInfo(link)
-      if item then self.db[item] = true end
+  -- retail: GetInventoryItemLink still exists; parse out item ID for C_Item.GetItemInfo
+  for i = 1, 19 do
+    local invLink = GetInventoryItemLink("player", i)
+    if invLink then
+      local _, _, itemID = string.find(invLink, "item:(%d+):")
+      if itemID then
+        local item = compat.GetItemInfo(tonumber(itemID))
+        if item then self.db[item] = true end
+      end
     end
   end
 

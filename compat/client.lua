@@ -233,6 +233,7 @@ end
 -- We provide a compat wrapper that always returns the old positional values.
 -- ---------------------------------------------------------------------------
 pfQuestCompat.GetItemInfo = function(itemID)
+  if not itemID then return nil end
   if C_Item and C_Item.GetItemInfo then
     local info = C_Item.GetItemInfo(itemID)
     if not info then return nil end
