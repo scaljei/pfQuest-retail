@@ -43,7 +43,10 @@ end)
 
 local validmaps = setmetatable({},{__mode="kv"})
 local rgbcache = setmetatable({},{__mode="kv"})
-local minimap_sizes = pfDB["minimap"]
+-- minimap_sizes: use a live accessor so retail zones added later by pfQuest-retail-db
+-- are always visible. The local was captured before the db addon could inject entries.
+local function get_minimap_sizes() return pfDB["minimap"] end
+
 local minimap_zoom = {
   [0] = { [0] = 300,
           [1] = 240,
@@ -99,24 +102,28 @@ local function GetLayerByTexture(tex)
 end
 
 local function minimap_indoor()
+  -- retail 11.x: minimapInsideZoom CVar was removed.
+  -- IsIndoors() is still available and is the correct replacement.
+  if IsIndoors then
+    return IsIndoors() and 0 or 1
+  end
+  -- Legacy path (classic/TBC/WotLK): detect via CVar trick
   local tempzoom = 0
-	local state = 1
-	if GetCVar("minimapZoom") == GetCVar("minimapInsideZoom") then
-		if GetCVar("minimapInsideZoom")+0 >= 3 then
-			pfMap.drawlayer:SetZoom(pfMap.drawlayer:GetZoom() - 1)
-			tempzoom = 1
-		else
-			pfMap.drawlayer:SetZoom(pfMap.drawlayer:GetZoom() + 1)
-			tempzoom = -1
-		end
-	end
-
-	if GetCVar("minimapInsideZoom")+0 == pfMap.drawlayer:GetZoom() then
+  local state = 1
+  if GetCVar("minimapZoom") == GetCVar("minimapInsideZoom") then
+    if GetCVar("minimapInsideZoom")+0 >= 3 then
+      pfMap.drawlayer:SetZoom(pfMap.drawlayer:GetZoom() - 1)
+      tempzoom = 1
+    else
+      pfMap.drawlayer:SetZoom(pfMap.drawlayer:GetZoom() + 1)
+      tempzoom = -1
+    end
+  end
+  if GetCVar("minimapInsideZoom")+0 == pfMap.drawlayer:GetZoom() then
     state = 0
   end
-
   pfMap.drawlayer:SetZoom(pfMap.drawlayer:GetZoom() + tempzoom)
-	return state
+  return state
 end
 
 local function str2rgb(text)
@@ -202,7 +209,7 @@ pfMap.unifiedcache = unifiedcache
 
 pfMap.minimap_indoor = minimap_indoor
 pfMap.minimap_zoom = minimap_zoom
-pfMap.minimap_sizes = minimap_sizes
+pfMap.minimap_sizes = get_minimap_sizes  -- function, not table; call to get live data
 
 pfMap.tooltip = CreateFrame("Frame" , "pfMapTooltip", GameTooltip)
 pfMap.tooltip:SetScript("OnShow", function()
@@ -1036,6 +1043,7 @@ function pfMap:UpdateMinimap()
 
   _mmState.xPlayer, _mmState.yPlayer, _mmState.mZoom = xPlayer, yPlayer, mZoom
   local color = pfQuest_config["spawncolors"] == "1" and "spawn" or "title"
+  local minimap_sizes = get_minimap_sizes()
 
   -- Retail: C_Map is more reliable than GetRealZoneText for the current zone name
   local _zoneName
@@ -1049,8 +1057,12 @@ function pfMap:UpdateMinimap()
   _zoneName = _zoneName or (GetRealZoneText and GetRealZoneText()) or ""
   local mapID = pfMap:GetMapIDByName(_zoneName)
   local mapZoom = minimap_zoom[minimap_indoor()][mZoom]
-  local mapWidth = minimap_sizes[mapID] and minimap_sizes[mapID][1] or 0
-  local mapHeight = minimap_sizes[mapID] and minimap_sizes[mapID][2] or 0
+
+  -- For retail zones the placeholder size is 4266.7 x 2844.4.
+  -- If no entry exists at all, use the retail default so pins still appear.
+  local _sizes = minimap_sizes[mapID] or (mapID and mapID >= 10000 and { 4266.7, 2844.4 })
+  local mapWidth  = _sizes and _sizes[1] or 0
+  local mapHeight = _sizes and _sizes[2] or 0
 
   local xScale = mapZoom / mapWidth
   local yScale = mapZoom / mapHeight
@@ -1063,7 +1075,7 @@ function pfMap:UpdateMinimap()
   -- refresh all nodes
   for addon, data in pairs(pfMap.nodes) do
     -- hide minimap nodes in continent view
-    if data[mapID] and minimap_sizes[mapID] and pfMap:HasMinimap(mapID) then
+    if data[mapID] and (minimap_sizes[mapID] or (mapID and mapID >= 10000)) and pfMap:HasMinimap(mapID) then
       for coords, node in pairs(data[mapID]) do
         local x, y
         if coord_cache[coords] then

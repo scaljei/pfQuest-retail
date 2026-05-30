@@ -122,3 +122,32 @@ pfQuest.OnRetailDBLoaded = pfQuest.OnRetailDBLoaded or function(self)
   end
   pfMap.queue_update = GetTime()
 end
+
+-- ---------------------------------------------------------------------------
+-- Retail minimap calibration data
+-- These are the actual zone dimensions in yards used by the minimap system.
+-- Populated on PLAYER_LOGIN from C_Map.GetMapRects() where available,
+-- then stored in pfDB["minimap"] so UpdateMinimap() can scale pins correctly.
+-- ---------------------------------------------------------------------------
+local _calibFrame = CreateFrame("Frame")
+_calibFrame:RegisterEvent("PLAYER_LOGIN")
+_calibFrame:SetScript("OnEvent", function(self)
+  self:UnregisterAllEvents()
+  if not (C_Map and C_Map.GetMapRects) then return end
+
+  pfDB["minimap"] = pfDB["minimap"] or {}
+
+  for uiMapID, pfID in pairs(RETAIL_ZONE_MAP) do
+    if not pfDB["minimap"][pfID] then
+      -- GetMapRects returns the zone bounds in yards as two UiMapPoint vectors
+      local ok, topLeft, bottomRight = pcall(C_Map.GetMapRects, uiMapID)
+      if ok and topLeft and bottomRight then
+        local width  = math.abs(bottomRight.x - topLeft.x)
+        local height = math.abs(bottomRight.y - topLeft.y)
+        if width > 0 and height > 0 then
+          pfDB["minimap"][pfID] = { width, height }
+        end
+      end
+    end
+  end
+end)
