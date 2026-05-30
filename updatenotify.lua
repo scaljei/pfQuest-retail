@@ -16,7 +16,7 @@ versioncheck:RegisterEvent("PLAYER_ENTERING_WORLD")
 versioncheck:SetScript("OnEvent", function(self, event)
   if event == "ADDON_LOADED" then
     if delta == "pfQuest" or delta == "pfQuest-tbc" or delta == "pfQuest-wotlk" then
-      major, minor, fix = strsplit(".", tostring(GetAddOnMetadata(delta, "Version")))
+      major, minor, fix = strsplit(".", tostring(((C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata)(delta, "Version")))
       major = tonumber(major) or 0
       minor = tonumber(minor) or 0
       fix = tonumber(fix) or 0

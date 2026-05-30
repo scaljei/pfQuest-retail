@@ -220,15 +220,23 @@ pfUI.api.CreateBackdrop(pfQuestConfig, nil, true, 0.75)
 table.insert(UISpecialFrames, "pfQuestConfig")
 
 -- detect current addon path
-local tocs = { "", "-master", "-tbc", "-wotlk" }
-for _, name in pairs(tocs) do
-  local current = string.format("pfQuest%s", name)
-  local _, title = ((C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo)(current)
+-- retail port uses "pfQuest-retail"; legacy used "pfQuest", "pfQuest-master" etc.
+local tocs = { "pfQuest-retail", "pfQuest", "pfQuest-master", "pfQuest-tbc", "pfQuest-wotlk" }
+local _getAddonInfo = (C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo
+local _getAddonMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+for _, current in pairs(tocs) do
+  local _, title = _getAddonInfo(current)
   if title then
     pfQuestConfig.path = "Interface\\AddOns\\" .. current
-    pfQuestConfig.version = tostring(GetAddOnMetadata(current, "Version"))
+    pfQuestConfig.version = tostring(_getAddonMeta(current, "Version"))
     break
   end
+end
+
+-- Safety fallback: if path still nil, derive from this file's location
+if not pfQuestConfig.path then
+  pfQuestConfig.path = "Interface\\AddOns\\pfQuest-retail"
+  pfQuestConfig.version = "unknown"
 end
 
 pfQuestConfig.title = pfQuestConfig:CreateFontString("Status", "LOW", "GameFontNormal")
