@@ -45,7 +45,7 @@ SlashCmdList["PFTEST5"] = function()
   end)
   msg("FontString(nil,OVERLAY): " .. tostring(ok1) .. " -> " .. tostring(r1))
   local ok1b, r1b = pcall(function()
-    return pfQuestConfig:CreateFontString(nil, "LOW")
+    return pfQuestConfig:CreateFontString(nil, "OVERLAY")
   end)
   msg("FontString(nil,LOW): " .. tostring(ok1b) .. " -> " .. tostring(r1b))
 

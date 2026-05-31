@@ -403,7 +403,7 @@ function tracker.ButtonEvent(self)
         local _, _, obj, objNum, objNeeded = string.find(gsub(text, "\239\188\154", ":"), "(.*):%s*([%d]+)%s*/%s*([%d]+)")
 
         if not self.objectives[i] then
-          self.objectives[i] = self:CreateFontString(nil, "HIGH")
+          self.objectives[i] = self:CreateFontString(nil, "OVERLAY")
           self.objectives[i]:SetFont(pfUI.font_default, fontsize)
           self.objectives[i]:SetJustifyH("LEFT")
           self.objectives[i]:SetPoint("TOPLEFT", 20, -fontsize*i-6)
@@ -560,7 +560,7 @@ function tracker.ButtonAdd(title, node)
     tracker.buttons[id].bg:SetAllPoints()
     tracker.buttons[id].bg:SetAlpha(0)
 
-    tracker.buttons[id].text = tracker.buttons[id]:CreateFontString(nil, "HIGH")
+    tracker.buttons[id].text = tracker.buttons[id]:CreateFontString(nil, "OVERLAY")
     tracker.buttons[id].text:SetFont(pfUI.font_default, fontsize)
     tracker.buttons[id].text:SetJustifyH("LEFT")
     tracker.buttons[id].text:SetPoint("TOPLEFT", 16, -4)

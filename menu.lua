@@ -23,6 +23,7 @@ do -- minimap icon
   end)
 
   pfQuestIcon:SetScript("OnClick", function(self, button)
+    if not pfQuestMenu then return end
     if pfQuestMenu:IsShown() then
       pfQuestMenu:Hide()
     else
@@ -128,7 +129,7 @@ do -- tracking menu
         frame[name].name = name
 
         -- title
-        frame[name].title = frame[name]:CreateFontString(nil, "NORMAL")
+        frame[name].title = frame[name]:CreateFontString(nil, "OVERLAY")
         frame[name].title:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
         frame[name].title:SetPoint("LEFT", 22, 0)
         frame[name].title:SetJustifyH("LEFT")
