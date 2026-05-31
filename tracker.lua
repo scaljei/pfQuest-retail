@@ -66,15 +66,17 @@ tracker:SetClampedToScreen(true)
 tracker:RegisterEvent("PLAYER_ENTERING_WORLD")
 tracker:SetScript("OnEvent", function(self, event)
   -- update font sizes according to config
-  fontsize = tonumber(pfQuest_config["trackerfontsize"]) or 12
+  fontsize = tonumber(pfQuest_config and pfQuest_config["trackerfontsize"]) or 12
   entryheight = ceil(fontsize*1.6)
 
-  -- restore tracker state
-  if pfQuest_config["showtracker"] and pfQuest_config["showtracker"] == "0" then
-    self:Hide()
-  else
-    self:Show()
-  end
+  -- restore tracker state - delay until config is ready
+  C_Timer.After(0.5, function()
+    if pfQuest_config and pfQuest_config["showtracker"] == "0" then
+      tracker:Hide()
+    else
+      tracker:Show()
+    end
+  end)
 end)
 
 tracker:SetScript("OnMouseDown",function(self)
