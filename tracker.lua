@@ -5,12 +5,12 @@ local fontsize = 12
 local panelheight = 16
 local entryheight = 20
 
-local function HideTooltip()
+local function HideTooltip(self)
   GameTooltip:Hide()
 end
 
-local function ShowTooltip()
-  if self.tooltip then
+local function ShowTooltip(self)
+  if self and self.tooltip then
     GameTooltip:ClearLines()
     GameTooltip_SetDefaultAnchor(GameTooltip, self)
     if self.text then

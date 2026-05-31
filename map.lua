@@ -1262,7 +1262,10 @@ end)
 -- ---------------------------------------------------------------------------
 if compat.client >= 110000 then
   local _qlsFrame = CreateFrame("Frame")
-  _qlsFrame:RegisterEvent("QUEST_LOG_SELECTION_CHANGED")
+  if not pcall(function() _qlsFrame:RegisterEvent("QUEST_LOG_SELECTION_CHANGED") end) then
+    -- QUEST_LOG_SELECTION_CHANGED removed; use QUEST_LOG_UPDATE instead
+    _qlsFrame:RegisterEvent("QUEST_LOG_UPDATE")
+  end
   _qlsFrame:SetScript("OnEvent", function(self, event)
     local questID = C_QuestLog and C_QuestLog.GetSelectedQuest and C_QuestLog.GetSelectedQuest()
     if not questID then return end

@@ -84,6 +84,7 @@ local function CreateEntry(self, index)
   self[index].bg:SetColorTexture(1,1,1,.02)
 
   self[index].remove = CreateFrame("Button", nil, self[index])
+  self[index].remove:EnableMouse(true)
   self[index].remove:SetPoint("RIGHT", -5, 0)
   self[index].remove:SetHeight(20)
   self[index].remove:SetWidth(20)
