@@ -1061,17 +1061,9 @@ function pfMap:UpdateMinimap()
   local color = pfQuest_config["spawncolors"] == "1" and "spawn" or "title"
   local minimap_sizes = get_minimap_sizes()
 
-  -- Retail: C_Map is more reliable than GetRealZoneText for the current zone name
-  local _zoneName
-  if C_Map and C_Map.GetBestMapForUnit then
-    local _uid = C_Map.GetBestMapForUnit("player")
-    if _uid then
-      local _mi = C_Map.GetMapInfo(_uid)
-      _zoneName = _mi and _mi.name
-    end
-  end
-  _zoneName = _zoneName or (GetRealZoneText and GetRealZoneText()) or ""
-  local mapID = pfMap:GetMapIDByName(_zoneName)
+  -- Use GetCurrentMapID (which goes through the zone bridge) rather than
+  -- GetMapIDByName, so retail zones resolve correctly via the uiMapID table.
+  local mapID = pfMap:GetCurrentMapID()
   local mapZoom = minimap_zoom[minimap_indoor()][mZoom]
 
   -- For retail zones the placeholder size is 4266.7 x 2844.4.

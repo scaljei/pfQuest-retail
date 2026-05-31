@@ -12,13 +12,13 @@ do -- minimap icon
   pfQuestIcon:SetHighlightTexture('Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight')
   pfQuestIcon:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 0, 0)
 
-  pfQuestIcon:SetScript("OnDragStart", function()
+  pfQuestIcon:SetScript("OnDragStart", function(self)
     if IsShiftKeyDown() then
       self:StartMoving()
     end
   end)
 
-  pfQuestIcon:SetScript("OnDragStop", function()
+  pfQuestIcon:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
   end)
 
@@ -61,22 +61,23 @@ do -- minimap icon
   pfQuestIcon.overlay = pfQuestIcon:CreateTexture(nil, 'OVERLAY')
   pfQuestIcon.overlay:SetWidth(53)
   pfQuestIcon.overlay:SetHeight(53)
+  -- MiniMap-TrackingBorder still exists in retail as a circular button border
   pfQuestIcon.overlay:SetTexture('Interface\\Minimap\\MiniMap-TrackingBorder')
   pfQuestIcon.overlay:SetPoint('TOPLEFT', 0,0)
 end
 
 do -- tracking menu
-  local function MenuButtonEnter()
+  local function MenuButtonEnter(self)
     self.title:SetTextColor(1,.8,0)
     self.highlight:Show()
   end
 
-  local function MenuButtonLeave()
+  local function MenuButtonLeave(self)
     self.title:SetTextColor(1,1,1)
     self.highlight:Hide()
   end
 
-  local function MenuButtonClick()
+  local function MenuButtonClick(self)
     self.state = self.check and not self.check:GetChecked()
 
     if self.check then
@@ -172,10 +173,10 @@ do -- tracking menu
     frame:SetWidth(width)
     frame:SetHeight(top + 4)
 
-    -- the usual menu hide events
-    table.insert(UIMenus, name)
+    -- the usual menu hide events (UIMenus may not exist in retail)
+    if UIMenus then table.insert(UIMenus, name) end
     frame:RegisterEvent("CURSOR_UPDATE")
-    frame:SetScript("OnEvent", function() self:Hide() end)
+    frame:SetScript("OnEvent", function(self) self:Hide() end)
 
     return frame
   end
