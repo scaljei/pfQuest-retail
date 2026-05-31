@@ -225,7 +225,8 @@ end)
 pfQuestConfig.vpos = 40
 
 pfUI.api.CreateBackdrop(pfQuestConfig, nil, true, 0.75)
-table.insert(UISpecialFrames, "pfQuestConfig")
+if UISpecialFrames then table.insert(UISpecialFrames, "pfQuestConfig") end
+pfQuestConfig._progress = 1
 
 -- detect current addon path
 -- retail port uses "pfQuest-retail"; legacy used "pfQuest", "pfQuest-master" etc.
@@ -253,6 +254,7 @@ pfQuestConfig.title:SetPoint("TOP", pfQuestConfig, "TOP", 0, -8)
 pfQuestConfig.title:SetJustifyH("LEFT")
 pfQuestConfig.title:SetFont(pfUI.font_default, 14)
 pfQuestConfig.title:SetText("|cff33ffccpf|rQuest " .. L["Config"])
+pfQuestConfig._progress = 2
 
 pfQuestConfig.close = CreateFrame("Button", "pfQuestConfigClose", pfQuestConfig)
 pfQuestConfig.close:SetPoint("TOPRIGHT", -5, -5)
@@ -266,6 +268,7 @@ pfQuestConfig.close.texture:SetPoint("BOTTOMRIGHT", pfQuestConfig.close, "BOTTOM
 
 pfQuestConfig.close.texture:SetVertexColor(1,.25,.25,1)
 pfUI.api.SkinButton(pfQuestConfig.close, 1, .5, .5)
+pfQuestConfig._progress = 3
 pfQuestConfig.close:SetScript("OnClick", function(self, button)
   self:GetParent():Hide()
 end)
@@ -280,6 +283,7 @@ pfQuestConfig.welcome.text:SetAllPoints(pfQuestConfig.welcome)
 pfQuestConfig.welcome.text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
 pfQuestConfig.welcome.text:SetText(L["Welcome Screen"])
 pfUI.api.SkinButton(pfQuestConfig.welcome)
+pfQuestConfig._progress = 4
 
 pfQuestConfig.save = CreateFrame("Button", "pfQuestConfigReload", pfQuestConfig)
 pfQuestConfig.save:SetWidth(160)
@@ -291,6 +295,7 @@ pfQuestConfig.save.text:SetAllPoints(pfQuestConfig.save)
 pfQuestConfig.save.text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
 pfQuestConfig.save.text:SetText(L["Save & Close"])
 pfUI.api.SkinButton(pfQuestConfig.save)
+pfQuestConfig._progress = 5
 
 function pfQuestConfig:LoadConfig()
   if not pfQuest_config then pfQuest_config = {} end
@@ -325,6 +330,7 @@ function pfQuestConfig:MigrateHistory()
   end
 end
 
+pfQuestConfig._progress = 6
 local maxh, maxw = 0, 0
 local width, height = 230, 22
 local maxtext = 130

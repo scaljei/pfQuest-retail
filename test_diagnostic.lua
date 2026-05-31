@@ -89,7 +89,7 @@ SlashCmdList["PFTEST4"] = function()
   DEFAULT_CHAT_FRAME:AddMessage("=== Line-by-line config.lua test ===")
   local tests = {
     {"CreateFontString", function()
-      local fs = pfQuestConfig:CreateFontString(nil, "LOW", "GameFontNormal")
+      local fs = pfQuestConfig:CreateFontString(nil, "LOW")
       DEFAULT_CHAT_FRAME:AddMessage("  FontString: " .. tostring(fs))
     end},
     {"CreateConfigEntries exists", function()
