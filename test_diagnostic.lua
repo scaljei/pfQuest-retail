@@ -1,114 +1,98 @@
--- Diagnostic: runs at file scope, prints immediately
-local function pf_diag(msg)
-  if DEFAULT_CHAT_FRAME then
-    DEFAULT_CHAT_FRAME:AddMessage("|cffff0000pfDiag:|r " .. tostring(msg))
-  end
-end
+-- pfQuest-retail diagnostic tool
+-- /pftest  - show all globals
+-- /pftest2 - show config frame state  
+-- /pftest5 - step through config.lua crash point
 
--- Test 1: slash command registration
+local function msg(s) DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00pfD:|r " .. tostring(s)) end
+local function err(s) DEFAULT_CHAT_FRAME:AddMessage("|cffff0000pfERR:|r " .. tostring(s)) end
+
+-- Register a test slash command at highest priority
 SLASH_PFTEST1 = "/pftest"
-SlashCmdList["PFTEST"] = function(input)
-  DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00pfQuest-retail ALIVE|r")
-  DEFAULT_CHAT_FRAME:AddMessage("pfQuestConfig: " .. tostring(pfQuestConfig))
-  DEFAULT_CHAT_FRAME:AddMessage("pfQuest_config: " .. tostring(pfQuest_config))
-  DEFAULT_CHAT_FRAME:AddMessage("pfQuest: " .. tostring(pfQuest))
-  DEFAULT_CHAT_FRAME:AddMessage("pfMap: " .. tostring(pfMap))
-  DEFAULT_CHAT_FRAME:AddMessage("pfDB: " .. tostring(pfDB))
-  DEFAULT_CHAT_FRAME:AddMessage("pfQuestCompat: " .. tostring(pfQuestCompat))
-  DEFAULT_CHAT_FRAME:AddMessage("pfQuestConfig.path: " .. tostring(pfQuestConfig and pfQuestConfig.path))
-  if pfQuest_config then
-    DEFAULT_CHAT_FRAME:AddMessage("pfQuest_config keys: " .. tostring(next(pfQuest_config)))
-  end
+SlashCmdList["PFTEST"] = function()
+  msg("pfQuestConfig: " .. tostring(pfQuestConfig))
+  msg("pfQuest_config: " .. tostring(pfQuest_config))
+  msg("pfQuest: " .. tostring(pfQuest))
+  msg("pfMap: " .. tostring(pfMap))
+  msg("pfDB: " .. tostring(pfDB))
+  msg("pfQuestCompat: " .. tostring(pfQuestCompat))
+  msg("pfQuestConfig.path: " .. tostring(pfQuestConfig and pfQuestConfig.path))
+  msg("pfQuestConfig._progress: " .. tostring(pfQuestConfig and pfQuestConfig._progress))
+  msg("pfQuestConfig.CreateConfigEntries: " .. tostring(pfQuestConfig and type(pfQuestConfig.CreateConfigEntries)))
+  msg("BackdropTemplateMixin: " .. tostring(BackdropTemplateMixin))
+  msg("GetMouseFoci: " .. tostring(type(GetMouseFoci)))
 end
 
--- Enhanced test showing config state
 SLASH_PFTEST21 = "/pftest2"
 SlashCmdList["PFTEST2"] = function()
-  DEFAULT_CHAT_FRAME:AddMessage("=== Config State ===")
-  DEFAULT_CHAT_FRAME:AddMessage("pfQuestConfig shown: " .. tostring(pfQuestConfig and pfQuestConfig:IsShown()))
-  DEFAULT_CHAT_FRAME:AddMessage("pfQuestConfig size: " .. tostring(pfQuestConfig and pfQuestConfig:GetWidth()) .. "x" .. tostring(pfQuestConfig and pfQuestConfig:GetHeight()))
-  DEFAULT_CHAT_FRAME:AddMessage("pfQuestConfig children: " .. tostring(pfQuestConfig and select(2, pfQuestConfig:GetChildren())))
+  msg("=== Config Frame ===")
+  if not pfQuestConfig then err("pfQuestConfig is nil"); return end
+  msg("shown: " .. tostring(pfQuestConfig:IsShown()))
+  msg("size: " .. pfQuestConfig:GetWidth() .. "x" .. pfQuestConfig:GetHeight())
+  msg("_progress: " .. tostring(pfQuestConfig._progress))
+  msg("CreateConfigEntries: " .. type(pfQuestConfig.CreateConfigEntries or "nil"))
   local count = 0
-  if pfQuestConfig then
-    for _, child in ipairs({pfQuestConfig:GetChildren()}) do
-      count = count + 1
-      if count <= 5 then
-        DEFAULT_CHAT_FRAME:AddMessage("  child " .. count .. ": " .. tostring(child:GetObjectType()) .. " shown=" .. tostring(child:IsShown()) .. " h=" .. tostring(child:GetHeight()))
-      end
-    end
-  end
-  DEFAULT_CHAT_FRAME:AddMessage("Total children: " .. count)
-  DEFAULT_CHAT_FRAME:AddMessage("minimap button: " .. tostring(pfQuestIcon and pfQuestIcon:IsShown()))
+  for _ in ipairs({pfQuestConfig:GetChildren()}) do count=count+1 end
+  msg("children: " .. count)
+  msg("minimap button shown: " .. tostring(pfQuestIcon and pfQuestIcon:IsShown()))
 end
 
-SLASH_PFTEST31 = "/pftest3"
-SlashCmdList["PFTEST3"] = function()
-  DEFAULT_CHAT_FRAME:AddMessage("=== Init State ===")
-  DEFAULT_CHAT_FRAME:AddMessage("pfQuestConfig._initialized: " .. tostring(pfQuestConfig and pfQuestConfig._initialized))
-  DEFAULT_CHAT_FRAME:AddMessage("pfQuest._addonInitialized: " .. tostring(pfQuest and pfQuest._addonInitialized))
-  DEFAULT_CHAT_FRAME:AddMessage("pfQuest_defconfig type: " .. tostring(type(pfQuest_defconfig)))
-  DEFAULT_CHAT_FRAME:AddMessage("pfQuest_defconfig len: " .. tostring(pfQuest_defconfig and #pfQuest_defconfig))
-  DEFAULT_CHAT_FRAME:AddMessage("pfUI.api.emulated: " .. tostring(pfUI and pfUI.api and pfUI.api.emulated))
-  -- Force run CreateConfigEntries right now
-  DEFAULT_CHAT_FRAME:AddMessage("--- Forcing CreateConfigEntries ---")
-  local ok, err = pcall(function()
-    pfQuestConfig:CreateConfigEntries(pfQuest_defconfig)
+SLASH_PFTEST51 = "/pftest5"
+SlashCmdList["PFTEST5"] = function()
+  msg("=== Step test ===")
+  -- Test 1: Can we create a FontString at all?
+  local ok1, r1 = pcall(function()
+    return pfQuestConfig:CreateFontString(nil, "OVERLAY")
   end)
-  DEFAULT_CHAT_FRAME:AddMessage("pcall result: " .. tostring(ok) .. " err: " .. tostring(err))
-  local count = 0
-  for _ in ipairs({pfQuestConfig:GetChildren()}) do count = count + 1 end
-  DEFAULT_CHAT_FRAME:AddMessage("Children after force: " .. count)
+  msg("FontString(nil,OVERLAY): " .. tostring(ok1) .. " -> " .. tostring(r1))
+
+  -- Test 2: What does CreateBackdrop do?
+  local ok2, r2 = pcall(function()
+    pfUI.api.CreateBackdrop(pfQuestConfig, nil, true, 0.75)
+  end)
+  msg("CreateBackdrop: " .. tostring(ok2) .. " err=" .. tostring(r2))
+
+  -- Test 3: Force define CreateConfigEntries if missing then call it
+  if type(pfQuestConfig.CreateConfigEntries) ~= "function" then
+    err("CreateConfigEntries missing - config.lua crashed before line 332")
+    err("_progress=" .. tostring(pfQuestConfig._progress))
+    
+    -- Try to identify which SkinButton call crashes
+    local ok3, r3 = pcall(pfUI.api.SkinButton, pfQuestConfig.close, 1, .5, .5)
+    msg("SkinButton(close): " .. tostring(ok3) .. " " .. tostring(r3))
+    local ok4, r4 = pcall(pfUI.api.SkinButton, pfQuestConfig.welcome)
+    msg("SkinButton(welcome): " .. tostring(ok4) .. " " .. tostring(r4))
+    local ok5, r5 = pcall(pfUI.api.SkinButton, pfQuestConfig.save)
+    msg("SkinButton(save): " .. tostring(ok5) .. " " .. tostring(r5))
+  else
+    msg("CreateConfigEntries EXISTS - calling it now")
+    local ok, r = pcall(pfQuestConfig.CreateConfigEntries, pfQuestConfig, pfQuest_defconfig)
+    msg("CCE result: " .. tostring(ok) .. " " .. tostring(r))
+    local count = 0
+    for _ in ipairs({pfQuestConfig:GetChildren()}) do count=count+1 end
+    msg("children after: " .. count)
+  end
 end
 
--- Force init on PLAYER_LOGIN regardless of other handlers
-local _forceInit = CreateFrame("Frame")
-_forceInit:RegisterEvent("PLAYER_LOGIN")
-_forceInit:SetScript("OnEvent", function(self)
+-- Auto-force init 3 seconds after login
+local _init = CreateFrame("Frame")
+_init:RegisterEvent("PLAYER_LOGIN")
+_init:SetScript("OnEvent", function(self)
   self:UnregisterAllEvents()
-  C_Timer.After(2, function()  -- wait 2 seconds for everything to settle
+  C_Timer.After(3, function()
     if pfQuestConfig and not pfQuestConfig._initialized then
-      DEFAULT_CHAT_FRAME:AddMessage("|cffff5555pfDiag: PLAYER_LOGIN fired but _initialized=false, forcing now|r")
-      local ok, err = pcall(function()
+      msg("Auto-forcing init...")
+      local ok, e = pcall(function()
         pfQuestConfig:LoadConfig()
         pfQuestConfig:CreateConfigEntries(pfQuest_defconfig)
         pfQuestConfig._initialized = true
       end)
-      if not ok then
-        DEFAULT_CHAT_FRAME:AddMessage("|cffff0000pfDiag ERROR: " .. tostring(err) .. "|r")
-      else
+      if ok then
         local count = 0
-        for _ in ipairs({pfQuestConfig:GetChildren()}) do count = count + 1 end
-        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00pfDiag: CreateConfigEntries OK, children=" .. count .. "|r")
+        for _ in ipairs({pfQuestConfig:GetChildren()}) do count=count+1 end
+        msg("Init OK, children=" .. count)
+      else
+        err("Init failed: " .. tostring(e))
       end
     end
   end)
 end)
-
-SLASH_PFTEST41 = "/pftest4"
-SlashCmdList["PFTEST4"] = function()
-  DEFAULT_CHAT_FRAME:AddMessage("=== Line-by-line config.lua test ===")
-  local tests = {
-    {"CreateFontString", function()
-      local fs = pfQuestConfig:CreateFontString(nil, "LOW")
-      DEFAULT_CHAT_FRAME:AddMessage("  FontString: " .. tostring(fs))
-    end},
-    {"CreateConfigEntries exists", function()
-      DEFAULT_CHAT_FRAME:AddMessage("  CCE type: " .. tostring(type(pfQuestConfig.CreateConfigEntries)))
-    end},
-    {"pfQuest_defconfig len", function()
-      DEFAULT_CHAT_FRAME:AddMessage("  defconfig: " .. tostring(#pfQuest_defconfig))
-    end},
-    {"Force CCE", function()
-      pfQuestConfig:CreateConfigEntries(pfQuest_defconfig)
-      local count = 0
-      for _ in ipairs({pfQuestConfig:GetChildren()}) do count=count+1 end
-      DEFAULT_CHAT_FRAME:AddMessage("  children after CCE: " .. count)
-    end},
-  }
-  for _, t in ipairs(tests) do
-    local ok, err = pcall(t[2])
-    if not ok then
-      DEFAULT_CHAT_FRAME:AddMessage("|cffff0000FAIL " .. t[1] .. ": " .. tostring(err) .. "|r")
-    end
-  end
-end
