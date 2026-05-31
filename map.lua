@@ -548,10 +548,16 @@ function pfMap:AddNode(meta)
   local spawn = meta["spawn"]
   local item = meta["item"]
 
-  -- Debug log node additions
+  -- Debug log node additions (throttled: max 5 per addon to avoid log spam)
   if pfQuest_config and pfQuest_config.debug then
-    local zoneName = (pfDB["zones"]["loc"] and pfDB["zones"]["loc"][map]) or "?"
-    pfQuest:Debug("|cff55ff55+Node|r " .. tostring(addon) .. " |cffaaaaaa" .. tostring(title) .. " @ zone=" .. tostring(map) .. "/" .. zoneName .. " (" .. tostring(meta["x"]) .. "," .. tostring(meta["y"]) .. ")|r")
+    pfMap._nodeLogCount = pfMap._nodeLogCount or {}
+    pfMap._nodeLogCount[addon] = (pfMap._nodeLogCount[addon] or 0) + 1
+    if pfMap._nodeLogCount[addon] <= 5 then
+      local zoneName = (pfDB["zones"]["loc"] and pfDB["zones"]["loc"][map]) or "?"
+      pfQuest:Debug("|cff55ff55+Node|r " .. tostring(addon) .. " |cffaaaaaa" .. tostring(title) .. " @ zone=" .. tostring(map) .. "/" .. zoneName .. " (" .. tostring(meta["x"]) .. "," .. tostring(meta["y"]) .. ")|r")
+    elseif pfMap._nodeLogCount[addon] == 6 then
+      pfQuest:Debug("|cff55ff55+Node|r " .. tostring(addon) .. " |cffaaaaaa(further nodes suppressed...)|r")
+    end
   end
 
   local sindex = string.format("%s:%s:%s:%s:%s:%s",
@@ -645,6 +651,10 @@ function pfMap:GetNodes(addon, title)
 end
 
 function pfMap:DeleteNode(addon, title)
+  -- Reset node log count for this addon so next update logs fresh
+  if pfMap._nodeLogCount and addon then
+    pfMap._nodeLogCount[addon] = nil
+  end
   -- Debug log node deletions
   if pfQuest_config and pfQuest_config.debug then
     pfQuest:Debug("|cffff5555-Node|r " .. tostring(addon) .. " |cffaaaaaa" .. tostring(title or "ALL") .. "|r")

@@ -56,10 +56,13 @@ f:SetScript("OnEvent", function(self, event, ...)
         end
         _pendingLog = {}
         -- Write session header at end of log (always visible)
+        -- Auto-clear log on each new session so we always see fresh data
+        pfQuest_diagnostic.log = {}
+        pfQuest_diagnostic.errors = {}
         local sep = "=== SESSION " .. pfQuest_diagnostic.session .. " START =="
         table.insert(pfQuest_diagnostic.log, sep)
         -- Print to chat so user can confirm new version
-        DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfQuest-retail|r diag ready (session " .. pfQuest_diagnostic.session .. "). Type |cffffff00/pfdiag clear|r to reset log.")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfQuest-retail|r diag ready (session " .. pfQuest_diagnostic.session .. ").")
         dlog("VARIABLES_LOADED - diagnostic ready (session " .. pfQuest_diagnostic.session .. ")")
 
     elseif event == "ADDON_LOADED" then
