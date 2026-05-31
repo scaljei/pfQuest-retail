@@ -20,3 +20,23 @@ SlashCmdList["PFTEST"] = function(input)
     DEFAULT_CHAT_FRAME:AddMessage("pfQuest_config keys: " .. tostring(next(pfQuest_config)))
   end
 end
+
+-- Enhanced test showing config state
+SLASH_PFTEST21 = "/pftest2"
+SlashCmdList["PFTEST2"] = function()
+  DEFAULT_CHAT_FRAME:AddMessage("=== Config State ===")
+  DEFAULT_CHAT_FRAME:AddMessage("pfQuestConfig shown: " .. tostring(pfQuestConfig and pfQuestConfig:IsShown()))
+  DEFAULT_CHAT_FRAME:AddMessage("pfQuestConfig size: " .. tostring(pfQuestConfig and pfQuestConfig:GetWidth()) .. "x" .. tostring(pfQuestConfig and pfQuestConfig:GetHeight()))
+  DEFAULT_CHAT_FRAME:AddMessage("pfQuestConfig children: " .. tostring(pfQuestConfig and select(2, pfQuestConfig:GetChildren())))
+  local count = 0
+  if pfQuestConfig then
+    for _, child in ipairs({pfQuestConfig:GetChildren()}) do
+      count = count + 1
+      if count <= 5 then
+        DEFAULT_CHAT_FRAME:AddMessage("  child " .. count .. ": " .. tostring(child:GetObjectType()) .. " shown=" .. tostring(child:IsShown()) .. " h=" .. tostring(child:GetHeight()))
+      end
+    end
+  end
+  DEFAULT_CHAT_FRAME:AddMessage("Total children: " .. count)
+  DEFAULT_CHAT_FRAME:AddMessage("minimap button: " .. tostring(pfQuestIcon and pfQuestIcon:IsShown()))
+end

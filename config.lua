@@ -266,7 +266,7 @@ pfQuestConfig.welcome = CreateFrame("Button", "pfQuestConfigWelcome", pfQuestCon
 pfQuestConfig.welcome:SetWidth(160)
 pfQuestConfig.welcome:SetHeight(28)
 pfQuestConfig.welcome:SetPoint("BOTTOMLEFT", 10, 10)
-pfQuestConfig.welcome:SetScript("OnClick", function() pfQuestConfig:Hide(); pfQuestInit:Show() end)
+pfQuestConfig.welcome:SetScript("OnClick", function(self) pfQuestConfig:Hide(); pfQuestInit:Show() end)
 pfQuestConfig.welcome.text = pfQuestConfig.welcome:CreateFontString("Caption", "LOW", "GameFontWhite")
 pfQuestConfig.welcome.text:SetAllPoints(pfQuestConfig.welcome)
 pfQuestConfig.welcome.text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
@@ -361,7 +361,7 @@ function pfQuestConfig:CreateConfigEntries(config)
           frame.input:SetChecked()
         end
 
-        frame.input:SetScript("OnClick", function ()
+        frame.input:SetScript("OnClick", function(self)
           if self:GetChecked() then
             pfQuest_config[self.config] = "1"
           else
