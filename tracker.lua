@@ -237,7 +237,7 @@ function tracker.ButtonUpdate()
   local alpha = tonumber((pfQuest_config["trackeralpha"] or .2)) or .2
 
   if not self.alpha or self.alpha ~= alpha then
-    self.bg:SetTexture(0,0,0,alpha)
+    self.bg:SetColorTexture(0,0,0,alpha)
     self.bg:SetAlpha(alpha)
     self.alpha = alpha
   end
@@ -249,7 +249,7 @@ function tracker.ButtonUpdate()
       self.highlight = true
     end
   elseif self.highlight then
-    self.bg:SetTexture(0,0,0,alpha)
+    self.bg:SetColorTexture(0,0,0,alpha)
     self.bg:SetAlpha(alpha)
     self.highlight = nil
   end

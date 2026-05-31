@@ -8,7 +8,7 @@ local function tablesize(tbl)
   return count
 end
 
-local function OnUpdate()
+local function OnUpdate(self)
   if not self.column and MouseIsOver(self) then
     self.remove:Show()
     self.bg:Show()
@@ -18,7 +18,7 @@ local function OnUpdate()
   end
 end
 
-local function OnEnter()
+local function OnEnter(self)
   if self.id then
     -- show extended quest tooltip
     pfDatabase:ShowExtendedTooltip(self.id, GameTooltip, self, "ANCHOR_LEFT", 0, -10)
@@ -33,11 +33,11 @@ local function OnEnter()
   end
 end
 
-local function OnLeave()
+local function OnLeave(self)
   GameTooltip:Hide()
 end
 
-local function OnClick()
+local function OnClick(self)
   if self.id and IsShiftKeyDown() then
     if tonumber(self.id) then
       pfQuestCompat.InsertQuestLink(self.id)
@@ -53,7 +53,7 @@ local function OnClick()
   end
 end
 
-local function RemoveOnClick()
+local function RemoveOnClick(self)
   if self.entry.id then
     pfQuest_history[self.entry.id] = nil
     self.view:ReloadJournal()
