@@ -574,6 +574,18 @@ end
 -- browser window
 pfBrowser = CreateFrame("Frame", "pfQuestBrowser", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
 pfBrowser:Hide()
+pfBrowser:SetScript("OnShow", function(self)
+  -- If search box has default text, auto-search current quests
+  local searchText = pfBrowser.input and pfBrowser.input:GetText() or ""
+  if searchText == "" or searchText == pfQuest_Loc["Search"] then
+    -- Show all active quest givers by triggering a re-search
+    C_Timer.After(0.05, function()
+      if pfQuest and pfQuest.updateQuestGivers ~= nil then
+        pfQuest.updateQuestGivers = true
+      end
+    end)
+  end
+end)
 pfBrowser:SetWidth(640)
 pfBrowser:SetHeight(480)
 pfBrowser:SetPoint("CENTER", 0, 0)
