@@ -548,6 +548,12 @@ function pfMap:AddNode(meta)
   local spawn = meta["spawn"]
   local item = meta["item"]
 
+  -- Debug log node additions
+  if pfQuest_config and pfQuest_config.debug then
+    local zoneName = (pfDB["zones"]["loc"] and pfDB["zones"]["loc"][map]) or "?"
+    pfQuest:Debug("|cff55ff55+Node|r " .. tostring(addon) .. " |cffaaaaaa" .. tostring(title) .. " @ zone=" .. tostring(map) .. "/" .. zoneName .. " (" .. tostring(meta["x"]) .. "," .. tostring(meta["y"]) .. ")|r")
+  end
+
   local sindex = string.format("%s:%s:%s:%s:%s:%s",
     (addon or ""), (map or ""), (coords or ""), (title or ""), (layer or ""), (spawn or ""), (item or ""))
 
@@ -639,6 +645,10 @@ function pfMap:GetNodes(addon, title)
 end
 
 function pfMap:DeleteNode(addon, title)
+  -- Debug log node deletions
+  if pfQuest_config and pfQuest_config.debug then
+    pfQuest:Debug("|cffff5555-Node|r " .. tostring(addon) .. " |cffaaaaaa" .. tostring(title or "ALL") .. "|r")
+  end
   -- remove tooltips
   if not addon then
     pfMap.tooltips = {}
@@ -939,7 +949,9 @@ function pfMap:UpdateNode(frame, node, color, obj, distance)
 end
 
 function pfMap:UpdateNodes()
-  pfQuest:Debug("Update Nodes")
+  local _mapID = pfMap:GetCurrentMapID()
+  local _zoneName = (_mapID and pfDB["zones"]["loc"] and pfDB["zones"]["loc"][_mapID]) or "unknown"
+  pfQuest:Debug("Update Nodes |cffaaaaaa[zone=" .. tostring(_mapID) .. " " .. _zoneName .. "]|r")
 
   local color = pfQuest_config["spawncolors"] == "1" and "spawn" or "title"
 
@@ -1184,6 +1196,10 @@ pfMap:SetScript("OnEvent", function(self, event)
   end
 
   if event == "ZONE_CHANGED" or event == "MINIMAP_ZONE_CHANGED" or event == "ZONE_CHANGED_NEW_AREA" then
+    -- Log zone change with name and ID
+    local pfZoneID = pfMap:GetCurrentMapID()
+    local zoneName = (pfZoneID and pfDB["zones"]["loc"] and pfDB["zones"]["loc"][pfZoneID]) or GetRealZoneText() or "?"
+    pfQuest:Debug("|cff33ffccZone|r " .. event .. " |cffaaaaaa[uiMapID=" .. tostring(zone) .. " pfID=" .. tostring(pfZoneID) .. " " .. zoneName .. "]|r")
     if not WorldMapFrame:IsShown() then
       -- SetMapToCurrentZone removed in retail; C_Map handles this automatically
       if SetMapToCurrentZone then SetMapToCurrentZone() end

@@ -19,7 +19,18 @@ else
 end
 
 function pfQuest:Debug(msg)
-  -- only show debug output if enabled
+  -- Strip colour codes for the log
+  local function stripColor(s)
+    return (string.gsub(tostring(s), "|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+  end
+
+  -- Always write to diagnostic log if available
+  if pfDiag then
+    local ts = date("%H:%M:%S")
+    pfDiag.log("[" .. ts .. "] " .. stripColor(msg))
+  end
+
+  -- On-screen debug window
   if not pfQuest_config.debug and pfQuest.debugwin then
     pfQuest.debugwin:Hide()
     return
@@ -29,17 +40,19 @@ function pfQuest:Debug(msg)
 
   if not pfQuest.debugwin then
     pfQuest.debugwin = CreateFrame("ScrollingMessageFrame", nil, UIParent)
-    pfQuest.debugwin:SetWidth(320)
-    pfQuest.debugwin:SetHeight(320)
-    pfQuest.debugwin:SetPoint("RIGHT", -42, 0)
-    pfQuest.debugwin:SetFont(STANDARD_TEXT_FONT, 12, "OUTLINE")
+    pfQuest.debugwin:SetWidth(400)
+    pfQuest.debugwin:SetHeight(260)
+    pfQuest.debugwin:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -200, 200)
+    pfQuest.debugwin:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
     pfQuest.debugwin:SetFading(false)
-    pfQuest.debugwin:SetMaxLines(150)
-    pfQuest.debugwin:SetJustifyH("RIGHT")
-    pfQuest.debugwin:SetJustifyV("MIDDLE")
+    pfQuest.debugwin:SetMaxLines(200)
+    pfQuest.debugwin:SetJustifyH("LEFT")
+    pfQuest.debugwin:SetJustifyV("BOTTOM")
+    pfQuest.debugwin:SetFrameStrata("TOOLTIP")
   end
 
-  pfQuest.debugwin:AddMessage(msg)
+  local ts = date("%H:%M:%S")
+  pfQuest.debugwin:AddMessage("|cffaaaaaa[" .. ts .. "]|r " .. msg)
   pfQuest.debugwin:Show()
 end
 

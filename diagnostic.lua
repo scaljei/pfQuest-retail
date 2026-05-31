@@ -113,8 +113,21 @@ SlashCmdList["PFDIAG"] = function(input)
             DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa" .. d.log[i] .. "|r")
         end
     end
+    if input == "debug" then
+        p("--- Debug log entries ---")
+        local count = 0
+        for i = 1, #d.log do
+            local e = d.log[i]
+            if not e:find("ERR:") and (e:find("Zone") or e:find("Node") or e:find("Update") or e:find("Quest")) then
+                DEFAULT_CHAT_FRAME:AddMessage("|cff88ff88" .. e .. "|r")
+                count = count + 1
+                if count >= 40 then break end
+            end
+        end
+        return
+    end
     p("(WTF/Account/.../SavedVariables/pfQuest-retail.lua)")
-    p("/pfdiag log | /pfdiag menu | /pfdiag clear")
+    p("/pfdiag log | /pfdiag menu | /pfdiag debug | /pfdiag clear")
 end
 
 pfDiag = { log = dlog, err = derr }
