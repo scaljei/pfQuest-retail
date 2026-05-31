@@ -81,7 +81,7 @@ local function CreateEntry(self, index)
 
   self[index].bg = self[index]:CreateTexture(nil, "BACKGROUND")
   self[index].bg:SetAllPoints(self[index].text)
-  self[index].bg:SetTexture(1,1,1,.02)
+  self[index].bg:SetColorTexture(1,1,1,.02)
 
   self[index].remove = CreateFrame("Button", nil, self[index])
   self[index].remove:SetPoint("RIGHT", -5, 0)

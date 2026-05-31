@@ -36,7 +36,7 @@ local function EnableTooltips(frame, tooltips)
 end
 
 local function ResultButtonEnter()
-  self.tex:SetTexture(1,1,1,.1)
+  self.tex:SetColorTexture(1,1,1,.1)
 
   -- quest
   if self.btype == "quests" then
@@ -183,9 +183,9 @@ local function ResultButtonLeave()
   end
 
   if compat.mod(self:GetID(),2) == 1 then
-    self.tex:SetTexture(1,1,1,.02)
+    self.tex:SetColorTexture(1,1,1,.02)
   else
-    self.tex:SetTexture(1,1,1,.04)
+    self.tex:SetColorTexture(1,1,1,.04)
   end
   GameTooltip:Hide()
 end
@@ -618,7 +618,7 @@ pfBrowser:SetScript("OnUpdate", function(self)
     for id, frame in pairs(pfBrowser.tabs) do
       for id, button in pairs(frame.buttons) do
         if _mf and button.name == _mf.name then
-          button.tex:SetTexture(.3,1,.8,.4)
+          button.tex:SetColorTexture(.3,1,.8,.4)
         end
       end
     end
@@ -628,9 +628,9 @@ pfBrowser:SetScript("OnUpdate", function(self)
     for id, frame in pairs(pfBrowser.tabs) do
       for id, button in pairs(frame.buttons) do
         if compat.mod(button:GetID(),2) == 1 then
-          button.tex:SetTexture(1,1,1,.02)
+          button.tex:SetColorTexture(1,1,1,.02)
         else
-          button.tex:SetTexture(1,1,1,.04)
+          button.tex:SetColorTexture(1,1,1,.04)
         end
       end
     end

@@ -206,7 +206,7 @@ pfUI.api.CreateScrollFrame = pfUI.api.CreateScrollFrame or function(name, parent
   f.slider:SetThumbTexture("Interface\\BUTTONS\\WHITE8X8")
   f.slider.thumb = f.slider:GetThumbTexture()
   f.slider.thumb:SetHeight(50)
-  f.slider.thumb:SetTexture(.3,1,.8,.5)
+  f.slider.thumb:SetColorTexture(.3,1,.8,.5)
 
   local selfevent = false
   f.slider:SetScript("OnValueChanged", function(self)

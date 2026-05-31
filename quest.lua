@@ -100,6 +100,12 @@ pfQuest:SetScript("OnEvent", function(self, event, addonName)
       pfQuest:AddQuestLogIntegration()
       pfQuest:AddWorldMapIntegration()
       self.lock = GetTime() + 10
+      -- trigger initial quest scan after 2 seconds
+      C_Timer.After(2, function()
+        pfQuest.updateQuestLog = true
+        pfQuest.updateQuestGivers = true
+        if pfMap then pfMap.queue_update = GetTime() end
+      end)
     else
       return
     end

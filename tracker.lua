@@ -140,7 +140,7 @@ tracker.mode = "QUEST_TRACKING"
 tracker.backdrop = CreateFrame("Frame", nil, tracker)
 tracker.backdrop:SetAllPoints(tracker)
 tracker.backdrop.bg = tracker.backdrop:CreateTexture(nil, "BACKGROUND")
-tracker.backdrop.bg:SetTexture(0,0,0,.2)
+tracker.backdrop.bg:SetColorTexture(0,0,0,.2)
 tracker.backdrop.bg:SetAllPoints()
 
 do -- button panel
@@ -558,7 +558,7 @@ function tracker.ButtonAdd(title, node)
     tracker.buttons[id]:SetHeight(entryheight)
 
     tracker.buttons[id].bg = tracker.buttons[id]:CreateTexture(nil, "BACKGROUND")
-    tracker.buttons[id].bg:SetTexture(1,1,1,.2)
+    tracker.buttons[id].bg:SetColorTexture(1,1,1,.2)
     tracker.buttons[id].bg:SetAllPoints()
     tracker.buttons[id].bg:SetAlpha(0)
 

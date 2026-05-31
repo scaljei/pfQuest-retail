@@ -120,7 +120,7 @@ do -- tracking menu
       if not title then
         -- draw separator line
         local line = frame:CreateTexture()
-        line:SetTexture(.25 ,.25, .25, .25)
+        line:SetColorTexture(.25 ,.25, .25, .25)
         line:SetPoint("TOPLEFT", 4, -top-2)
         line:SetPoint("TOPRIGHT", -4, -top-2)
         line:SetHeight(2)
@@ -154,7 +154,7 @@ do -- tracking menu
         frame[name].highlight = frame[name]:CreateTexture(nil, "OVERLAY")
         frame[name].highlight:SetPoint("TOPLEFT", 4, 0)
         frame[name].highlight:SetPoint("BOTTOMRIGHT", -4, 0)
-        frame[name].highlight:SetTexture(1,1,1,.1)
+        frame[name].highlight:SetColorTexture(1,1,1,.1)
         frame[name].highlight:Hide()
 
         -- checkbox (optional)
