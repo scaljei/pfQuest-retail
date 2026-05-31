@@ -167,26 +167,28 @@ pfUI.api.SkinButton = pfUI.api.SkinButton or function(button, cr, cg, cb)
   if not b then return end
   if not b then return end
   if not cr or not cg or not cb then
-    _, class = UnitClass("player")
-    local color = RAID_CLASS_COLORS[class]
-    cr, cg, cb = color.r , color.g, color.b
+    local _, class = UnitClass("player")
+    local color = RAID_CLASS_COLORS and class and RAID_CLASS_COLORS[class]
+    cr = (color and color.r) or 0.3
+    cg = (color and color.g) or 1.0
+    cb = (color and color.b) or 0.8
   end
   if not b.SetBackdrop and BackdropTemplateMixin then Mixin(b, BackdropTemplateMixin) end
   pfUI.api.CreateBackdrop(b, nil, true)
-  b:SetNormalTexture(nil)
-  b:SetHighlightTexture(nil)
-  b:SetPushedTexture(nil)
-  b:SetDisabledTexture(nil)
+  if b.SetNormalTexture then b:SetNormalTexture("") end
+  if b.SetHighlightTexture then b:SetHighlightTexture("") end
+  if b.SetPushedTexture then b:SetPushedTexture("") end
+  if b.SetDisabledTexture then b:SetDisabledTexture("") end
   local funce = b:GetScript("OnEnter")
   local funcl = b:GetScript("OnLeave")
   b:SetScript("OnEnter", function(self)
-    if funce then funce() end
+    if funce then funce(self) end
     if not b.SetBackdrop and BackdropTemplateMixin then Mixin(b, BackdropTemplateMixin) end
   pfUI.api.CreateBackdrop(b, nil, true)
     b:SetBackdropBorderColor(cr,cg,cb,1)
   end)
   b:SetScript("OnLeave", function(self)
-    if funcl then funcl() end
+    if funcl then funcl(self) end
     if not b.SetBackdrop and BackdropTemplateMixin then Mixin(b, BackdropTemplateMixin) end
   pfUI.api.CreateBackdrop(b, nil, true)
   end)

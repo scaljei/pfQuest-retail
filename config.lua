@@ -257,7 +257,7 @@ pfQuestConfig.title:SetFont(pfUI.font_default, 14)
 pfQuestConfig.title:SetText("|cff33ffccpf|rQuest " .. L["Config"])
 pfQuestConfig._progress = 2
 
-pfQuestConfig.close = CreateFrame("Button", "pfQuestConfigClose", pfQuestConfig)
+pfQuestConfig.close = CreateFrame("Button", "pfQuestConfigClose", pfQuestConfig, BackdropTemplateMixin and "BackdropTemplate" or nil)
 pfQuestConfig.close:SetPoint("TOPRIGHT", -5, -5)
 pfQuestConfig.close:SetHeight(20)
 pfQuestConfig.close:SetWidth(20)
@@ -274,7 +274,7 @@ pfQuestConfig.close:SetScript("OnClick", function(self, button)
   self:GetParent():Hide()
 end)
 
-pfQuestConfig.welcome = CreateFrame("Button", "pfQuestConfigWelcome", pfQuestConfig)
+pfQuestConfig.welcome = CreateFrame("Button", "pfQuestConfigWelcome", pfQuestConfig, BackdropTemplateMixin and "BackdropTemplate" or nil)
 pfQuestConfig.welcome:SetWidth(160)
 pfQuestConfig.welcome:SetHeight(28)
 pfQuestConfig.welcome:SetPoint("BOTTOMLEFT", 10, 10)
@@ -286,7 +286,7 @@ pfQuestConfig.welcome.text:SetText(L["Welcome Screen"])
 pfUI.api.SkinButton(pfQuestConfig.welcome)
 pfQuestConfig._progress = 4
 
-pfQuestConfig.save = CreateFrame("Button", "pfQuestConfigReload", pfQuestConfig)
+pfQuestConfig.save = CreateFrame("Button", "pfQuestConfigReload", pfQuestConfig, BackdropTemplateMixin and "BackdropTemplate" or nil)
 pfQuestConfig.save:SetWidth(160)
 pfQuestConfig.save:SetHeight(28)
 pfQuestConfig.save:SetPoint("BOTTOMRIGHT", -10, 10)
