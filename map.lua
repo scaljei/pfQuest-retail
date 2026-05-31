@@ -940,7 +940,25 @@ function pfMap:UpdateNodes()
   pfQuest:Debug("Update Nodes")
 
   local color = pfQuest_config["spawncolors"] == "1" and "spawn" or "title"
-  local map = pfMap:GetCurrentMapID()
+
+  -- retail 11.x: use the DISPLAYED map zone, not just the player's current zone.
+  -- WorldMapFrame:GetMapID() returns the uiMapID of the map being viewed.
+  -- Fall back to player zone if map isn't open or API unavailable.
+  local map
+  if WorldMapFrame and WorldMapFrame.GetMapID and WorldMapFrame:IsShown() then
+    local displayedUID = WorldMapFrame:GetMapID()
+    if displayedUID then
+      -- Convert displayed uiMapID -> pfQuest zone ID via bridge
+      map = pfQuest.retailZoneMap and pfQuest.retailZoneMap[displayedUID]
+      -- If not in retail map, try classic path via zone name
+      if not map and C_Map then
+        local info = C_Map.GetMapInfo(displayedUID)
+        if info then map = pfMap:GetMapIDByName(info.name) end
+      end
+    end
+  end
+  -- Fallback: player's current zone
+  map = map or pfMap:GetCurrentMapID()
   local i = 1
 
   -- reset tracker
