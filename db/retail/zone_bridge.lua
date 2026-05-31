@@ -182,7 +182,7 @@ _loginBridge:SetScript("OnEvent", function(self)
     local info = C_Map.GetMapInfo(uiMapID)
     if not info then return end
     RETAIL_ZONE_MAP[uiMapID] = maxPF
-    PF_TO_UI[maxPF] = uiMapID
+    if pfQuest and pfQuest.retailZoneMapReverse then pfQuest.retailZoneMapReverse[maxPF] = uiMapID end
     pfDB["zones"] = pfDB["zones"] or {["data"]={}, ["loc"]={}}
     pfDB["zones"]["loc"] = pfDB["zones"]["loc"] or {}
     pfDB["zones"]["loc"][maxPF] = info.name
