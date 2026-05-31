@@ -570,7 +570,7 @@ local function CreateBrowseWindow(fname, name, parent, anchor, x, y)
 end
 
 -- browser window
-pfBrowser = CreateFrame("Frame", "pfQuestBrowser", UIParent)
+pfBrowser = CreateFrame("Frame", "pfQuestBrowser", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
 pfBrowser:Hide()
 pfBrowser:SetWidth(640)
 pfBrowser:SetHeight(480)

@@ -56,7 +56,7 @@ end
 
 local expand_states = {}
 
-tracker = CreateFrame("Frame", "pfQuestMapTracker", UIParent)
+tracker = CreateFrame("Frame", "pfQuestMapTracker", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
 tracker:Hide()
 tracker:SetPoint("LEFT", UIParent, "LEFT", 0, 0)
 tracker:SetWidth(200)

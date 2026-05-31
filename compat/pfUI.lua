@@ -258,7 +258,7 @@ pfUI.api.CreateScrollFrame = pfUI.api.CreateScrollFrame or function(name, parent
 end
 
 pfUI.api.CreateScrollChild = pfUI.api.CreateScrollChild or function(name, parent)
-  local f = CreateFrame("Frame", name, parent)
+  local f = CreateFrame("Frame", name, parent, BackdropTemplateMixin and "BackdropTemplate" or nil)
 
   -- dummy values required
   f:SetWidth(1)

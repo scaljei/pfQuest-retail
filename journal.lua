@@ -160,7 +160,7 @@ local function ReloadJournal(self)
 end
 
 -- browser window
-pfJournal = CreateFrame("Frame", "pfQuestJournal", UIParent)
+pfJournal = CreateFrame("Frame", "pfQuestJournal", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
 pfJournal:Hide()
 pfJournal:SetWidth(340)
 pfJournal:SetHeight(520)

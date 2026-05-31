@@ -168,7 +168,7 @@ StaticPopupDialogs["PFQUEST_RESET"] = {
   hideOnEscape = 1,
 }
 
-pfQuestConfig = CreateFrame("Frame", "pfQuestConfig", UIParent)
+pfQuestConfig = CreateFrame("Frame", "pfQuestConfig", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
 pfQuestConfig:Hide()
 pfQuestConfig:SetWidth(280)
 pfQuestConfig:SetHeight(550)
@@ -335,7 +335,7 @@ function pfQuestConfig:CreateConfigEntries(config)
   for _, data in pairs(config) do
     if data.type then
       -- basic frame
-      local frame = CreateFrame("Frame", "pfQuestConfig" .. count, pfQuestConfig)
+      local frame = CreateFrame("Frame", "pfQuestConfig" .. count, pfQuestConfig, BackdropTemplateMixin and "BackdropTemplate" or nil)
       configframes[data.text] = frame
 
       -- caption
@@ -488,7 +488,7 @@ do -- welcome/init popup dialog
   end
 
   -- create welcome/init window
-  pfQuestInit = CreateFrame("Frame", "pfQuestInit", UIParent)
+  pfQuestInit = CreateFrame("Frame", "pfQuestInit", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
   pfQuestInit:Hide()
   pfQuestInit:SetWidth(400)
   pfQuestInit:SetHeight(270)

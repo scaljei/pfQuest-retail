@@ -117,7 +117,7 @@ do -- tracking menu
         line:SetHeight(2)
       else
         -- create menu button
-        frame[name] = CreateFrame("Button", nil, frame)
+        frame[name] = CreateFrame("Button", nil, frame, BackdropTemplateMixin and "BackdropTemplate" or nil)
         frame[name]:SetPoint("TOPLEFT", 0, -top)
         frame[name]:SetPoint("TOPRIGHT", 0, -top)
         frame[name]:SetHeight(16)

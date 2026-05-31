@@ -59,3 +59,27 @@ SlashCmdList["PFTEST3"] = function()
   for _ in ipairs({pfQuestConfig:GetChildren()}) do count = count + 1 end
   DEFAULT_CHAT_FRAME:AddMessage("Children after force: " .. count)
 end
+
+-- Force init on PLAYER_LOGIN regardless of other handlers
+local _forceInit = CreateFrame("Frame")
+_forceInit:RegisterEvent("PLAYER_LOGIN")
+_forceInit:SetScript("OnEvent", function(self)
+  self:UnregisterAllEvents()
+  C_Timer.After(2, function()  -- wait 2 seconds for everything to settle
+    if pfQuestConfig and not pfQuestConfig._initialized then
+      DEFAULT_CHAT_FRAME:AddMessage("|cffff5555pfDiag: PLAYER_LOGIN fired but _initialized=false, forcing now|r")
+      local ok, err = pcall(function()
+        pfQuestConfig:LoadConfig()
+        pfQuestConfig:CreateConfigEntries(pfQuest_defconfig)
+        pfQuestConfig._initialized = true
+      end)
+      if not ok then
+        DEFAULT_CHAT_FRAME:AddMessage("|cffff0000pfDiag ERROR: " .. tostring(err) .. "|r")
+      else
+        local count = 0
+        for _ in ipairs({pfQuestConfig:GetChildren()}) do count = count + 1 end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00pfDiag: CreateConfigEntries OK, children=" .. count .. "|r")
+      end
+    end
+  end)
+end)
