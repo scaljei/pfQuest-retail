@@ -38,7 +38,7 @@ do -- minimap icon
     GameTooltip:Show()
   end)
 
-  pfQuestIcon:SetScript("OnLeave", function()
+  pfQuestIcon:SetScript("OnLeave", function(self)
     GameTooltip:Hide()
   end)
 

@@ -88,9 +88,9 @@ pfQuest:RegisterEvent("PLAYER_LEVEL_UP")
 pfQuest:RegisterEvent("PLAYER_ENTERING_WORLD")
 pfQuest:RegisterEvent("SKILL_LINES_CHANGED")
 pfQuest:RegisterEvent("ADDON_LOADED")
-pfQuest:SetScript("OnEvent", function(self, event)
+pfQuest:SetScript("OnEvent", function(self, event, addonName)
   if event == "ADDON_LOADED" then
-    if delta == "pfQuest" or delta == "pfQuest-tbc" or delta == "pfQuest-wotlk" then
+    if addonName == "pfQuest" or addonName == "pfQuest-tbc" or addonName == "pfQuest-wotlk" or addonName == "pfQuest-retail" then
       pfQuest:AddQuestLogIntegration()
       pfQuest:AddWorldMapIntegration()
       self.lock = GetTime() + 10

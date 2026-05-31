@@ -226,7 +226,7 @@ pfMap.minimap_zoom = minimap_zoom
 pfMap.minimap_sizes = get_minimap_sizes  -- function, not table; call to get live data
 
 pfMap.tooltip = CreateFrame("Frame" , "pfMapTooltip", GameTooltip)
-pfMap.tooltip:SetScript("OnShow", function()
+pfMap.tooltip:SetScript("OnShow", function(self)
   local focus = GetMouseFocus()
   -- abort on pfQuest nodes
   if focus and focus.title then return end

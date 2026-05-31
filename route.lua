@@ -337,13 +337,13 @@ pfQuest.route.arrow:SetClampedToScreen(true)
 pfQuest.route.arrow:SetMovable(true)
 pfQuest.route.arrow:EnableMouse(true)
 pfQuest.route.arrow:RegisterForDrag('LeftButton')
-pfQuest.route.arrow:SetScript("OnDragStart", function()
+pfQuest.route.arrow:SetScript("OnDragStart", function(self)
   if IsShiftKeyDown() then
     self:StartMoving()
   end
 end)
 
-pfQuest.route.arrow:SetScript("OnDragStop", function()
+pfQuest.route.arrow:SetScript("OnDragStop", function(self)
   self:StopMovingOrSizing()
 end)
 

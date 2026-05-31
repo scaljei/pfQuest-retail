@@ -77,13 +77,13 @@ tracker:SetScript("OnEvent", function(self, event)
   end
 end)
 
-tracker:SetScript("OnMouseDown",function()
+tracker:SetScript("OnMouseDown",function(self)
   if not pfQuest_config.lock then
     self:StartMoving()
   end
 end)
 
-tracker:SetScript("OnMouseUp",function()
+tracker:SetScript("OnMouseUp",function(self)
   self:StopMovingOrSizing()
   local anchor, x, y = pfUI.api.ConvertFrameAnchor(self, pfUI.api.GetBestAnchor(self))
   self:ClearAllPoints()

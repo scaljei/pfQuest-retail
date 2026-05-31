@@ -178,8 +178,8 @@ pfQuestConfig:SetMovable(true)
 pfQuestConfig:EnableMouse(true)
 pfQuestConfig:SetClampedToScreen(true)
 pfQuestConfig:RegisterEvent("ADDON_LOADED")
-pfQuestConfig:SetScript("OnEvent", function(self, event)
-  if delta == "pfQuest" or delta == "pfQuest-tbc" or delta == "pfQuest-wotlk" then
+pfQuestConfig:SetScript("OnEvent", function(self, event, addonName)
+  if addonName == "pfQuest" or addonName == "pfQuest-tbc" or addonName == "pfQuest-wotlk" or addonName == "pfQuest-retail" then
     pfQuestConfig:LoadConfig()
     pfQuestConfig:MigrateHistory()
     pfQuestConfig:CreateConfigEntries(pfQuest_defconfig)
@@ -202,11 +202,11 @@ pfQuestConfig:SetScript("OnEvent", function(self, event)
   end
 end)
 
-pfQuestConfig:SetScript("OnMouseDown", function()
+pfQuestConfig:SetScript("OnMouseDown", function(self)
   self:StartMoving()
 end)
 
-pfQuestConfig:SetScript("OnMouseUp", function()
+pfQuestConfig:SetScript("OnMouseUp", function(self)
   self:StopMovingOrSizing()
 end)
 
@@ -488,11 +488,11 @@ do -- welcome/init popup dialog
   pfQuestInit:EnableMouse(true)
   pfQuestInit:SetPoint("CENTER", 0, 0)
   pfQuestInit:RegisterEvent("PLAYER_ENTERING_WORLD")
-  pfQuestInit:SetScript("OnMouseDown", function()
+  pfQuestInit:SetScript("OnMouseDown", function(self)
     self:StartMoving()
   end)
 
-  pfQuestInit:SetScript("OnMouseUp", function()
+  pfQuestInit:SetScript("OnMouseUp", function(self)
     self:StopMovingOrSizing()
   end)
 
@@ -570,7 +570,7 @@ do -- welcome/init popup dialog
     end)
 
     local OnEnter = pfQuestInit[i]:GetScript("OnEnter")
-    pfQuestInit[i]:SetScript("OnEnter", function()
+    pfQuestInit[i]:SetScript("OnEnter", function(self)
       if OnEnter then OnEnter() end
       GameTooltip_SetDefaultAnchor(GameTooltip, self)
 
@@ -581,7 +581,7 @@ do -- welcome/init popup dialog
     end)
 
     local OnLeave = pfQuestInit[i]:GetScript("OnLeave")
-    pfQuestInit[i]:SetScript("OnLeave", function()
+    pfQuestInit[i]:SetScript("OnLeave", function(self)
       if OnLeave then OnLeave() end
       GameTooltip:Hide()
     end)
@@ -605,7 +605,7 @@ do -- welcome/init popup dialog
     config_stage.arrow = self:GetChecked()
   end)
 
-  pfQuestInit.checkbox:SetScript("OnEnter", function()
+  pfQuestInit.checkbox:SetScript("OnEnter", function(self)
     GameTooltip_SetDefaultAnchor(GameTooltip, self)
     GameTooltip:SetText(L["Navigation Arrow"])
     GameTooltip:AddLine(L["Show navigation arrow that points you to the nearest quest location."], 1, 1, 1, true)
@@ -613,7 +613,7 @@ do -- welcome/init popup dialog
     GameTooltip:Show()
   end)
 
-  pfQuestInit.checkbox:SetScript("OnLeave", function()
+  pfQuestInit.checkbox:SetScript("OnLeave", function(self)
     GameTooltip:Hide()
   end)
 
