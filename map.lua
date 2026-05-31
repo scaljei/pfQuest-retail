@@ -786,8 +786,8 @@ function pfMap:BuildNode(name, parent)
   f:SetHeight(f.defsize)
 
   f.Animate = NodeAnimate
-  f:SetScript("OnEnter", pfMap.NodeEnter)
-  f:SetScript("OnLeave", pfMap.NodeLeave)
+  f:SetScript("OnEnter", function(self) pfMap:NodeEnter(self) end)
+  f:SetScript("OnLeave", function(self) pfMap:NodeLeave(self) end)
 
   f.tex = f:CreateTexture(nil, "BACKGROUND")
   f.tex:SetAllPoints(f)
@@ -917,7 +917,7 @@ function pfMap:UpdateNode(frame, node, color, obj, distance)
   end
 
   if frame.updateTexture or frame.updateVertex or frame.updateColor or frame.updateLayer then
-    frame:SetScript("OnClick", (frame.func or pfMap.NodeClick))
+    frame:SetScript("OnClick", frame.func or function(self, btn) pfMap:NodeClick(self, btn) end)
   end
 
   local highlight = frame.texture and pfMap.highlightdb[frame][pfMap.highlight] and true or nil

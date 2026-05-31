@@ -54,11 +54,16 @@ local function registerZone(uiMapID)
     end
   end
 
-  -- Install into zone bridge
-  if pfMap and pfMap.InstallRetailZoneBridge then
-    pfMap:InstallRetailZoneBridge({ [uiMapID] = pfID })
-  elseif pfQuest.retailZoneMap then
+  -- Install into zone bridge (direct table update, avoid repeated log spam)
+  if pfQuest.retailZoneMap then
     pfQuest.retailZoneMap[uiMapID] = pfID
+  end
+  if pfQuest.retailZoneMapReverse then
+    pfQuest.retailZoneMapReverse[pfID] = uiMapID
+  end
+  -- Only call InstallRetailZoneBridge for batch updates, not single zones
+  if pfMap and pfMap.GetCurrentMapID then
+    pfMap.queue_update = GetTime()
   end
 
   return pfID
