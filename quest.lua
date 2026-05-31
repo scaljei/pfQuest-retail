@@ -36,7 +36,7 @@ function pfQuest:Debug(msg)
     pfQuest.debugwin:SetFading(false)
     pfQuest.debugwin:SetMaxLines(150)
     pfQuest.debugwin:SetJustifyH("RIGHT")
-    pfQuest.debugwin:SetJustifyV("CENTER")
+    pfQuest.debugwin:SetJustifyV("MIDDLE")
   end
 
   pfQuest.debugwin:AddMessage(msg)
@@ -386,8 +386,10 @@ function pfQuest:AddQuestLogIntegration()
   if not dockFrame then return end
   local dockTitle = EQL3_QuestLogDescriptionTitle or ShaguQuest_QuestLogDescriptionTitle or pfQuestCompat.QuestLogDescriptionTitle
 
-  dockTitle:SetHeight(dockTitle:GetHeight() + 30)
-  dockTitle:SetJustifyV("BOTTOM")
+  if dockTitle and dockTitle.SetJustifyV then
+    dockTitle:SetHeight(dockTitle:GetHeight() + 30)
+    dockTitle:SetJustifyV("BOTTOM")
+  end
 
   pfQuest.buttonOnline = pfQuest.buttonOnline or CreateFrame("Button", "pfQuestOnline", dockFrame)
   pfQuest.buttonOnline:SetWidth(18)

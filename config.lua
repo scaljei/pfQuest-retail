@@ -563,7 +563,7 @@ do -- welcome/init popup dialog
     pfQuestInit[i]:SetPoint(unpack(button.position))
     pfQuestInit[i]:SetID(i)
 
-    pfQuestInit[i].bg = pfQuestInit[i]:CreateTexture(nil, "NORMAL")
+    pfQuestInit[i].bg = pfQuestInit[i]:CreateTexture(nil, "BACKGROUND")
     pfQuestInit[i].bg:SetWidth(200)
     pfQuestInit[i].bg:SetHeight(200)
     pfQuestInit[i].bg:SetPoint("CENTER", 0, 0)

@@ -792,7 +792,7 @@ function pfMap:BuildNode(name, parent)
   f.tex = f:CreateTexture(nil, "BACKGROUND")
   f.tex:SetAllPoints(f)
 
-  f.pic = f:CreateTexture(nil, "NORMAL")
+  f.pic = f:CreateTexture(nil, "ARTWORK")
   f.pic:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -1)
   f.pic:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
 
