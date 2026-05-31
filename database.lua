@@ -163,6 +163,21 @@ for id, db in pairs(dbs) do
   pfDatabase.dbstring = pfDatabase.dbstring .. " |cffcccccc[|cffffffff" .. db .. "|cffcccccc:|cff33ffcc" .. ( pfDB[db][loc] and loc or "enUS" ) .. "|cffcccccc]"
 end
 
+-- Re-inject zone bridge entries that were wiped by the loc reassignment
+-- The zone bridge adds retail zones (pfID 10000+) directly to loc tables
+-- but the reassignment above replaces the table reference
+C_Timer.After(0.1, function()
+  if pfQuest and pfQuest.retailZoneMap then
+    pfDB["zones"]["loc"] = pfDB["zones"]["loc"] or {}
+    for uiMapID, pfID in pairs(pfQuest.retailZoneMap) do
+      if pfID >= 10000 and not pfDB["zones"]["loc"][pfID] then
+        local info = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(uiMapID)
+        if info then pfDB["zones"]["loc"][pfID] = info.name end
+      end
+    end
+  end
+end)
+
 -- track all previous meta selections on login
 pfDatabase.tracking = CreateFrame("Frame", "pfDatabaseMetaTracking", UIParent)
 pfDatabase.tracking:RegisterEvent("PLAYER_ENTERING_WORLD")

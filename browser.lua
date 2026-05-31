@@ -536,6 +536,7 @@ local function CreateBrowseWindow(fname, name, parent, anchor, x, y)
   pfUI.api.CreateBackdrop(parent.tabs[fname].backdrop, nil, true)
 
   parent.tabs[fname].button = CreateFrame("Button", name .. "Button", parent)
+  parent.tabs[fname].button:EnableMouse(true)
   parent.tabs[fname].button:SetPoint(anchor, x, y)
   parent.tabs[fname].button:SetWidth(153)
   parent.tabs[fname].button:SetHeight(30)

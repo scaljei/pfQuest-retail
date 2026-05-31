@@ -219,7 +219,7 @@ _zoneBridgeFrame:SetScript("OnEvent", function(self, event)
     local info = C_Map.GetMapInfo(uid)
     if info then
       RETAIL_ZONE_MAP[uid] = maxPF
-      PF_TO_UI[maxPF] = uid
+      if pfQuest and pfQuest.retailZoneMapReverse then pfQuest.retailZoneMapReverse[maxPF] = uid end
       pfDB["zones"] = pfDB["zones"] or {["data"]={},["loc"]={}}
       pfDB["zones"]["loc"] = pfDB["zones"]["loc"] or {}
       pfDB["zones"]["loc"][maxPF] = info.name
