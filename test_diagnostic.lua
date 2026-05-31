@@ -44,6 +44,10 @@ SlashCmdList["PFTEST5"] = function()
     return pfQuestConfig:CreateFontString(nil, "OVERLAY")
   end)
   msg("FontString(nil,OVERLAY): " .. tostring(ok1) .. " -> " .. tostring(r1))
+  local ok1b, r1b = pcall(function()
+    return pfQuestConfig:CreateFontString(nil, "LOW")
+  end)
+  msg("FontString(nil,LOW): " .. tostring(ok1b) .. " -> " .. tostring(r1b))
 
   -- Test 2: What does CreateBackdrop do?
   local ok2, r2 = pcall(function()

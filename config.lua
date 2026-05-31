@@ -249,7 +249,7 @@ if not pfQuestConfig.path then
   pfQuestConfig.version = "unknown"
 end
 
-pfQuestConfig.title = pfQuestConfig:CreateFontString(nil, "LOW")
+pfQuestConfig.title = pfQuestConfig:CreateFontString(nil, "OVERLAY")
 pfQuestConfig.title:SetFontObject(GameFontWhite)
 pfQuestConfig.title:SetPoint("TOP", pfQuestConfig, "TOP", 0, -8)
 pfQuestConfig.title:SetJustifyH("LEFT")
@@ -279,7 +279,7 @@ pfQuestConfig.welcome:SetWidth(160)
 pfQuestConfig.welcome:SetHeight(28)
 pfQuestConfig.welcome:SetPoint("BOTTOMLEFT", 10, 10)
 pfQuestConfig.welcome:SetScript("OnClick", function(self) pfQuestConfig:Hide(); pfQuestInit:Show() end)
-pfQuestConfig.welcome.text = pfQuestConfig.welcome:CreateFontString(nil, "LOW")
+pfQuestConfig.welcome.text = pfQuestConfig.welcome:CreateFontString(nil, "OVERLAY")
 pfQuestConfig.welcome.text:SetAllPoints(pfQuestConfig.welcome)
 pfQuestConfig.welcome.text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
 pfQuestConfig.welcome.text:SetText(L["Welcome Screen"])
@@ -291,7 +291,7 @@ pfQuestConfig.save:SetWidth(160)
 pfQuestConfig.save:SetHeight(28)
 pfQuestConfig.save:SetPoint("BOTTOMRIGHT", -10, 10)
 pfQuestConfig.save:SetScript("OnClick", ReloadUI)
-pfQuestConfig.save.text = pfQuestConfig.save:CreateFontString(nil, "LOW")
+pfQuestConfig.save.text = pfQuestConfig.save:CreateFontString(nil, "OVERLAY")
 pfQuestConfig.save.text:SetAllPoints(pfQuestConfig.save)
 pfQuestConfig.save.text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
 pfQuestConfig.save.text:SetText(L["Save & Close"])
@@ -346,7 +346,7 @@ function pfQuestConfig:CreateConfigEntries(config)
       configframes[data.text] = frame
 
       -- caption
-      frame.caption = frame:CreateFontString(nil, "LOW")
+      frame.caption = frame:CreateFontString(nil, "OVERLAY")
       frame.caption:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
       frame.caption:SetPoint("LEFT", 20, 0)
       frame.caption:SetJustifyH("LEFT")
@@ -414,7 +414,7 @@ function pfQuestConfig:CreateConfigEntries(config)
         frame.input:SetHeight(16)
         frame.input:SetPoint("RIGHT", -20, 0)
         frame.input:SetScript("OnClick", data.func)
-        frame.input.text = frame.input:CreateFontString(nil, "LOW")
+        frame.input.text = frame.input:CreateFontString(nil, "OVERLAY")
         frame.input.text:SetAllPoints(frame.input)
         frame.input.text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
         frame.input.text:SetText("OK")
@@ -541,7 +541,7 @@ do -- welcome/init popup dialog
   pfUI.api.CreateBackdrop(pfQuestInit, nil, true, 0.85)
 
   -- welcome title
-  pfQuestInit.title = pfQuestInit:CreateFontString(nil, "LOW")
+  pfQuestInit.title = pfQuestInit:CreateFontString(nil, "OVERLAY")
   pfQuestInit.title:SetPoint("TOP", pfQuestInit, "TOP", 0, -17)
   pfQuestInit.title:SetJustifyH("LEFT")
   pfQuestInit.title:SetText(L["Please select your preferred |cff33ffccpf|cffffffffQuest|r mode:"])
@@ -569,7 +569,7 @@ do -- welcome/init popup dialog
     pfQuestInit[i].bg:SetPoint("CENTER", 0, 0)
     pfQuestInit[i].bg:SetTexture(pfQuestConfig.path..button.texture)
 
-    pfQuestInit[i].caption = pfQuestInit:CreateFontString(nil, "LOW")
+    pfQuestInit[i].caption = pfQuestInit:CreateFontString(nil, "OVERLAY")
     pfQuestInit[i].caption:SetPoint("TOP", pfQuestInit[i], "BOTTOM", 0, -5)
     pfQuestInit[i].caption:SetJustifyH("LEFT")
     pfQuestInit[i].caption:SetText(button.caption)
@@ -612,7 +612,7 @@ do -- welcome/init popup dialog
   pfQuestInit.checkbox:SetHeight(22)
   pfUI.api.CreateBackdrop(pfQuestInit.checkbox, nil, true)
 
-  pfQuestInit.checkbox.caption = pfQuestInit:CreateFontString(nil, "LOW")
+  pfQuestInit.checkbox.caption = pfQuestInit:CreateFontString(nil, "OVERLAY")
   pfQuestInit.checkbox.caption:SetPoint("LEFT", pfQuestInit.checkbox, "RIGHT", 5, 0)
   pfQuestInit.checkbox.caption:SetJustifyH("LEFT")
   pfQuestInit.checkbox.caption:SetText(L["Show Navigation Arrow"])
@@ -637,7 +637,7 @@ do -- welcome/init popup dialog
   pfQuestInit.save:SetWidth(100)
   pfQuestInit.save:SetHeight(24)
   pfQuestInit.save:SetPoint("BOTTOMRIGHT", -10, 10)
-  pfQuestInit.save.text = pfQuestInit.save:CreateFontString(nil, "LOW")
+  pfQuestInit.save.text = pfQuestInit.save:CreateFontString(nil, "OVERLAY")
   pfQuestInit.save.text:SetAllPoints(pfQuestInit.save)
   pfQuestInit.save.text:SetText(L["Save & Close"])
 

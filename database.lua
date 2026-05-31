@@ -1830,7 +1830,7 @@ pfServerScan.scanID = 1
 pfServerScan.max = 100000
 pfServerScan.perloop = 100
 
-pfServerScan.header = pfServerScan:CreateFontString("Caption", "LOW", "GameFontWhite")
+pfServerScan.header = pfServerScan:CreateFontString(nil, "OVERLAY")
 pfServerScan.header:SetFont(STANDARD_TEXT_FONT, 13, "OUTLINE")
 pfServerScan.header:SetJustifyH("CENTER")
 pfServerScan.header:SetPoint("CENTER", 0, 0)
