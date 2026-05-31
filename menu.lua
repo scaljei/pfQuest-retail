@@ -27,15 +27,24 @@ do -- minimap icon
       DEFAULT_CHAT_FRAME:AddMessage("|cffff0000pfQuest: menu not ready|r")
       return
     end
-    local ok, err = pcall(function()
-      if pfQuestMenu:IsShown() then
-        pfQuestMenu:Hide()
-      else
-        pfQuestMenu:Show()
-      end
-    end)
-    if not ok then
-      DEFAULT_CHAT_FRAME:AddMessage("|cffff0000pfQuest menu error: " .. tostring(err) .. "|r")
+    if pfQuestMenu:IsShown() then
+      pfQuestMenu:Hide()
+    else
+      pfQuestMenu:ClearAllPoints()
+      -- anchor to icon position
+      local x, y = pfQuestIcon:GetCenter()
+      local scale = pfQuestIcon:GetEffectiveScale() / UIParent:GetScale()
+      x, y = x * scale, y * scale
+      local screenH = UIParent:GetHeight() / UIParent:GetScale()
+      local screenW = UIParent:GetWidth()  / UIParent:GetScale()
+      local h = y > screenH/2 and "TOP" or "BOTTOM"
+      local w = x > screenW/2 and "RIGHT" or "LEFT"
+      pfQuestMenu:SetPoint(h..w, UIParent, "BOTTOMLEFT",
+        x + (w=="RIGHT" and -pfQuestMenu:GetWidth() or 8),
+        y + (h=="TOP"   and -pfQuestMenu:GetHeight()-8 or 8))
+      pfQuestMenu:SetFrameStrata("TOOLTIP")
+      pfQuestMenu:Show()
+      pfQuestMenu:Raise()
     end
   end)
 

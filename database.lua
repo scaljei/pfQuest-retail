@@ -576,9 +576,6 @@ function pfDatabase:GetPlayerSkill(skill)
   return false
 end
 
-  return false
-end
-
 -- GetBitByRace
 -- Returns bit of the current race
 function pfDatabase:GetBitByRace(model)

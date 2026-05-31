@@ -250,6 +250,7 @@ if not pfQuestConfig.path then
 end
 
 pfQuestConfig.title = pfQuestConfig:CreateFontString(nil, "OVERLAY")
+pfQuestConfig.title:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
 pfQuestConfig.title:SetFontObject(GameFontWhite)
 pfQuestConfig.title:SetPoint("TOP", pfQuestConfig, "TOP", 0, -8)
 pfQuestConfig.title:SetJustifyH("LEFT")

@@ -1168,7 +1168,10 @@ end
 local zone, last_zone
 pfMap:RegisterEvent("ZONE_CHANGED")
 pfMap:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-pfMap:RegisterEvent("MINIMAP_ZONE_CHANGED")
+-- MINIMAP_ZONE_CHANGED removed in retail; MINIMAP_UPDATE_ZOOM is the replacement
+if not pcall(function() pfMap:RegisterEvent("MINIMAP_ZONE_CHANGED") end) then
+  pfMap:RegisterEvent("MINIMAP_UPDATE_ZOOM")
+end
 pfMap:RegisterEvent("WORLD_MAP_UPDATE")
 pfMap:SetScript("OnEvent", function(self, event)
   -- retail: track zone by C_Map uiMapID; legacy by GetCurrentMapZone()
