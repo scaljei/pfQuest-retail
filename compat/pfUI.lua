@@ -98,8 +98,18 @@ end
 local er, eg, eb, ea = .4,.4,.4,1
 local br, bg, bb, ba = 0,0,0,1
 pfUI.api.CreateBackdrop = pfUI.api.CreateBackdrop or function(f, inset, legacy, transp)
-  -- exit if now frame was given
+  -- exit if no frame was given
   if not f then return end
+
+  -- retail 9.0+: SetBackdrop was removed from Frame; use BackdropTemplateMixin
+  if not f.SetBackdrop then
+    if BackdropTemplateMixin then
+      Mixin(f, BackdropTemplateMixin)
+    else
+      -- No backdrop support available; skip silently
+      return
+    end
+  end
 
   -- use default inset if nothing is given
   local border = inset
@@ -109,11 +119,11 @@ pfUI.api.CreateBackdrop = pfUI.api.CreateBackdrop or function(f, inset, legacy, 
 
   if transp then ba = transp end
 
-  -- use legacy backdrop handling
+  -- use legacy backdrop handling (or retail path with mixin applied above)
   if legacy then
     f:SetBackdrop(pfUI.backdrop)
     f:SetBackdropColor(br, bg, bb, ba)
-    f:SetBackdropBorderColor(er, eg, eb , ea)
+    f:SetBackdropBorderColor(er, eg, eb, ea)
     return
   end
 
@@ -129,7 +139,8 @@ pfUI.api.CreateBackdrop = pfUI.api.CreateBackdrop or function(f, inset, legacy, 
     local border = tonumber(border) - 1
     local backdrop = pfUI.backdrop
     if border < 1 then backdrop = pfUI.backdrop_small end
-  	local b = CreateFrame("Frame", nil, f)
+  	local b = CreateFrame("Frame", nil, f, BackdropTemplateMixin and "BackdropTemplate" or nil)
+  	if not b.SetBackdrop and BackdropTemplateMixin then Mixin(b, BackdropTemplateMixin) end
   	b:SetPoint("TOPLEFT", f, "TOPLEFT", -border, border)
   	b:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", border, -border)
 
@@ -159,6 +170,7 @@ pfUI.api.SkinButton = pfUI.api.SkinButton or function(button, cr, cg, cb)
     local color = RAID_CLASS_COLORS[class]
     cr, cg, cb = color.r , color.g, color.b
   end
+  if not b.SetBackdrop and BackdropTemplateMixin then Mixin(b, BackdropTemplateMixin) end
   pfUI.api.CreateBackdrop(b, nil, true)
   b:SetNormalTexture(nil)
   b:SetHighlightTexture(nil)
@@ -168,12 +180,14 @@ pfUI.api.SkinButton = pfUI.api.SkinButton or function(button, cr, cg, cb)
   local funcl = b:GetScript("OnLeave")
   b:SetScript("OnEnter", function(self)
     if funce then funce() end
-    pfUI.api.CreateBackdrop(b, nil, true)
+    if not b.SetBackdrop and BackdropTemplateMixin then Mixin(b, BackdropTemplateMixin) end
+  pfUI.api.CreateBackdrop(b, nil, true)
     b:SetBackdropBorderColor(cr,cg,cb,1)
   end)
   b:SetScript("OnLeave", function(self)
     if funcl then funcl() end
-    pfUI.api.CreateBackdrop(b, nil, true)
+    if not b.SetBackdrop and BackdropTemplateMixin then Mixin(b, BackdropTemplateMixin) end
+  pfUI.api.CreateBackdrop(b, nil, true)
   end)
   pfUI.api.SetButtonFont(b, pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
 end
