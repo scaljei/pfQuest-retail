@@ -1172,7 +1172,9 @@ pfMap:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 if not pcall(function() pfMap:RegisterEvent("MINIMAP_ZONE_CHANGED") end) then
   pfMap:RegisterEvent("MINIMAP_UPDATE_ZOOM")
 end
-pfMap:RegisterEvent("WORLD_MAP_UPDATE")
+-- WORLD_MAP_UPDATE removed in retail; use MAP_OPENED + ZONE_CHANGED
+if not pcall(function() pfMap:RegisterEvent("MAP_OPENED") end) then end
+if not pcall(function() pfMap:RegisterEvent("MAP_CLOSED") end) then end
 pfMap:SetScript("OnEvent", function(self, event)
   -- retail: track zone by C_Map uiMapID; legacy by GetCurrentMapZone()
   if C_Map and C_Map.GetBestMapForUnit then
@@ -1188,7 +1190,7 @@ pfMap:SetScript("OnEvent", function(self, event)
     end
   end
 
-  if event == "WORLD_MAP_UPDATE" and last_zone ~= zone then
+  if (event == "WORLD_MAP_UPDATE" or event == "MAP_OPENED" or event == "MAP_CLOSED") and last_zone ~= zone then
     pfMap:UpdateNodes()
     last_zone = zone
   end

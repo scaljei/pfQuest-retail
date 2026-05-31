@@ -1,108 +1,121 @@
--- pfQuest-retail diagnostic logger v2
--- Saves to SavedVariable: pfQuest_diagnostic (in WTF/Account/SERVER/CHAR/SavedVariables/)
--- Commands: /pfdiag, /pfdiag log, /pfdiag errors, /pfdiag clear, /pfdiag menu
+-- pfQuest-retail diagnostic logger v3
+-- SavedVariable: pfQuest_diagnostic (loaded AFTER this file runs)
+-- Use VARIABLES_LOADED to hook into the populated table
 
-pfQuest_diagnostic = pfQuest_diagnostic or { log={}, errors={}, session=0 }
-pfQuest_diagnostic.session = (pfQuest_diagnostic.session or 0) + 1
-pfQuest_diagnostic.log = pfQuest_diagnostic.log or {}
-pfQuest_diagnostic.errors = pfQuest_diagnostic.errors or {}
+local _pendingLog = {}  -- collect logs before VARIABLES_LOADED
+local _ready = false
 
-local diag = pfQuest_diagnostic
-local sessionID = diag.session
-local startTime = GetTime()
+local function ts() return string.format("[s %.1fs]", GetTime()) end
 
-local function ts() return string.format("[s%d %.1fs]", sessionID, GetTime()-startTime) end
-local function dlog(m) local e=ts().." "..tostring(m); table.insert(diag.log,e); while #diag.log>500 do table.remove(diag.log,1) end end
-local function derr(m) local e=ts().." ERR: "..tostring(m); table.insert(diag.errors,e); dlog("ERR: "..tostring(m)); while #diag.errors>200 do table.remove(diag.errors,1) end end
-
--- Hook error handler
-local _prevEH = geterrorhandler and geterrorhandler()
-if seterrorhandler then
-  seterrorhandler(function(msg)
-    derr(tostring(msg))
-    if _prevEH then return _prevEH(msg) end
-  end)
+local function dlog(m)
+    local e = ts() .. " " .. tostring(m)
+    if _ready and pfQuest_diagnostic then
+        table.insert(pfQuest_diagnostic.log, e)
+        while #pfQuest_diagnostic.log > 500 do table.remove(pfQuest_diagnostic.log, 1) end
+    else
+        table.insert(_pendingLog, e)
+    end
 end
 
--- Event logging
+local function derr(m)
+    local e = ts() .. " ERR: " .. tostring(m)
+    dlog("ERR: " .. tostring(m))
+    if _ready and pfQuest_diagnostic then
+        table.insert(pfQuest_diagnostic.errors, e)
+        while #pfQuest_diagnostic.errors > 200 do table.remove(pfQuest_diagnostic.errors, 1) end
+    end
+end
+
+-- Hook error handler immediately
+local _prevEH = geterrorhandler and geterrorhandler()
+if seterrorhandler then
+    seterrorhandler(function(msg)
+        derr(tostring(msg))
+        if _prevEH then return _prevEH(msg) end
+    end)
+end
+
 local f = CreateFrame("Frame")
+f:RegisterEvent("VARIABLES_LOADED")
 f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:SetScript("OnEvent", function(self, event, ...)
-  if event=="ADDON_LOADED" then
-    local a=...; if a and a:find("pfQuest") then dlog("ADDON_LOADED: "..a) end
-  elseif event=="PLAYER_LOGIN" then
-    dlog("PLAYER_LOGIN")
-    dlog("pfQuestMenu="..tostring(pfQuestMenu))
-    dlog("pfDatabase="..tostring(pfDatabase))
-    dlog("pfQuestConfig._initialized="..tostring(pfQuestConfig and pfQuestConfig._initialized))
-    dlog("pfQuestConfig._progress="..tostring(pfQuestConfig and pfQuestConfig._progress))
-    dlog("BackdropTemplateMixin="..tostring(BackdropTemplateMixin~=nil))
-    -- Test APIs
-    local t=CreateFrame("Frame",nil,UIParent)
-    local tx=t:CreateTexture(nil,"OVERLAY")
-    local ok,e=pcall(function() tx:SetColorTexture(1,0,0,1) end)
-    dlog("SetColorTexture: "..tostring(ok).." "..(e or ""))
-    local fs=t:CreateFontString(nil,"OVERLAY")
-    ok,e=pcall(function() fs:SetJustifyV("BOTTOM") end)
-    dlog("SetJustifyV(BOTTOM): "..tostring(ok).." "..(e or ""))
-    ok,e=pcall(function() fs:SetJustifyV("MIDDLE") end)
-    dlog("SetJustifyV(MIDDLE): "..tostring(ok).." "..(e or ""))
-    t:Hide()
-    C_Timer.After(2, function()
-      dlog("--- 2s post-login ---")
-      dlog("pfQuestMenu="..tostring(pfQuestMenu))
-      dlog("pfQuestConfig.CreateConfigEntries="..type(pfQuestConfig and pfQuestConfig.CreateConfigEntries or "nil"))
-      local zcount=0; if pfQuest and pfQuest.retailZoneMap then for _ in pairs(pfQuest.retailZoneMap) do zcount=zcount+1 end end
-      dlog("retailZoneMap="..zcount)
-    end)
-  elseif event=="PLAYER_ENTERING_WORLD" then
-    dlog("PLAYER_ENTERING_WORLD")
-  end
+    if event == "VARIABLES_LOADED" then
+        -- NOW the SavedVariable is populated
+        pfQuest_diagnostic = pfQuest_diagnostic or {}
+        pfQuest_diagnostic.log = pfQuest_diagnostic.log or {}
+        pfQuest_diagnostic.errors = pfQuest_diagnostic.errors or {}
+        pfQuest_diagnostic.session = (pfQuest_diagnostic.session or 0) + 1
+        _ready = true
+        -- flush pending logs
+        for _, e in ipairs(_pendingLog) do
+            table.insert(pfQuest_diagnostic.log, e)
+        end
+        _pendingLog = {}
+        dlog("VARIABLES_LOADED - diagnostic ready (session " .. pfQuest_diagnostic.session .. ")")
+
+    elseif event == "ADDON_LOADED" then
+        local a = ...; if a and a:find("pfQuest") then dlog("ADDON_LOADED: " .. a) end
+
+    elseif event == "PLAYER_LOGIN" then
+        dlog("PLAYER_LOGIN")
+        dlog("pfQuestMenu=" .. tostring(pfQuestMenu))
+        dlog("pfDatabase=" .. tostring(pfDatabase))
+        dlog("pfQuestConfig._initialized=" .. tostring(pfQuestConfig and pfQuestConfig._initialized))
+        dlog("pfQuestConfig._progress=" .. tostring(pfQuestConfig and pfQuestConfig._progress))
+        dlog("BackdropTemplateMixin=" .. tostring(BackdropTemplateMixin ~= nil))
+        C_Timer.After(2, function()
+            dlog("--- 2s ---")
+            dlog("pfQuestMenu=" .. tostring(pfQuestMenu))
+            local zcount = 0
+            if pfQuest and pfQuest.retailZoneMap then
+                for _ in pairs(pfQuest.retailZoneMap) do zcount = zcount + 1 end
+            end
+            dlog("retailZoneMap=" .. zcount)
+        end)
+
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        dlog("PLAYER_ENTERING_WORLD")
+    end
 end)
 
--- Slash command
-SLASH_PFDIAG1="/pfdiag"
-SlashCmdList["PFDIAG"]=function(input)
-  local function p(s) DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc"..s.."|r") end
-  if input=="clear" then
-    pfQuest_diagnostic={log={},errors={},session=sessionID}
-    diag=pfQuest_diagnostic
-    p("Diagnostic cleared"); return
-  end
-  if input=="menu" then
-    p("pfQuestMenu: "..tostring(pfQuestMenu))
-    p("pfQuestIcon: "..tostring(pfQuestIcon))
-    p("pfDatabase: "..tostring(pfDatabase))
-    p("pfQuestConfig._progress: "..tostring(pfQuestConfig and pfQuestConfig._progress))
-    if pfQuestMenu then
-      p("pfQuestMenu shown: "..tostring(pfQuestMenu:IsShown()))
-      p("pfQuestMenu size: "..pfQuestMenu:GetWidth().."x"..pfQuestMenu:GetHeight())
+SLASH_PFDIAG1 = "/pfdiag"
+SlashCmdList["PFDIAG"] = function(input)
+    local function p(s) DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc" .. s .. "|r") end
+    local function r(s) DEFAULT_CHAT_FRAME:AddMessage("|cffff5555" .. s .. "|r") end
+
+    if input == "clear" then
+        pfQuest_diagnostic = { log={}, errors={}, session = pfQuest_diagnostic and pfQuest_diagnostic.session or 0 }
+        _ready = true; p("Cleared"); return
     end
-    -- Try to open manually
-    p("--- Forcing menu show ---")
-    local ok,e=pcall(function()
-      if pfQuestMenu then pfQuestMenu:Show() end
-    end)
-    p("Show result: "..tostring(ok).." "..(e or ""))
-    return
-  end
-  p("=== pfQuest Diagnostic (session "..sessionID..") ===")
-  p("Errors: "..#diag.errors.."  Log: "..#diag.log)
-  p("--- Recent Errors ---")
-  for i=math.max(1,#diag.errors-8),#diag.errors do
-    DEFAULT_CHAT_FRAME:AddMessage("|cffff5555"..diag.errors[i].."|r")
-  end
-  if input=="log" then
-    p("--- Log (last 30) ---")
-    for i=math.max(1,#diag.log-30),#diag.log do
-      DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa"..diag.log[i].."|r")
+    if input == "menu" then
+        p("pfQuestMenu=" .. tostring(pfQuestMenu))
+        p("pfQuestIcon=" .. tostring(pfQuestIcon))
+        if pfQuestMenu then
+            p("shown=" .. tostring(pfQuestMenu:IsShown()))
+            p("size=" .. pfQuestMenu:GetWidth() .. "x" .. pfQuestMenu:GetHeight())
+            local ok, e = pcall(function()
+                pfQuestMenu:SetFrameStrata("TOOLTIP"); pfQuestMenu:Show(); pfQuestMenu:Raise()
+            end)
+            p("Force show: " .. tostring(ok) .. " " .. tostring(e or ""))
+        end; return
     end
-  end
-  p("(Saved in WTF SavedVariables as pfQuest_diagnostic)")
-  p("Commands: /pfdiag log  /pfdiag menu  /pfdiag clear")
+
+    local d = pfQuest_diagnostic or { log={}, errors={} }
+    p("=== pfQuest Diagnostic (session " .. tostring(d.session) .. ") ===")
+    p("Errors: " .. #d.errors .. "  Log: " .. #d.log)
+    p("--- Recent Errors ---")
+    for i = math.max(1, #d.errors - 10), #d.errors do r(d.errors[i]) end
+    if input == "log" or input == "" then
+        p("--- Log (last 30) ---")
+        for i = math.max(1, #d.log - 30), #d.log do
+            DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa" .. d.log[i] .. "|r")
+        end
+    end
+    p("(WTF/Account/.../SavedVariables/pfQuest-retail.lua)")
+    p("/pfdiag log | /pfdiag menu | /pfdiag clear")
 end
 
-pfDiag={log=dlog,err=derr}
-dlog("diagnostic.lua loaded (session "..sessionID..")")
+pfDiag = { log = dlog, err = derr }
+dlog("diagnostic.lua loaded")

@@ -196,8 +196,13 @@ do -- tracking menu
 
     -- the usual menu hide events (UIMenus may not exist in retail)
     if UIMenus then table.insert(UIMenus, name) end
-    frame:RegisterEvent("CURSOR_UPDATE")
+    -- CURSOR_UPDATE removed; use GLOBAL_MOUSE_DOWN to dismiss menus
+    frame:SetScript("OnMouseDown", function(self) self:Hide() end)
+    -- Also hide on any click outside via WorldFrame
     frame:SetScript("OnEvent", function(self) self:Hide() end)
+    if not pcall(function() frame:RegisterEvent("GLOBAL_MOUSE_DOWN") end) then
+      pcall(function() frame:RegisterEvent("PLAYER_STARTED_MOVING") end)
+    end
 
     return frame
   end
