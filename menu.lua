@@ -96,6 +96,8 @@ do -- tracking menu
   end
 
   local function MenuButtonClick(self)
+    -- Debug: log every click
+    if pfDiag then pfDiag.log("MenuClick: " .. tostring(self and self.name)) end
     -- Toggle state explicitly (GetChecked may return stale value)
     if self.check then
       self.state = not self.state  -- toggle
@@ -212,7 +214,11 @@ do -- tracking menu
   end
 
   local function ToggleFrame(frame)
-    if not frame then return end
+    if not frame then
+      if pfDiag then pfDiag.log("ToggleFrame: frame is nil") end
+      return
+    end
+    if pfDiag then pfDiag.log("ToggleFrame: " .. tostring(frame:GetName()) .. " shown=" .. tostring(frame:IsShown())) end
     local ok, err = pcall(function()
       if frame:IsShown() then frame:Hide() else frame:Show() end
     end)

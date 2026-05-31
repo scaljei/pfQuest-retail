@@ -272,7 +272,11 @@ SlashCmdList["PFDB"] = function(input, editbox)
 
   -- argument: show
   if (arg1 == "show") then
-    if pfBrowser then pfBrowser:Show() end
+    if pfDiag then pfDiag.log("/db show: pfBrowser=" .. tostring(pfBrowser)) end
+    if pfBrowser then
+      local ok, err = pcall(function() pfBrowser:Show() end)
+      if pfDiag then pfDiag.log("/db show result: " .. tostring(ok) .. " " .. tostring(err)) end
+    end
     return
   end
 
