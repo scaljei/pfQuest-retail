@@ -139,7 +139,7 @@ end)
 
 pfQuest:SetScript("OnUpdate", function(self)
   if self.lock and self.lock > GetTime() then return end
-  if not pfDatabase.localized then return end
+  if not pfDatabase or not pfDatabase.localized then return end
 
   if ( self.tick or .05) > GetTime() then return else self.tick = GetTime() + .05 end
 

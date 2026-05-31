@@ -535,7 +535,7 @@ do -- welcome/init popup dialog
     if pfQuestInit[2] then desaturate(pfQuestInit[2].bg, true) end
     if pfQuestInit[3] then desaturate(pfQuestInit[3].bg, true) end
     if pfQuestInit[config_stage.mode] then desaturate(pfQuestInit[config_stage.mode].bg, false) end
-    pfQuestInit.checkbox:SetChecked(config_stage.arrow)
+    if pfQuestInit.checkbox then pfQuestInit.checkbox:SetChecked(config_stage.arrow) end
   end)
 
   pfUI.api.CreateBackdrop(pfQuestInit, nil, true, 0.85)

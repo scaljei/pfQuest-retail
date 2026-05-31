@@ -37,7 +37,8 @@ local function registerZone(uiMapID)
   if not info then return nil end
 
   ensureDB()
-  -- Register zone name
+  -- Register zone name (ensure loc table exists - database.lua may replace it)
+  if not pfDB["zones"]["loc"] then pfDB["zones"]["loc"] = {} end
   pfDB["zones"]["loc"][pfID] = info.name
   pfDB["zones"]["data"][pfID] = { 99, 0, 0, 100, 100 }
   pfDB["minimap"][pfID] = { 4266.7, 2844.4 }

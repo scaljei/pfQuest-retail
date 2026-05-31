@@ -431,6 +431,7 @@ function pfMap:GetMapNameByID(id)
 end
 
 function pfMap:GetMapIDByName(search)
+  if not pfDB["zones"]["loc"] then return nil end
   for id, name in pairs(pfDB["zones"]["loc"]) do
     if name == search then
       return id
