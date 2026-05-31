@@ -23,11 +23,19 @@ do -- minimap icon
   end)
 
   pfQuestIcon:SetScript("OnClick", function(self, button)
-    if not pfQuestMenu then return end
-    if pfQuestMenu:IsShown() then
-      pfQuestMenu:Hide()
-    else
-      pfQuestMenu:Show()
+    if not pfQuestMenu then
+      DEFAULT_CHAT_FRAME:AddMessage("|cffff0000pfQuest: menu not ready|r")
+      return
+    end
+    local ok, err = pcall(function()
+      if pfQuestMenu:IsShown() then
+        pfQuestMenu:Hide()
+      else
+        pfQuestMenu:Show()
+      end
+    end)
+    if not ok then
+      DEFAULT_CHAT_FRAME:AddMessage("|cffff0000pfQuest menu error: " .. tostring(err) .. "|r")
     end
   end)
 
@@ -214,10 +222,14 @@ do -- tracking menu
   }
 
   pfQuestMenu = CreateMenu(menu, "pfQuestMenu")
+  if not pfQuestMenu then
+    pfQuestMenu = CreateFrame("Frame", "pfQuestMenu", UIParent)
+    pfQuestMenu:Hide()
+  end
   pfQuestMenu:SetScript("OnShow", function(self)
     -- create shortcuts
     local anchor = self.anchor or pfQuestIcon
-    local config = pfQuest_track
+    local config = pfQuest_track or {}
     local frame = self
 
     -- read virtual anchor position
