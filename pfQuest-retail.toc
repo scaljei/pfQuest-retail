@@ -3,7 +3,7 @@
 ## Author: Shagu (retail port for 11.1.5)
 ## Notes: A Questhelper and Database — retail API port. Install pfQuest-retail-db for expansion data.
 ## Version: 7.0.1-retail
-## SavedVariables: pfQuest_questcache
+## SavedVariables: pfQuest_questcache, pfQuest_diagnostic
 ## SavedVariablesPerCharacter: pfQuest_config, pfBrowser_fav, pfQuest_history, pfQuest_colors, pfQuest_server, pfQuest_track
 ## OptionalDeps: pfQuest-retail-db
 

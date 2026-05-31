@@ -138,7 +138,7 @@ do -- tracking menu
 
         -- title
         frame[name].title = frame[name]:CreateFontString(nil, "OVERLAY")
-        frame[name].title:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
+        frame[name].title:SetFont(pfUI.font_default or STANDARD_TEXT_FONT, tonumber(pfUI_config.global.font_size) or 11, "OUTLINE")
         frame[name].title:SetPoint("LEFT", 22, 0)
         frame[name].title:SetJustifyH("LEFT")
         frame[name].title:SetText(title)
@@ -148,7 +148,9 @@ do -- tracking menu
         frame[name].icon:SetWidth(14)
         frame[name].icon:SetHeight(14)
         frame[name].icon:SetPoint("RIGHT", -8, 0)
-        frame[name].icon:SetTexture(pfQuestConfig.path.."\\img\\tracking\\"..name)
+        if pfQuestConfig.path then
+          frame[name].icon:SetTexture(pfQuestConfig.path.."\\img\\tracking\\"..name)
+        end
 
         -- hover
         frame[name].highlight = frame[name]:CreateTexture(nil, "OVERLAY")
