@@ -541,13 +541,40 @@ end
 -- Returns false if the player doesn't have the required skill, or their rank if they do
 function pfDatabase:GetPlayerSkill(skill)
   if not professions[skill] then return false end
+  local profName = professions[skill]
 
-  for i=0,GetNumSkillLines() do
-    local skillName, _, _, skillRank = GetSkillLineInfo(i)
-    if skillName == professions[skill] then
-      return skillRank
+  -- retail 11.x: GetNumSkillLines/GetSkillLineInfo removed
+  -- Use C_TradeSkillUI.GetAllProfessionTradeSkillLines() or GetProfessions()
+  if C_TradeSkillUI and C_TradeSkillUI.GetAllProfessionTradeSkillLines then
+    for _, lineID in ipairs(C_TradeSkillUI.GetAllProfessionTradeSkillLines()) do
+      local info = C_TradeSkillUI.GetTradeSkillLineForUnit and
+                   C_TradeSkillUI.GetTradeSkillLineForUnit("player")
+      -- Fall back to checking GetProfessions
+      break
     end
   end
+
+  -- Try GetProfessions (still exists in retail)
+  if GetProfessions then
+    local profs = {GetProfessions()}
+    for _, profIndex in ipairs(profs) do
+      if profIndex then
+        local name, _, rank = GetProfessionInfo(profIndex)
+        if name == profName then return rank end
+      end
+    end
+  end
+
+  -- Legacy path: GetNumSkillLines (classic/TBC/WotLK)
+  if GetNumSkillLines then
+    for i = 0, GetNumSkillLines() do
+      local skillName, _, _, skillRank = GetSkillLineInfo(i)
+      if skillName == profName then return skillRank end
+    end
+  end
+
+  return false
+end
 
   return false
 end

@@ -219,7 +219,7 @@ pfQuestConfig:SetScript("OnMouseUp", function(self)
 end)
 
 pfQuestConfig:SetScript("OnShow", function(self)
-  self:UpdateConfigEntries()
+  if self.UpdateConfigEntries then self:UpdateConfigEntries() end
 end)
 
 pfQuestConfig.vpos = 40
@@ -531,10 +531,10 @@ do -- welcome/init popup dialog
 
   pfQuestInit:SetScript("OnShow", function(self)
     -- reload ui elements
-    desaturate(pfQuestInit[1].bg, true)
-    desaturate(pfQuestInit[2].bg, true)
-    desaturate(pfQuestInit[3].bg, true)
-    desaturate(pfQuestInit[config_stage.mode].bg, false)
+    if pfQuestInit[1] then desaturate(pfQuestInit[1].bg, true) end
+    if pfQuestInit[2] then desaturate(pfQuestInit[2].bg, true) end
+    if pfQuestInit[3] then desaturate(pfQuestInit[3].bg, true) end
+    if pfQuestInit[config_stage.mode] then desaturate(pfQuestInit[config_stage.mode].bg, false) end
     pfQuestInit.checkbox:SetChecked(config_stage.arrow)
   end)
 

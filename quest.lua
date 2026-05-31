@@ -105,8 +105,16 @@ pfQuest:SetScript("OnEvent", function(self, event, addonName)
     end
   elseif event == "SKILL_LINES_CHANGED" then
     local skills = ""
-    for i=0, GetNumSkillLines() do
-      skills = skills .. (GetSkillLineInfo(i) or "")
+    -- retail: GetNumSkillLines removed; use GetProfessions
+    if GetNumSkillLines then
+      for i=0, GetNumSkillLines() do
+        skills = skills .. (GetSkillLineInfo(i) or "")
+      end
+    elseif GetProfessions then
+      local profs = {GetProfessions()}
+      for _, p in ipairs(profs) do
+        if p then local n = GetProfessionInfo(p); skills = skills .. (n or "") end
+      end
     end
 
     -- update quest givers when new skills or
