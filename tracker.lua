@@ -634,3 +634,5 @@ end
 
 -- make global available
 pfQuest.tracker = tracker
+
+C_Timer.After(0, function() if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa[diag] tracker.lua loaded|r") end end)

@@ -1,8 +1,8 @@
+-- browser.lua load test
+C_Timer.After(0, function() if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[diag] browser.lua started|r") end end)
 -- multi api compat
 local compat = pfQuestCompat
 if pfDiag then pfDiag.log("browser.lua: start") end
--- Force chat output to confirm load
-C_Timer.After(0, function() if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00browser.lua LOADED|r") end end)
 
 -- default config
 pfBrowser_fav = {["units"] = {}, ["objects"] = {}, ["items"] = {}, ["quests"] = {}}
