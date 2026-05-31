@@ -51,9 +51,9 @@ function pfMap:InstallRetailZoneBridge(zoneTable)
   for uid, pfid in pairs(zoneTable) do
     RETAIL_ZONE_MAP[uid] = pfid
   end
-  pfQuest:Debug('pfQuest-retail-db: zone bridge installed, ' ..
-    tostring(#(function() local n=0 for _ in pairs(RETAIL_ZONE_MAP) do n=n+1 end return n end)()) ..
-    ' zones registered')
+  local _zcount = 0
+  for _ in pairs(RETAIL_ZONE_MAP) do _zcount = _zcount + 1 end
+  pfQuest:Debug('pfQuest-retail-db: zone bridge installed, ' .. tostring(_zcount) .. ' zones registered')
 end
 
 -- ── Hook pfMap:GetCurrentMapID() ─────────────────────────────────────────

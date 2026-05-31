@@ -407,11 +407,11 @@ local function ResultButtonCreate(i, resultType)
   f.tex:SetTexture(1,1,1, ( compat.mod(i,2) == 1 and .02 or .04))
 
   -- text properties
-  f.text = f:CreateFontString(nil, "LOW", "GameFontWhite")
+  f.text = f:CreateFontString(nil, "LOW")
   f.text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
   f.text:SetAllPoints(f)
   f.text:SetJustifyH("CENTER")
-  f.idText = f:CreateFontString("ID", "LOW", "GameFontDisable")
+  f.idText = f:CreateFontString(nil, "LOW")
   f.idText:SetPoint("LEFT", f, "LEFT", 30, 0)
 
   -- favourite button
@@ -496,7 +496,7 @@ local function RefreshView(i, key, caption)
   pfBrowser.tabs[key].list:GetParent():SetVerticalScroll(0)
 
   if not pfBrowser.tabs[key].list.warn then
-    pfBrowser.tabs[key].list.warn = pfBrowser.tabs[key].list:CreateFontString(nil, "LOW", "GameFontWhite")
+    pfBrowser.tabs[key].list.warn = pfBrowser.tabs[key].list:CreateFontString(nil, "LOW")
     pfBrowser.tabs[key].list.warn:SetTextColor(1,.2,.2,1)
     pfBrowser.tabs[key].list.warn:SetJustifyH("CENTER")
     pfBrowser.tabs[key].list.warn:SetPoint("TOP", 5, -5)
@@ -613,10 +613,11 @@ end)
 
 pfBrowser:SetScript("OnUpdate", function(self)
   -- multi-select handling
-  if not self.selectState and IsControlKeyDown() and GetMouseFocus() and GetMouseFocus().pfResultButton then
+  local _mf = (GetMouseFoci and GetMouseFoci()) or (GetMouseFocus and GetMouseFocus())
+  if not self.selectState and IsControlKeyDown() and _mf and _mf.pfResultButton then
     for id, frame in pairs(pfBrowser.tabs) do
       for id, button in pairs(frame.buttons) do
-        if button.name == GetMouseFocus().name then
+        if _mf and button.name == _mf.name then
           button.tex:SetTexture(.3,1,.8,.4)
         end
       end
@@ -640,7 +641,7 @@ end)
 pfUI.api.CreateBackdrop(pfBrowser, nil, true, 0.75)
 table.insert(UISpecialFrames, "pfQuestBrowser")
 
-pfBrowser.title = pfBrowser:CreateFontString(nil, "LOW", "GameFontNormal")
+pfBrowser.title = pfBrowser:CreateFontString(nil, "LOW")
 pfBrowser.title:SetFontObject(GameFontWhite)
 pfBrowser.title:SetPoint("TOP", pfBrowser, "TOP", 0, -8)
 pfBrowser.title:SetJustifyH("LEFT")
@@ -691,7 +692,7 @@ pfBrowser.clean:SetScript("OnClick", function(self, button)
   pfMap:DeleteNode("PFDB")
   pfMap:UpdateNodes()
 end)
-pfBrowser.clean.text = pfBrowser.clean:CreateFontString(nil, "LOW", "GameFontWhite")
+pfBrowser.clean.text = pfBrowser.clean:CreateFontString(nil, "LOW")
 pfBrowser.clean.text:SetAllPoints(pfBrowser.clean)
 pfBrowser.clean.text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
 pfBrowser.clean.text:SetText(pfQuest_Loc["Clean Map"])

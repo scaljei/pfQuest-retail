@@ -393,7 +393,7 @@ function pfQuest:AddQuestLogIntegration()
     end
   end)
 
-  pfQuest.buttonOnline.txt = pfQuest.buttonOnline:CreateFontString("pfQuestIDButton", "HIGH", "GameFontWhite")
+  pfQuest.buttonOnline.txt = pfQuest.buttonOnline:CreateFontString(nil, "HIGH")
   pfQuest.buttonOnline.txt:SetAllPoints(pfQuest.buttonOnline)
   pfQuest.buttonOnline.txt:SetJustifyH("RIGHT")
   pfQuest.buttonOnline.txt:SetText("|cff000000[|cffaa2222?|cff000000]")
@@ -403,7 +403,7 @@ function pfQuest:AddQuestLogIntegration()
   pfQuest.buttonLanguage:SetHeight(15)
   pfQuest.buttonLanguage:SetPoint("RIGHT", pfQuest.buttonOnline, "LEFT", 0, 0)
 
-  pfQuest.buttonLanguage.txt = pfQuest.buttonLanguage:CreateFontString("pfQuestIDButton", "HIGH", "GameFontWhite")
+  pfQuest.buttonLanguage.txt = pfQuest.buttonLanguage:CreateFontString(nil, "HIGH")
   pfQuest.buttonLanguage.txt:SetAllPoints(pfQuest.buttonLanguage)
   pfQuest.buttonLanguage.txt:SetJustifyH("RIGHT")
   pfQuest.buttonLanguage.txt:SetText("|cff000000[|cff333333" .. pfQuest_Loc["Translate"] .. "|cff000000]")

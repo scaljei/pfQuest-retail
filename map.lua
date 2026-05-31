@@ -227,7 +227,8 @@ pfMap.minimap_sizes = get_minimap_sizes  -- function, not table; call to get liv
 
 pfMap.tooltip = CreateFrame("Frame" , "pfMapTooltip", GameTooltip)
 pfMap.tooltip:SetScript("OnShow", function(self)
-  local focus = GetMouseFocus()
+  -- GetMouseFocus removed in retail 10.2; GetMouseFoci returns a list
+  local focus = (GetMouseFoci and GetMouseFoci()) or (GetMouseFocus and GetMouseFocus())
   -- abort on pfQuest nodes
   if focus and focus.title then return end
   -- abort on quest timers
