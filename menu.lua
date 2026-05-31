@@ -96,16 +96,18 @@ do -- tracking menu
   end
 
   local function MenuButtonClick(self)
-    self.state = self.check and not self.check:GetChecked()
-
+    -- Toggle state explicitly (GetChecked may return stale value)
     if self.check then
+      self.state = not self.state  -- toggle
       self.check:SetChecked(self.state)
+      if self.onclick then
+        self.onclick(nil, self.name, self.state)
+      end
     else
+      if self.onclick then
+        self.onclick(nil, self.name, self.state)
+      end
       self:GetParent():Hide()
-    end
-
-    if self.onclick then
-      self.onclick(nil, self.name, self.state)
     end
   end
 
@@ -115,6 +117,7 @@ do -- tracking menu
     if not frame.SetBackdrop and BackdropTemplateMixin then Mixin(frame, BackdropTemplateMixin) end
     frame:SetFrameStrata("DIALOG")
     frame:SetClampedToScreen(true)
+    frame:EnableMouse(true)
     frame:Hide()
 
     pfUI.api.CreateBackdrop(frame, nil, nil, .75)
@@ -139,6 +142,7 @@ do -- tracking menu
         frame[name]:SetPoint("TOPLEFT", 0, -top)
         frame[name]:SetPoint("TOPRIGHT", 0, -top)
         frame[name]:SetHeight(16)
+        frame[name]:EnableMouse(true)
         frame[name]:SetScript("OnEnter", MenuButtonEnter)
         frame[name]:SetScript("OnLeave", MenuButtonLeave)
         frame[name]:SetScript("OnClick", MenuButtonClick)
@@ -271,6 +275,7 @@ do -- tracking menu
     for id, data in pairs(menu) do
       if frame[data[1]] and frame[data[1]].check then
         frame[data[1]].check:SetChecked(config[data[1]] and true or false)
+        frame[data[1]].state = config[data[1]] and true or false
       end
     end
   end)

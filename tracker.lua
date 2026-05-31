@@ -148,6 +148,7 @@ do -- button panel
   tracker.panel:SetPoint("TOPLEFT", 0, 0)
   tracker.panel:SetPoint("TOPRIGHT", 0, 0)
   tracker.panel:SetHeight(panelheight)
+  tracker.panel:EnableMouse(true)
 
   local anchors = {}
   local buttons = {}
@@ -158,6 +159,7 @@ do -- button panel
     local func = func
 
     local b = CreateFrame("Button", nil, tracker.panel)
+    b:EnableMouse(true)
     b.tooltip = tooltip
     b.icon = b:CreateTexture(nil, "BACKGROUND")
     b.icon:SetAllPoints()
