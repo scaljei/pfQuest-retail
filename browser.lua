@@ -614,7 +614,8 @@ end)
 
 pfBrowser:SetScript("OnUpdate", function(self)
   -- multi-select handling
-  local _mf = (GetMouseFoci and GetMouseFoci()) or (GetMouseFocus and GetMouseFocus())
+  local _mfList = (GetMouseFoci and {GetMouseFoci()}) or nil
+  local _mf = (_mfList and _mfList[1]) or (GetMouseFocus and GetMouseFocus())
   if not self.selectState and IsControlKeyDown() and _mf and _mf.pfResultButton then
     for id, frame in pairs(pfBrowser.tabs) do
       for id, button in pairs(frame.buttons) do

@@ -212,7 +212,11 @@ do -- tracking menu
   end
 
   local function ToggleFrame(frame)
-    if frame:IsShown() then frame:Hide() else frame:Show() end
+    if not frame then return end
+    local ok, err = pcall(function()
+      if frame:IsShown() then frame:Hide() else frame:Show() end
+    end)
+    if not ok and pfDiag then pfDiag.err("ToggleFrame: " .. tostring(err)) end
   end
 
   local menu = {

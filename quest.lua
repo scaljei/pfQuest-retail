@@ -24,10 +24,9 @@ function pfQuest:Debug(msg)
     return (string.gsub(tostring(s), "|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
   end
 
-  -- Always write to diagnostic log if available
+  -- Always write to diagnostic log if available (pfDiag.log adds its own timestamp)
   if pfDiag then
-    local ts = date("%H:%M:%S")
-    pfDiag.log("[" .. ts .. "] " .. stripColor(msg))
+    pfDiag.log(stripColor(msg))
   end
 
   -- On-screen debug window

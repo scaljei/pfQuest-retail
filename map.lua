@@ -1196,6 +1196,8 @@ pfMap:SetScript("OnEvent", function(self, event)
   end
 
   if event == "ZONE_CHANGED" or event == "MINIMAP_ZONE_CHANGED" or event == "ZONE_CHANGED_NEW_AREA" then
+    -- Trigger UpdateNodes for the new zone via queue_update
+    pfMap.queue_update = GetTime()
     -- Log zone change with name and ID
     local pfZoneID = pfMap:GetCurrentMapID()
     local zoneName = (pfZoneID and pfDB["zones"]["loc"] and pfDB["zones"]["loc"][pfZoneID]) or GetRealZoneText() or "?"

@@ -165,3 +165,70 @@ _calibFrame:SetScript("OnEvent", function(self)
     end
   end
 end)
+
+-- Pre-populate zone bridge on PLAYER_LOGIN from C_Map
+-- This catches any zones not covered by pfQuest-retail-db
+local _loginBridge = CreateFrame("Frame")
+_loginBridge:RegisterEvent("PLAYER_LOGIN")
+_loginBridge:SetScript("OnEvent", function(self)
+  self:UnregisterAllEvents()
+  if not (C_Map and C_Map.GetBestMapForUnit) then return end
+
+  local function tryRegisterZone(uiMapID)
+    if RETAIL_ZONE_MAP[uiMapID] then return end  -- already known
+    -- Assign next available pfID
+    local maxPF = 10000
+    for _, v in pairs(RETAIL_ZONE_MAP) do if v >= maxPF then maxPF = v + 1 end end
+    local info = C_Map.GetMapInfo(uiMapID)
+    if not info then return end
+    RETAIL_ZONE_MAP[uiMapID] = maxPF
+    PF_TO_UI[maxPF] = uiMapID
+    pfDB["zones"] = pfDB["zones"] or {["data"]={}, ["loc"]={}}
+    pfDB["zones"]["loc"] = pfDB["zones"]["loc"] or {}
+    pfDB["zones"]["loc"][maxPF] = info.name
+    pfDB["zones"]["data"][maxPF] = { 99, 0, 0, 100, 100 }
+    pfDB["minimap"] = pfDB["minimap"] or {}
+    pfDB["minimap"][maxPF] = { 4266.7, 2844.4 }
+  end
+
+  -- Register current zone immediately
+  local uid = C_Map.GetBestMapForUnit("player")
+  if uid then tryRegisterZone(uid) end
+
+  -- Also register parent zones
+  if uid then
+    local info = C_Map.GetMapInfo(uid)
+    while info and info.parentMapID and info.parentMapID > 0 do
+      tryRegisterZone(info.parentMapID)
+      info = C_Map.GetMapInfo(info.parentMapID)
+    end
+  end
+end)
+
+-- Also register on ZONE_CHANGED_NEW_AREA before the main map OnEvent runs
+local _zoneBridgeFrame = CreateFrame("Frame")
+_zoneBridgeFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+_zoneBridgeFrame:RegisterEvent("ZONE_CHANGED")
+_zoneBridgeFrame:SetScript("OnEvent", function(self, event)
+  if not (C_Map and C_Map.GetBestMapForUnit) then return end
+  local uid = C_Map.GetBestMapForUnit("player")
+  if uid and not RETAIL_ZONE_MAP[uid] then
+    -- Auto-register unknown zone
+    local maxPF = 10000
+    for _, v in pairs(RETAIL_ZONE_MAP) do if v >= maxPF then maxPF = v + 1 end end
+    local info = C_Map.GetMapInfo(uid)
+    if info then
+      RETAIL_ZONE_MAP[uid] = maxPF
+      PF_TO_UI[maxPF] = uid
+      pfDB["zones"] = pfDB["zones"] or {["data"]={},["loc"]={}}
+      pfDB["zones"]["loc"] = pfDB["zones"]["loc"] or {}
+      pfDB["zones"]["loc"][maxPF] = info.name
+      pfDB["zones"]["data"][maxPF] = { 99, 0, 0, 100, 100 }
+      pfDB["minimap"] = pfDB["minimap"] or {}
+      pfDB["minimap"][maxPF] = { 4266.7, 2844.4 }
+      if pfDiag then pfDiag.log("AutoZone: " .. info.name .. " uiMapID=" .. uid .. " pfID=" .. maxPF) end
+    end
+  end
+end)
+
+local _PLAYER_LOGIN_BRIDGE = true  -- marker

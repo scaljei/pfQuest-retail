@@ -40,6 +40,8 @@ f:RegisterEvent("VARIABLES_LOADED")
 f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:RegisterEvent("PLAYER_LOGOUT")
+f:RegisterEvent("PLAYER_LEAVING_WORLD")
 f:SetScript("OnEvent", function(self, event, ...)
     if event == "VARIABLES_LOADED" then
         -- NOW the SavedVariable is populated
@@ -77,6 +79,9 @@ f:SetScript("OnEvent", function(self, event, ...)
 
     elseif event == "PLAYER_ENTERING_WORLD" then
         dlog("PLAYER_ENTERING_WORLD")
+    elseif event == "PLAYER_LOGOUT" or event == "PLAYER_LEAVING_WORLD" then
+        dlog("PLAYER_LOGOUT - saving diagnostic")
+        -- SavedVariables auto-save happens after this event
     end
 end)
 
