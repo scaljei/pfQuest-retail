@@ -1,5 +1,6 @@
 -- multi api compat
 local compat = pfQuestCompat
+if pfDiag then pfDiag.log("browser.lua: start") end
 
 -- default config
 pfBrowser_fav = {["units"] = {}, ["objects"] = {}, ["items"] = {}, ["quests"] = {}}
@@ -29,6 +30,7 @@ local function ShowTooltip(self)
   GameTooltip:Show()
 end
 
+if pfDiag then pfDiag.log("browser.lua: defining EnableTooltips") end
 local function EnableTooltips(frame, tooltips)
   frame.tooltips = tooltips
   frame:SetScript("OnEnter", ShowTooltip)
@@ -572,6 +574,7 @@ local function CreateBrowseWindow(fname, name, parent, anchor, x, y)
 end
 
 -- browser window
+if pfDiag then pfDiag.log("browser.lua: creating pfBrowser frame") end
 pfBrowser = CreateFrame("Frame", "pfQuestBrowser", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
 pfBrowser:Hide()
 pfBrowser:SetScript("OnShow", function(self)
