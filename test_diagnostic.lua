@@ -83,3 +83,32 @@ _forceInit:SetScript("OnEvent", function(self)
     end
   end)
 end)
+
+SLASH_PFTEST41 = "/pftest4"
+SlashCmdList["PFTEST4"] = function()
+  DEFAULT_CHAT_FRAME:AddMessage("=== Line-by-line config.lua test ===")
+  local tests = {
+    {"CreateFontString", function()
+      local fs = pfQuestConfig:CreateFontString(nil, "LOW", "GameFontNormal")
+      DEFAULT_CHAT_FRAME:AddMessage("  FontString: " .. tostring(fs))
+    end},
+    {"CreateConfigEntries exists", function()
+      DEFAULT_CHAT_FRAME:AddMessage("  CCE type: " .. tostring(type(pfQuestConfig.CreateConfigEntries)))
+    end},
+    {"pfQuest_defconfig len", function()
+      DEFAULT_CHAT_FRAME:AddMessage("  defconfig: " .. tostring(#pfQuest_defconfig))
+    end},
+    {"Force CCE", function()
+      pfQuestConfig:CreateConfigEntries(pfQuest_defconfig)
+      local count = 0
+      for _ in ipairs({pfQuestConfig:GetChildren()}) do count=count+1 end
+      DEFAULT_CHAT_FRAME:AddMessage("  children after CCE: " .. count)
+    end},
+  }
+  for _, t in ipairs(tests) do
+    local ok, err = pcall(t[2])
+    if not ok then
+      DEFAULT_CHAT_FRAME:AddMessage("|cffff0000FAIL " .. t[1] .. ": " .. tostring(err) .. "|r")
+    end
+  end
+end
