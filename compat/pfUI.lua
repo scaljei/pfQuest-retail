@@ -103,11 +103,11 @@ pfUI.api.CreateBackdrop = pfUI.api.CreateBackdrop or function(f, inset, legacy, 
 
   -- retail 9.0+: SetBackdrop was removed from Frame; use BackdropTemplateMixin
   if not f.SetBackdrop then
-    if BackdropTemplateMixin then
-      Mixin(f, BackdropTemplateMixin)
+    if BackdropTemplateMixin and type(BackdropTemplateMixin) == "table" then
+      local ok = pcall(Mixin, f, BackdropTemplateMixin)
+      if not ok or not f.SetBackdrop then return end  -- cannot add backdrop
     else
-      -- No backdrop support available; skip silently
-      return
+      return  -- No backdrop support; skip silently
     end
   end
 
@@ -162,8 +162,9 @@ pfUI.api.CreateBackdrop = pfUI.api.CreateBackdrop or function(f, inset, legacy, 
 end
 
 pfUI.api.SkinButton = pfUI.api.SkinButton or function(button, cr, cg, cb)
+  if not button then return end
   local b = (type(button) == 'string' and _G[button]) or button
-  if not b then b = button end
+  if not b then return end
   if not b then return end
   if not cr or not cg or not cb then
     _, class = UnitClass("player")

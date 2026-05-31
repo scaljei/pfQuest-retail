@@ -224,6 +224,7 @@ end)
 
 pfQuestConfig.vpos = 40
 
+pfQuestConfig._progress = 0
 pfUI.api.CreateBackdrop(pfQuestConfig, nil, true, 0.75)
 if UISpecialFrames then table.insert(UISpecialFrames, "pfQuestConfig") end
 pfQuestConfig._progress = 1
