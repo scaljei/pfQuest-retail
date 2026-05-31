@@ -88,9 +88,15 @@ pfQuest:RegisterEvent("PLAYER_LEVEL_UP")
 pfQuest:RegisterEvent("PLAYER_ENTERING_WORLD")
 pfQuest:RegisterEvent("SKILL_LINES_CHANGED")
 pfQuest:RegisterEvent("ADDON_LOADED")
+pfQuest:RegisterEvent("PLAYER_LOGIN")
 pfQuest:SetScript("OnEvent", function(self, event, addonName)
-  if event == "ADDON_LOADED" then
-    if addonName == "pfQuest" or addonName == "pfQuest-tbc" or addonName == "pfQuest-wotlk" or addonName == "pfQuest-retail" then
+  if event == "ADDON_LOADED" or event == "PLAYER_LOGIN" then
+    local shouldInit = (event == "PLAYER_LOGIN") or
+      addonName == "pfQuest" or addonName == "pfQuest-tbc" or
+      addonName == "pfQuest-wotlk" or addonName == "pfQuest-retail"
+
+    if shouldInit and not self._addonInitialized then
+      self._addonInitialized = true
       pfQuest:AddQuestLogIntegration()
       pfQuest:AddWorldMapIntegration()
       self.lock = GetTime() + 10

@@ -44,7 +44,7 @@ do -- minimap icon
 
   pfQuestIcon:RegisterEvent("PLAYER_ENTERING_WORLD")
   pfQuestIcon:SetScript("OnEvent", function(self, event)
-    if pfQuest_config["minimapbutton"] == "0" then
+    if pfQuest_config and pfQuest_config["minimapbutton"] == "0" then
       self:Hide()
     else
       self:Show()
@@ -93,7 +93,8 @@ do -- tracking menu
 
   local function CreateMenu(data, name)
     local top, width = 4, 0
-    local frame = CreateFrame("Frame", name, UIParent)
+    local frame = CreateFrame("Frame", name, UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    if not frame.SetBackdrop and BackdropTemplateMixin then Mixin(frame, BackdropTemplateMixin) end
     frame:SetFrameStrata("DIALOG")
     frame:SetClampedToScreen(true)
     frame:Hide()

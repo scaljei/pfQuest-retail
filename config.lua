@@ -178,8 +178,17 @@ pfQuestConfig:SetMovable(true)
 pfQuestConfig:EnableMouse(true)
 pfQuestConfig:SetClampedToScreen(true)
 pfQuestConfig:RegisterEvent("ADDON_LOADED")
+pfQuestConfig:RegisterEvent("PLAYER_LOGIN")
 pfQuestConfig:SetScript("OnEvent", function(self, event, addonName)
-  if addonName == "pfQuest" or addonName == "pfQuest-tbc" or addonName == "pfQuest-wotlk" or addonName == "pfQuest-retail" then
+  -- ADDON_LOADED fires with the folder name of the loaded addon.
+  -- PLAYER_LOGIN fires after all addons load and is a guaranteed fallback.
+  local shouldInit = (event == "PLAYER_LOGIN") or
+    addonName == "pfQuest" or addonName == "pfQuest-tbc" or
+    addonName == "pfQuest-wotlk" or addonName == "pfQuest-retail"
+
+  if not shouldInit or self._initialized then return end
+  self._initialized = true
+
     pfQuestConfig:LoadConfig()
     pfQuestConfig:MigrateHistory()
     pfQuestConfig:CreateConfigEntries(pfQuest_defconfig)
@@ -199,7 +208,6 @@ pfQuestConfig:SetScript("OnEvent", function(self, event, addonName)
     if pfBrowserIcon and pfQuest_config["minimapbutton"] == "0" then
       pfBrowserIcon:Hide()
     end
-  end
 end)
 
 pfQuestConfig:SetScript("OnMouseDown", function(self)
