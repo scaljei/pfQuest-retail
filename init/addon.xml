@@ -13,7 +13,7 @@
   <Include file="..\quest.lua"/>
   <Include file="..\route.lua"/>
   <Include file="..\tracker.lua"/>
-  <Include file="..\browser.lua"/>
+  <Script file="..\browser.lua"/>
   <Include file="..\journal.lua"/>
   <Include file="..\menu.lua"/>
   <Include file="..\updatenotify.lua"/>
