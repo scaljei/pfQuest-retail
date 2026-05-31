@@ -40,3 +40,22 @@ SlashCmdList["PFTEST2"] = function()
   DEFAULT_CHAT_FRAME:AddMessage("Total children: " .. count)
   DEFAULT_CHAT_FRAME:AddMessage("minimap button: " .. tostring(pfQuestIcon and pfQuestIcon:IsShown()))
 end
+
+SLASH_PFTEST31 = "/pftest3"
+SlashCmdList["PFTEST3"] = function()
+  DEFAULT_CHAT_FRAME:AddMessage("=== Init State ===")
+  DEFAULT_CHAT_FRAME:AddMessage("pfQuestConfig._initialized: " .. tostring(pfQuestConfig and pfQuestConfig._initialized))
+  DEFAULT_CHAT_FRAME:AddMessage("pfQuest._addonInitialized: " .. tostring(pfQuest and pfQuest._addonInitialized))
+  DEFAULT_CHAT_FRAME:AddMessage("pfQuest_defconfig type: " .. tostring(type(pfQuest_defconfig)))
+  DEFAULT_CHAT_FRAME:AddMessage("pfQuest_defconfig len: " .. tostring(pfQuest_defconfig and #pfQuest_defconfig))
+  DEFAULT_CHAT_FRAME:AddMessage("pfUI.api.emulated: " .. tostring(pfUI and pfUI.api and pfUI.api.emulated))
+  -- Force run CreateConfigEntries right now
+  DEFAULT_CHAT_FRAME:AddMessage("--- Forcing CreateConfigEntries ---")
+  local ok, err = pcall(function()
+    pfQuestConfig:CreateConfigEntries(pfQuest_defconfig)
+  end)
+  DEFAULT_CHAT_FRAME:AddMessage("pcall result: " .. tostring(ok) .. " err: " .. tostring(err))
+  local count = 0
+  for _ in ipairs({pfQuestConfig:GetChildren()}) do count = count + 1 end
+  DEFAULT_CHAT_FRAME:AddMessage("Children after force: " .. count)
+end
