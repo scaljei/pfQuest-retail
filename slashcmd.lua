@@ -7,7 +7,7 @@ SlashCmdList["PFDB"] = function(input, editbox)
   local meta = { ["addon"] = "PFDB" }
 
   if (input == "" or input == nil) then
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest (v" .. pfQuestConfig.version .. "):")
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest (v" .. (pfQuestConfig.version or "?") .. "):")
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff lock |cffcccccc - " .. pfQuest_Loc["Lock map tracker"])
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff tracker |cffcccccc - " .. pfQuest_Loc["Show map tracker"])
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff journal |cffcccccc - " .. pfQuest_Loc["Show quest journal"])
@@ -15,17 +15,19 @@ SlashCmdList["PFDB"] = function(input, editbox)
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff show |cffcccccc - " .. pfQuest_Loc["Show database interface"])
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff config |cffcccccc - " .. pfQuest_Loc["Show configuration interface"])
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff locale |cffcccccc - " .. pfQuest_Loc["Display addon locales"])
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff track <list>|cffcccccc - " .. pfQuest_Loc["Show available tracking lists"])
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff unit <unit> |cffcccccc - " .. pfQuest_Loc["Search unit"])
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff object <gameobject> |cffcccccc - " .. pfQuest_Loc["Search object"])
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff item <item> |cffcccccc - " .. pfQuest_Loc["Search loot"])
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff vendor <item> |cffcccccc - " .. pfQuest_Loc["Search item vendors"])
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff quest <questname> |cffcccccc - " .. pfQuest_Loc["Show specific quest"])
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff quests |cffcccccc - " .. pfQuest_Loc["Show all quests on map"])
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff clean |cffcccccc - " .. pfQuest_Loc["Clean Map"])
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff reset |cffcccccc - " .. pfQuest_Loc["Reset Map"])
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff debug |cffcccccc - Toggle debug mode")
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff scan |cffcccccc - " .. pfQuest_Loc["Scan the server for custom items"])
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff query |cffcccccc - " .. pfQuest_Loc["Query the server for completed quests"])
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff clean |cffcccccc - " .. pfQuest_Loc["Clean Map"])
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff reset |cffcccccc - " .. pfQuest_Loc["Reset Map"])
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff track <list> |cffcccccc - " .. pfQuest_Loc["Show available tracking lists"])
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff unit <name> |cffcccccc - " .. pfQuest_Loc["Search unit"])
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff object <name> |cffcccccc - " .. pfQuest_Loc["Search object"])
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff item <name> |cffcccccc - " .. pfQuest_Loc["Search loot"])
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff vendor <name> |cffcccccc - " .. pfQuest_Loc["Search item vendors"])
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff quest <name> |cffcccccc - " .. pfQuest_Loc["Show specific quest"])
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff quests |cffcccccc - " .. pfQuest_Loc["Show all quests on map"])
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff meta <list> [min] [max] |cffcccccc - Search meta relations")
     return
   end
 
@@ -93,8 +95,14 @@ SlashCmdList["PFDB"] = function(input, editbox)
 
   -- argument: quests
   if (arg1 == "quests") then
-    local maps = pfDatabase:SearchQuests(meta)
+    pfDatabase:SearchQuests(meta)
     pfMap:UpdateNodes()
+    -- open world map to show the results
+    if OpenWorldMap then
+      OpenWorldMap()
+    elseif ToggleWorldMap and not WorldMapFrame:IsShown() then
+      ToggleWorldMap()
+    end
     return
   end
 

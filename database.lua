@@ -347,9 +347,30 @@ local bitraces = {
 }
 
 -- append with playable races by expansion
-if pfQuestCompat.client > 11200 then
-  bitraces[512] = "BloodElf"
-  bitraces[1024] = "Draenei"
+if pfQuestCompat.client >= 20000 then
+  bitraces[512]   = "BloodElf"
+  bitraces[1024]  = "Draenei"
+end
+-- retail: all playable races (for quest filter compat; bit values match pfDB schema)
+if pfQuestCompat.client >= 40000 then
+  bitraces[2048]  = "Worgen"
+  bitraces[4096]  = "Goblin"
+end
+if pfQuestCompat.client >= 70000 then
+  bitraces[8192]  = "Nightborne"
+  bitraces[16384] = "HighmountainTauren"
+  bitraces[32768] = "VoidElf"
+  bitraces[65536] = "LightforgedDraenei"
+end
+if pfQuestCompat.client >= 80000 then
+  bitraces[131072] = "ZandalariTroll"
+  bitraces[262144] = "KulTiran"
+  bitraces[524288] = "DarkIronDwarf"
+  bitraces[1048576]= "MagharOrc"
+end
+if pfQuestCompat.client >= 90000 then
+  bitraces[2097152] = "Mechagnome"
+  bitraces[4194304] = "Vulpera"
 end
 
 -- make it public for extensions
@@ -365,7 +386,10 @@ local bitclasses = {
   [64] = "SHAMAN",
   [128] = "MAGE",
   [256] = "WARLOCK",
-  [1024] = "DRUID"
+  [1024] = "DRUID",
+  [512]  = "MONK",
+  [2048] = "DEMONHUNTER",
+  [4096] = "EVOKER",
 }
 
 -- make it public for extensions

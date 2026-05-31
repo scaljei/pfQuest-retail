@@ -258,3 +258,19 @@ pfQuestCompat.GetItemInfo = function(itemID)
   -- legacy fallback
   return GetItemInfo and GetItemInfo(itemID)
 end
+
+-- ---------------------------------------------------------------------------
+-- Lua bit library shim for retail
+-- In retail 11.x (Lua 5.4) the bit library was removed. The native &, |, ~
+-- operators replace it. We shim the most-used functions.
+-- ---------------------------------------------------------------------------
+if not bit then
+  bit = {
+    band  = function(a, b) return a & b end,
+    bor   = function(a, b) return a | b end,
+    bnot  = function(a)    return ~a     end,
+    bxor  = function(a, b) return a ~ b end,
+    lshift= function(a, b) return a << b end,
+    rshift= function(a, b) return a >> b end,
+  }
+end
