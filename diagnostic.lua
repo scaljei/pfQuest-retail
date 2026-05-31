@@ -55,6 +55,9 @@ f:SetScript("OnEvent", function(self, event, ...)
             table.insert(pfQuest_diagnostic.log, e)
         end
         _pendingLog = {}
+        -- Write session header at end of log (always visible)
+        local sep = "=== SESSION " .. pfQuest_diagnostic.session .. " START =="
+        table.insert(pfQuest_diagnostic.log, sep)
         dlog("VARIABLES_LOADED - diagnostic ready (session " .. pfQuest_diagnostic.session .. ")")
 
     elseif event == "ADDON_LOADED" then

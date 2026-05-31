@@ -34,10 +34,10 @@ if pfDiag then pfDiag.log("browser.lua: defining EnableTooltips") end
 local function EnableTooltips(frame, tooltips)
   frame.tooltips = tooltips
   frame:SetScript("OnEnter", ShowTooltip)
-  frame:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  frame:SetScript("OnLeave", function(self) GameTooltip:Hide() end)
 end
 
-local function ResultButtonEnter()
+local function ResultButtonEnter(self)
   self.tex:SetColorTexture(1,1,1,.1)
 
   -- quest
@@ -103,7 +103,7 @@ local function ResultButtonEnter()
   end
 end
 
-local function ResultButtonUpdate()
+local function ResultButtonUpdate(self)
   self.refreshCount = self.refreshCount + 1
 
   if not self.itemColor then
@@ -130,7 +130,7 @@ local function ResultButtonUpdate()
   end
 end
 
-local function ResultButtonClick()
+local function ResultButtonClick(self)
   local meta = { ["addon"] = "PFDB" }
 
   if self.btype == "items" then
@@ -168,7 +168,7 @@ local function ResultButtonClick()
   end
 end
 
-local function ResultButtonClickFav()
+local function ResultButtonClickFav(self)
   local parent = self:GetParent()
   if pfBrowser_fav[parent.btype][parent.id] then
     pfBrowser_fav[parent.btype][parent.id] = nil
@@ -179,7 +179,7 @@ local function ResultButtonClickFav()
   end
 end
 
-local function ResultButtonLeave()
+local function ResultButtonLeave(self)
   if pfBrowser.selectState then
     pfBrowser.selectState = "clean"
   end
@@ -192,7 +192,7 @@ local function ResultButtonLeave()
   GameTooltip:Hide()
 end
 
-local function ResultButtonClickSpecial()
+local function ResultButtonClickSpecial(self)
   local param = self:GetParent()[self.parameter]
   local meta = { ["addon"] = "PFDB" }
   local maps = {}
@@ -209,7 +209,7 @@ local function ResultButtonClickSpecial()
   pfMap:ShowMapID(pfDatabase:GetBestMap(maps))
 end
 
-local function ResultButtonEnterSpecial()
+local function ResultButtonEnterSpecial(self)
   local id = self:GetParent().id
   local count = 0
   local skip = false
@@ -325,7 +325,7 @@ local function ResultButtonEnterSpecial()
   GameTooltip:Show()
 end
 
-local function ResultButtonLeaveSpecial()
+local function ResultButtonLeaveSpecial(self)
   GameTooltip:Hide()
 end
 
