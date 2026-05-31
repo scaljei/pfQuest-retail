@@ -348,6 +348,7 @@ function pfQuestConfig:CreateConfigEntries(config)
 
       -- caption
       frame.caption = frame:CreateFontString(nil, "OVERLAY")
+      frame.caption:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 12, "")
       frame.caption:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
       frame.caption:SetPoint("LEFT", 20, 0)
       frame.caption:SetJustifyH("LEFT")
@@ -543,6 +544,7 @@ do -- welcome/init popup dialog
 
   -- welcome title
   pfQuestInit.title = pfQuestInit:CreateFontString(nil, "OVERLAY")
+  pfQuestInit.title:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 13, "OUTLINE")
   pfQuestInit.title:SetPoint("TOP", pfQuestInit, "TOP", 0, -17)
   pfQuestInit.title:SetJustifyH("LEFT")
   pfQuestInit.title:SetText(L["Please select your preferred |cff33ffccpf|cffffffffQuest|r mode:"])
@@ -571,6 +573,7 @@ do -- welcome/init popup dialog
     pfQuestInit[i].bg:SetTexture(pfQuestConfig.path..button.texture)
 
     pfQuestInit[i].caption = pfQuestInit:CreateFontString(nil, "OVERLAY")
+    pfQuestInit[i].caption:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 13, "")
     pfQuestInit[i].caption:SetPoint("TOP", pfQuestInit[i], "BOTTOM", 0, -5)
     pfQuestInit[i].caption:SetJustifyH("LEFT")
     pfQuestInit[i].caption:SetText(button.caption)
@@ -614,6 +617,7 @@ do -- welcome/init popup dialog
   pfUI.api.CreateBackdrop(pfQuestInit.checkbox, nil, true)
 
   pfQuestInit.checkbox.caption = pfQuestInit:CreateFontString(nil, "OVERLAY")
+  pfQuestInit.checkbox.caption:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 12, "")
   pfQuestInit.checkbox.caption:SetPoint("LEFT", pfQuestInit.checkbox, "RIGHT", 5, 0)
   pfQuestInit.checkbox.caption:SetJustifyH("LEFT")
   pfQuestInit.checkbox.caption:SetText(L["Show Navigation Arrow"])
@@ -639,6 +643,7 @@ do -- welcome/init popup dialog
   pfQuestInit.save:SetHeight(24)
   pfQuestInit.save:SetPoint("BOTTOMRIGHT", -10, 10)
   pfQuestInit.save.text = pfQuestInit.save:CreateFontString(nil, "OVERLAY")
+  pfQuestInit.save.text:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 12, "")
   pfQuestInit.save.text:SetAllPoints(pfQuestInit.save)
   pfQuestInit.save.text:SetText(L["Save & Close"])
 
