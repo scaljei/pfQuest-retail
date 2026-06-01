@@ -680,3 +680,5 @@ do -- welcome/init popup dialog
     pfQuestInit:Hide()
   end)
 end
+
+C_Timer.After(0, function() if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa[diag] config.lua loaded|r") end end)

@@ -1539,3 +1539,5 @@ pfQuest_Loc = setmetatable(locales[GetLocale()] or {}, { __index = function(tab,
  rawset(tab,key,value)
  return value
 end})
+
+C_Timer.After(0, function() if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa[diag] locales.lua loaded|r") end end)

@@ -1981,3 +1981,5 @@ function pfDatabase:QueryServer()
 
   frame:SetScript("OnEvent", OnQuestQueryComplete)  -- Set the event handler
 end
+
+C_Timer.After(0, function() if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa[diag] database.lua loaded|r") end end)

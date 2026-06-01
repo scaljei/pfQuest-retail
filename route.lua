@@ -500,3 +500,5 @@ pfQuest.route.arrow.distance:SetTextColor(.8,.8,.8)
 pfQuest.route.arrow.distance:SetJustifyH("CENTER")
 
 pfQuest.route.arrow.parent = pfQuest.route
+
+C_Timer.After(0, function() if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa[diag] route.lua loaded|r") end end)

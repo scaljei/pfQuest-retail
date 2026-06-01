@@ -263,3 +263,5 @@ end
 -- ALL clients including retail 11.x. WoW uses Lua 5.1 internally on all versions
 -- so native Lua 5.3+ bitwise operators (&, |, ~) are NOT valid syntax here.
 -- No shim needed - bit.band etc. work as-is.
+
+C_Timer.After(0, function() if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa[diag] client.lua loaded|r") end end)

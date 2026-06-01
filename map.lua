@@ -1329,3 +1329,5 @@ elseif compat.client >= 30300 then
     end
   end
 end
+
+C_Timer.After(0, function() if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa[diag] map.lua loaded|r") end end)

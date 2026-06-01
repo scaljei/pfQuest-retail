@@ -10,3 +10,5 @@
 pfDB["quests"]["data"][5929]["obj"] = { ["U"] = { 11956 } }
 pfDB["quests"]["data"][5930]["obj"] = { ["U"] = { 11956 } }
 
+
+C_Timer.After(0, function() if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa[diag] overwrites.lua loaded|r") end end)

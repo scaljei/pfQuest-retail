@@ -343,3 +343,5 @@ SlashCmdList["PFDB"] = function(input, editbox)
     return
   end
 end
+
+C_Timer.After(0, function() if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa[diag] slashcmd.lua loaded|r") end end)

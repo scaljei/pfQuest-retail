@@ -435,3 +435,5 @@ pfUI.api.ConvertFrameAnchor = pfUI.api.ConvertFrameAnchor or function(self, anch
 
   return anchor, pfUI.api.round(x, 2), pfUI.api.round(y, 2)
 end
+
+C_Timer.After(0, function() if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa[diag] pfUI.lua loaded|r") end end)
