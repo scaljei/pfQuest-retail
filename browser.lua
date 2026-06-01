@@ -20,8 +20,8 @@ local refloot = pfDB["refloot"]["data"]
 local quests = pfDB["quests"]["data"]
 local zones = pfDB["zones"]["loc"]
 
-local function ShowTooltip()
-  if not self.tooltips then return end
+local function ShowTooltip(self)
+  if not self or not self.tooltips then return end
   GameTooltip_SetDefaultAnchor(GameTooltip, self)
   GameTooltip:ClearLines()
   for k, v in pairs(self.tooltips) do
@@ -503,6 +503,7 @@ local function RefreshView(i, key, caption)
 
   if not pfBrowser.tabs[key].list.warn then
     pfBrowser.tabs[key].list.warn = pfBrowser.tabs[key].list:CreateFontString(nil, "OVERLAY")
+    pfBrowser.tabs[key].list.warn:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", tonumber(pfUI_config.global.font_size) or 11, "")
     pfBrowser.tabs[key].list.warn:SetTextColor(1,.2,.2,1)
     pfBrowser.tabs[key].list.warn:SetJustifyH("CENTER")
     pfBrowser.tabs[key].list.warn:SetPoint("TOP", 5, -5)

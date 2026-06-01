@@ -960,7 +960,17 @@ end
 
 function pfMap:UpdateNodes()
   local _mapID = pfMap:GetCurrentMapID()
-  local _zoneName = (_mapID and pfDB["zones"]["loc"] and pfDB["zones"]["loc"][_mapID]) or "unknown"
+  local _zoneName = (_mapID and pfDB["zones"]["loc"] and pfDB["zones"]["loc"][_mapID]) or "?"
+  -- Try C_Map for retail zone names
+  if _zoneName == "?" and _mapID and _mapID >= 10000 and pfQuest and pfQuest.retailZoneMapReverse then
+    local _uid = pfQuest.retailZoneMapReverse[_mapID]
+    if _uid and C_Map and C_Map.GetMapInfo then
+      local _mi = C_Map.GetMapInfo(_uid)
+      _zoneName = (_mi and _mi.name) or "unknown"
+      -- Cache it
+      if pfDB["zones"]["loc"] and _mi then pfDB["zones"]["loc"][_mapID] = _mi.name end
+    end
+  end
   pfQuest:Debug("Update Nodes |cffaaaaaa[zone=" .. tostring(_mapID) .. " " .. _zoneName .. "]|r")
 
   local color = pfQuest_config["spawncolors"] == "1" and "spawn" or "title"
