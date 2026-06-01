@@ -516,7 +516,7 @@ local function RefreshView(i, key, caption)
   end
 
   pfBrowser.tabs[key].button:SetText(pfQuest_Loc[caption] .. " " .. "|cffaaaaaa(" .. (i >= search_limit and "*" or i) .. ")")
-  for j=i+1, #pfBrowser.tabs[key].buttons) do
+  for j=i+1, #pfBrowser.tabs[key].buttons do
     if pfBrowser.tabs[key].buttons[j] then
       pfBrowser.tabs[key].buttons[j]:Hide()
       pfBrowser.tabs[key].buttons[j].id = nil
