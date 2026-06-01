@@ -325,7 +325,7 @@ local function trackersort(a,b)
 end
 
 function tracker.ButtonEvent(self)
-  local self   = self or this
+  local self   = self or self
   local title  = self.title
   local node   = self.node
   local id     = self.id

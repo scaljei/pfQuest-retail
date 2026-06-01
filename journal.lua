@@ -74,7 +74,7 @@ local function CreateEntry(self, index)
   self[index]:SetScript("OnUpdate", OnUpdate)
 
   self[index].text = self[index]:CreateFontString(nil, "OVERLAY")
-  self[index].text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
+  self[index].text:SetFont(pfUI.font_default or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", tonumber(pfUI_config.global.font_size) or 11, "OUTLINE")
   self[index].text:SetPoint("TOPLEFT", self[index], "TOPLEFT", 10, 0)
   self[index].text:SetPoint("BOTTOMRIGHT", self[index], "BOTTOMRIGHT", -10, 0)
   self[index].text:SetJustifyH("LEFT")
@@ -117,7 +117,7 @@ end
 
 local journal = {}
 local function ReloadJournal(self)
-  local self = self or this
+  local self = self or self
 
   local index = 1
   local maxcolumns = 24

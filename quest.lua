@@ -646,7 +646,7 @@ if C_QuestLog then
     pfQuest.updateQuestLog = true
     pfQuest.updateQuestGivers = true
     if not isAdded and questID then
-      -- find and delete the node for this questID
+      -- find and delete the node for self questID
       for qid, data in pairs(pfQuest.questlog or {}) do
         if qid == questID and data.title then
           pfMap:DeleteNode("PFQUEST", data.title)
@@ -804,11 +804,11 @@ if not GetQuestLink and QuestLogTitleButton_OnClick then -- Allow to send questl
       queststate = pfQuest.questlog[id] and 1 or queststate
 
       if queststate == 0 then
-        ItemRefTooltip:AddLine(pfQuest_Loc["You don't have this quest."] .. "\n\n", 1, .5, .5)
+        ItemRefTooltip:AddLine(pfQuest_Loc["You don't have self quest."] .. "\n\n", 1, .5, .5)
       elseif queststate == 1 then
-        ItemRefTooltip:AddLine(pfQuest_Loc["You are on this quest."] .. "\n\n", 1, 1, .5)
+        ItemRefTooltip:AddLine(pfQuest_Loc["You are on self quest."] .. "\n\n", 1, 1, .5)
       elseif queststate == 2 then
-        ItemRefTooltip:AddLine(pfQuest_Loc["You already did this quest."] .. "\n\n", .5, 1, .5)
+        ItemRefTooltip:AddLine(pfQuest_Loc["You already did self quest."] .. "\n\n", .5, 1, .5)
       end
 
       -- add database entries if existing

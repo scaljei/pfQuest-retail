@@ -21,10 +21,10 @@ local quests = pfDB["quests"]["data"]
 local zones = pfDB["zones"]["loc"]
 
 local function ShowTooltip()
-  if not this.tooltips then return end
-  GameTooltip_SetDefaultAnchor(GameTooltip, this)
+  if not self.tooltips then return end
+  GameTooltip_SetDefaultAnchor(GameTooltip, self)
   GameTooltip:ClearLines()
-  for k, v in pairs(this.tooltips) do
+  for k, v in pairs(self.tooltips) do
     if k == 1 then
       GameTooltip:AddLine(v, 1, 1, 1)
     else
@@ -41,26 +41,26 @@ local function EnableTooltips(frame, tooltips)
 end
 
 local function ResultButtonEnter(self)
-  this.tex:SetColorTexture(1,1,1,.1)
+  self.tex:SetColorTexture(1,1,1,.1)
 
   -- quest
-  if this.btype == "quests" then
-    pfDatabase:ShowExtendedTooltip(this.id, GameTooltip, this, "ANCHOR_LEFT", -10, -5)
+  if self.btype == "quests" then
+    pfDatabase:ShowExtendedTooltip(self.id, GameTooltip, self, "ANCHOR_LEFT", -10, -5)
 
   -- item
-  elseif this.btype == "items" then
-    GameTooltip:SetOwner(this, "ANCHOR_LEFT", -10, -5)
-    GameTooltip:SetHyperlink("item:" .. this.id .. pfQuestCompat.itemsuffix)
+  elseif self.btype == "items" then
+    GameTooltip:SetOwner(self, "ANCHOR_LEFT", -10, -5)
+    GameTooltip:SetHyperlink("item:" .. self.id .. pfQuestCompat.itemsuffix)
     GameTooltip:Show()
 
   -- units / objects
   else
-    local id = this.id
-    local name = this.name
+    local id = self.id
+    local name = self.name
     local maps = {}
-    GameTooltip:SetOwner(this, "ANCHOR_LEFT", -10, -5)
+    GameTooltip:SetOwner(self, "ANCHOR_LEFT", -10, -5)
     GameTooltip:SetText(name, .3, 1, .8)
-    if this.btype == "units" then
+    if self.btype == "units" then
       local unitData = units[id]
 
       if unitData and unitData.lvl then
@@ -85,8 +85,8 @@ local function ResultButtonEnter(self)
       GameTooltip:AddDoubleLine(pfQuest_Loc["Horde"], reactionStringH, 1,1,1, 0,0,0)
     end
     GameTooltip:AddLine("\n" .. pfQuest_Loc["Location"], 1,1,.8)
-    if pfDB[this.btype]["data"][id] and pfDB[this.btype]["data"][id]["coords"] then
-      for _, data in pairs(pfDB[this.btype]["data"][id]["coords"]) do
+    if pfDB[self.btype]["data"][id] and pfDB[self.btype]["data"][id]["coords"] then
+      for _, data in pairs(pfDB[self.btype]["data"][id]["coords"]) do
         maps[data[3]] = maps[data[3]] or { count = 0 }
         maps[data[3]].count = maps[data[3]].count + 1
       end
@@ -107,64 +107,64 @@ local function ResultButtonEnter(self)
 end
 
 local function ResultButtonUpdate(self)
-  this.refreshCount = this.refreshCount + 1
+  self.refreshCount = self.refreshCount + 1
 
-  if not this.itemColor then
-    GameTooltip:SetHyperlink("item:" .. this.id .. pfQuestCompat.itemsuffix)
+  if not self.itemColor then
+    GameTooltip:SetHyperlink("item:" .. self.id .. pfQuestCompat.itemsuffix)
     GameTooltip:Hide()
 
-    local _, _, itemQuality = GetItemInfo(this.id)
+    local _, _, itemQuality = GetItemInfo(self.id)
     if itemQuality then
       local r = ceil(ITEM_QUALITY_COLORS[itemQuality].r*255)
       local g = ceil(ITEM_QUALITY_COLORS[itemQuality].g*255)
       local b = ceil(ITEM_QUALITY_COLORS[itemQuality].b*255)
-      this.itemColor = "|c" .. string.format("ff%02x%02x%02x", r, g, b)
+      self.itemColor = "|c" .. string.format("ff%02x%02x%02x", r, g, b)
     end
   end
 
-  if this.itemColor then
-    local custom = pfQuest_server["items"][this.id] and " [|cff33ffcc!|r]" or ""
-    this.text:SetText(this.itemColor .."|Hitem:"..this.id..pfQuestCompat.itemsuffix.."|h[".. this.name.."]|h|r"..custom)
-    this.text:SetWidth(this.text:GetStringWidth())
+  if self.itemColor then
+    local custom = pfQuest_server["items"][self.id] and " [|cff33ffcc!|r]" or ""
+    self.text:SetText(self.itemColor .."|Hitem:"..self.id..pfQuestCompat.itemsuffix.."|h[".. self.name.."]|h|r"..custom)
+    self.text:SetWidth(self.text:GetStringWidth())
   end
 
-  if this.refreshCount > 10 or this.itemColor then
-    this:SetScript("OnUpdate", nil)
+  if self.refreshCount > 10 or self.itemColor then
+    self:SetScript("OnUpdate", nil)
   end
 end
 
 local function ResultButtonClick(self)
   local meta = { ["addon"] = "PFDB" }
 
-  if this.btype == "items" then
-    local link = "item:"..this.id..pfQuestCompat.itemsuffix
-    local text = ( this.itemColor or "|cffffffff" ) .."|H" .. link .. "|h["..this.name.."]|h|r"
+  if self.btype == "items" then
+    local link = "item:"..self.id..pfQuestCompat.itemsuffix
+    local text = ( self.itemColor or "|cffffffff" ) .."|H" .. link .. "|h["..self.name.."]|h|r"
     SetItemRef(link, text, arg1)
-  elseif this.btype == "quests" then
+  elseif self.btype == "quests" then
     if IsShiftKeyDown() then
-      pfQuestCompat.InsertQuestLink(this.id)
+      pfQuestCompat.InsertQuestLink(self.id)
     elseif pfBrowser.selectState then
-      local maps = pfDatabase:SearchQuest(this.name, meta)
+      local maps = pfDatabase:SearchQuest(self.name, meta)
       pfMap:ShowMapID(pfDatabase:GetBestMap(maps))
     else
-      local maps = pfDatabase:SearchQuestID(this.id, meta)
+      local maps = pfDatabase:SearchQuestID(self.id, meta)
       pfMap:ShowMapID(pfDatabase:GetBestMap(maps))
     end
-  elseif this.btype == "units" then
+  elseif self.btype == "units" then
     if pfBrowser.selectState then
-      local maps = pfDatabase:SearchMob(this.name, meta)
+      local maps = pfDatabase:SearchMob(self.name, meta)
       pfMap:ShowMapID(pfDatabase:GetBestMap(maps))
     else
-      local maps = pfDatabase:SearchMobID(this.id, meta)
+      local maps = pfDatabase:SearchMobID(self.id, meta)
       pfMap:UpdateNodes()
       pfMap:ShowMapID(pfDatabase:GetBestMap(maps))
     end
-  elseif this.btype == "objects" then
+  elseif self.btype == "objects" then
     if pfBrowser.selectState then
-      local maps = pfDatabase:SearchObject(this.name, meta)
+      local maps = pfDatabase:SearchObject(self.name, meta)
       pfMap:ShowMapID(pfDatabase:GetBestMap(maps))
     else
-      local maps = pfDatabase:SearchObjectID(this.id, meta)
+      local maps = pfDatabase:SearchObjectID(self.id, meta)
       pfMap:UpdateNodes()
       pfMap:ShowMapID(pfDatabase:GetBestMap(maps))
     end
@@ -172,13 +172,13 @@ local function ResultButtonClick(self)
 end
 
 local function ResultButtonClickFav(self)
-  local parent = this:GetParent()
+  local parent = self:GetParent()
   if pfBrowser_fav[parent.btype][parent.id] then
     pfBrowser_fav[parent.btype][parent.id] = nil
-    this.icon:SetVertexColor(1,1,1,.1)
+    self.icon:SetVertexColor(1,1,1,.1)
   else
     pfBrowser_fav[parent.btype][parent.id] = parent.name
-    this.icon:SetVertexColor(1,1,1,1)
+    self.icon:SetVertexColor(1,1,1,1)
   end
 end
 
@@ -187,25 +187,25 @@ local function ResultButtonLeave(self)
     pfBrowser.selectState = "clean"
   end
 
-  if compat.mod(this:GetID(),2) == 1 then
-    this.tex:SetColorTexture(1,1,1,.02)
+  if compat.mod(self:GetID(),2) == 1 then
+    self.tex:SetColorTexture(1,1,1,.02)
   else
-    this.tex:SetColorTexture(1,1,1,.04)
+    self.tex:SetColorTexture(1,1,1,.04)
   end
   GameTooltip:Hide()
 end
 
 local function ResultButtonClickSpecial(self)
-  local param = this:GetParent()[this.parameter]
+  local param = self:GetParent()[self.parameter]
   local meta = { ["addon"] = "PFDB" }
   local maps = {}
-  if this.buttonType == "O" or this.buttonType == "U" then
-    if this.selectState then
-      maps = pfDatabase:SearchItem(this:GetParent().name, meta)
+  if self.buttonType == "O" or self.buttonType == "U" then
+    if self.selectState then
+      maps = pfDatabase:SearchItem(self:GetParent().name, meta)
     else
-      maps = pfDatabase:SearchItemID(param, meta, nil, {[this.buttonType]=true})
+      maps = pfDatabase:SearchItemID(param, meta, nil, {[self.buttonType]=true})
     end
-  elseif this.buttonType == "V" then
+  elseif self.buttonType == "V" then
     maps = pfDatabase:SearchVendor(param, meta)
   end
   pfMap:UpdateNodes()
@@ -213,14 +213,14 @@ local function ResultButtonClickSpecial(self)
 end
 
 local function ResultButtonEnterSpecial(self)
-  local id = this:GetParent().id
+  local id = self:GetParent().id
   local count = 0
   local skip = false
 
   GameTooltip:SetOwner(pfBrowser, "ANCHOR_CURSOR")
 
   -- unit
-  if this.buttonType == "U" then
+  if self.buttonType == "U" then
     if items[id]["U"] then
       GameTooltip:SetText(pfQuest_Loc["Looted from"], .3, 1, .8)
       for unitID, chance in pairs(items[id]["U"]) do
@@ -262,7 +262,7 @@ local function ResultButtonEnterSpecial(self)
     end
 
   -- object
-  elseif this.buttonType == "O" then
+  elseif self.buttonType == "O" then
     if items[id]["O"] then
       GameTooltip:SetText(pfQuest_Loc["Looted from"], .3, 1, .8)
       for objectID, chance in pairs(items[id]["O"]) do
@@ -304,7 +304,7 @@ local function ResultButtonEnterSpecial(self)
     end
 
   -- vendor
-  elseif this.buttonType == "V" then
+  elseif self.buttonType == "V" then
     if items[id]["V"] then
       GameTooltip:SetText(pfQuest_Loc["Sold by"], .3, 1, .8)
       for unitID, sellcount in pairs(items[id]["V"]) do
@@ -409,14 +409,15 @@ local function ResultButtonCreate(i, resultType)
 
   f.tex = f:CreateTexture(nil, "BACKGROUND")
   f.tex:SetAllPoints(f)
-  f.tex:SetTexture(1,1,1, ( compat.mod(i,2) == 1 and .02 or .04))
+  f.tex:SetColorTexture(1,1,1, (compat.mod(i,2) == 1 and .02 or .04))
 
   -- text properties
   f.text = f:CreateFontString(nil, "OVERLAY")
-  f.text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
+  f.text:SetFont(pfUI.font_default or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", tonumber(pfUI_config.global.font_size) or 11, "OUTLINE")
   f.text:SetAllPoints(f)
   f.text:SetJustifyH("CENTER")
   f.idText = f:CreateFontString(nil, "OVERLAY")
+  f.idText:SetFont(pfUI.font_default or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", tonumber(pfUI_config.global.font_size) or 11, "")
   f.idText:SetPoint("LEFT", f, "LEFT", 30, 0)
 
   -- favourite button
@@ -585,7 +586,7 @@ pfBrowser:SetFrameStrata("FULLSCREEN_DIALOG")
 pfBrowser:SetMovable(true)
 pfBrowser:EnableMouse(true)
 pfBrowser:RegisterEvent("PLAYER_ENTERING_WORLD")
-pfBrowser:SetScript("OnEvent", function()
+pfBrowser:SetScript("OnEvent", function(self, event)
   -- show all favorites on login if configured
   if pfQuest_config.favonlogin == "1" then
     -- search units
@@ -609,17 +610,17 @@ pfBrowser:SetScript("OnEvent", function()
     end
   end
 end)
-pfBrowser:SetScript("OnMouseDown",function()
-  this:StartMoving()
+pfBrowser:SetScript("OnMouseDown",function(self)
+  self:StartMoving()
 end)
 
-pfBrowser:SetScript("OnMouseUp",function()
-  this:StopMovingOrSizing()
+pfBrowser:SetScript("OnMouseUp",function(self)
+  self:StopMovingOrSizing()
 end)
 
 pfBrowser:SetScript("OnUpdate", function()
   -- multi-select handling
-  if not this.selectState and IsControlKeyDown() and GetMouseFocus() and GetMouseFocus().pfResultButton then
+  if not self.selectState and IsControlKeyDown() and GetMouseFocus() and GetMouseFocus().pfResultButton then
     for id, frame in pairs(pfBrowser.tabs) do
       for id, button in pairs(frame.buttons) do
         if button.name == GetMouseFocus().name then
@@ -627,9 +628,9 @@ pfBrowser:SetScript("OnUpdate", function()
         end
       end
     end
-    this.selectState = "active"
+    self.selectState = "active"
 
-  elseif this.selectState and (this.selectState == "clean" or not IsControlKeyDown()) then
+  elseif self.selectState and (self.selectState == "clean" or not IsControlKeyDown()) then
     for id, frame in pairs(pfBrowser.tabs) do
       for id, button in pairs(frame.buttons) do
         if compat.mod(button:GetID(),2) == 1 then
@@ -639,7 +640,7 @@ pfBrowser:SetScript("OnUpdate", function()
         end
       end
     end
-    this.selectState = nil
+    self.selectState = nil
   end
 end)
 
@@ -664,7 +665,7 @@ pfBrowser.close.texture:SetVertexColor(1,.25,.25,1)
 pfBrowser.close.texture:SetPoint("TOPLEFT", pfBrowser.close, "TOPLEFT", 4, -4)
 pfBrowser.close.texture:SetPoint("BOTTOMRIGHT", pfBrowser.close, "BOTTOMRIGHT", -4, 4)
 pfBrowser.close:SetScript("OnClick", function()
-  this:GetParent():Hide()
+  self:GetParent():Hide()
 end)
 EnableTooltips(pfBrowser.close, {
   pfQuest_Loc["Close"],
@@ -746,19 +747,19 @@ pfBrowser.input.clearButton.texture:SetHeight(17)
 pfBrowser.input.clearButton.texture:SetWidth(17)
 pfBrowser.input.clearButton.texture:SetAlpha(0.5)
 pfBrowser.input.clearButton.texture:SetPoint("TOPLEFT", pfBrowser.input.clearButton, "TOPLEFT", 0, 0)
-pfBrowser.input.clearButton:SetScript("OnEnter", function()
-  this.texture:SetAlpha(1.0)
+pfBrowser.input.clearButton:SetScript("OnEnter", function(self)
+  self.texture:SetAlpha(1.0)
 end)
-pfBrowser.input.clearButton:SetScript("OnLeave", function()
-  this.texture:SetAlpha(0.5)
+pfBrowser.input.clearButton:SetScript("OnLeave", function(self)
+  self.texture:SetAlpha(0.5)
 end)
-pfBrowser.input.clearButton:SetScript("OnMouseDown", function()
-  if this:IsEnabled() then
-    this.texture:SetPoint("TOPLEFT", this, "TOPLEFT", 1, -1)
+pfBrowser.input.clearButton:SetScript("OnMouseDown", function(self)
+  if self:IsEnabled() then
+    self.texture:SetPoint("TOPLEFT", self, "TOPLEFT", 1, -1)
   end
 end)
-pfBrowser.input.clearButton:SetScript("OnMouseUp", function()
-  this.texture:SetPoint("TOPLEFT", this, "TOPLEFT", 0, 0)
+pfBrowser.input.clearButton:SetScript("OnMouseUp", function(self)
+  self.texture:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
 end)
 pfBrowser.input.clearButton:SetScript("OnClick", function()
   if PlaySound then pcall(PlaySound, SOUNDKIT and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON or 856) end
@@ -773,29 +774,29 @@ pfBrowser.input.clearButton:SetScript("OnClick", function()
   pfBrowser.input:ClearFocus()
 end)
 
-pfBrowser.input:SetScript("OnEscapePressed", function() this:ClearFocus() end)
-pfBrowser.input:SetScript("OnEnterPressed", function() this:ClearFocus() end)
+pfBrowser.input:SetScript("OnEscapePressed", function() self:ClearFocus() end)
+pfBrowser.input:SetScript("OnEnterPressed", function() self:ClearFocus() end)
 pfBrowser.input:SetScript("OnEditFocusGained", function()
-  this:HighlightText()
-  this:SetFontObject("GameFontWhite")
-  this.searchIcon:SetVertexColor(1.0, 1.0, 1.0)
-  if this:GetText() == pfQuest_Loc["Search"] then this:SetText("") end
-  this.clearButton:Show()
+  self:HighlightText()
+  self:SetFontObject("GameFontWhite")
+  self.searchIcon:SetVertexColor(1.0, 1.0, 1.0)
+  if self:GetText() == pfQuest_Loc["Search"] then self:SetText("") end
+  self.clearButton:Show()
 end)
 
 pfBrowser.input:SetScript("OnEditFocusLost", function()
-  this:HighlightText(0, 0)
-  this:SetFontObject("GameFontDisable")
-  this.searchIcon:SetVertexColor(0.6, 0.6, 0.6)
-  if this:GetText() == "" then
-    this:SetText(pfQuest_Loc["Search"])
-    this.clearButton:Hide()
+  self:HighlightText(0, 0)
+  self:SetFontObject("GameFontDisable")
+  self.searchIcon:SetVertexColor(0.6, 0.6, 0.6)
+  if self:GetText() == "" then
+    self:SetText(pfQuest_Loc["Search"])
+    self.clearButton:Hide()
   end
 end)
 
 -- This script updates all the search tabs when the search text changes
 pfBrowser.input:SetScript("OnTextChanged", function()
-  local text = this:GetText()
+  local text = self:GetText()
   if (text == pfQuest_Loc["Search"]) then text = "" end
 
   local custom = string.find(text, "^custom:")

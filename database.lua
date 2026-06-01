@@ -281,7 +281,7 @@ CreateFrame("Frame", "pfQuestLocaleCheck", UIParent):SetScript("OnUpdate", funct
 
   if not self.dryrun then
     -- give the server one iteration to return the itemname.
-    -- this is required for clients that use a clean wdb folder.
+    -- self is required for clients that use a clean wdb folder.
     ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE")
     ItemRefTooltip:SetHyperlink("item:6948:0:0:0")
     ItemRefTooltip:Hide()
@@ -482,11 +482,11 @@ function pfDatabase:ShowExtendedTooltip(id, tooltip, parent, anchor, offx, offy)
     queststate = pfQuest.questlog[id] and 1 or queststate
 
     if queststate == 0 then
-      tooltip:AddLine(pfQuest_Loc["You don't have this quest."] .. "\n\n", 1, .5, .5)
+      tooltip:AddLine(pfQuest_Loc["You don't have self quest."] .. "\n\n", 1, .5, .5)
     elseif queststate == 1 then
-      tooltip:AddLine(pfQuest_Loc["You are on this quest."] .. "\n\n", 1, 1, .5)
+      tooltip:AddLine(pfQuest_Loc["You are on self quest."] .. "\n\n", 1, 1, .5)
     elseif queststate == 2 then
-      tooltip:AddLine(pfQuest_Loc["You already did this quest."] .. "\n\n", .5, 1, .5)
+      tooltip:AddLine(pfQuest_Loc["You already did self quest."] .. "\n\n", .5, 1, .5)
     end
 
     -- quest start
@@ -904,7 +904,7 @@ function pfDatabase:TrackMeta(list, state)
   if not state then return end
 
   -- add extended state values to query
-  -- this is used for min/max values
+  -- self is used for min/max values
   if type(state) == "table" then
     for k, v in pairs(state) do
       query[k] = v
@@ -1793,7 +1793,7 @@ function pfDatabase:BrowserSearch(query, searchType)
   -- Set the DB to be searched
   local minChars = 3
   local minInts = 1
-  if (queryLength >= minChars) or (queryNumber and (queryLength >= minInts)) then -- make sure this is no fav display
+  if (queryLength >= minChars) or (queryNumber and (queryLength >= minInts)) then -- make sure self is no fav display
     if ((queryLength > minChars) or (queryNumber and (queryLength > minInts)))
        and (pfDatabase.lastSearchQuery ~= "" and queryLength > string.len(pfDatabase.lastSearchQuery))
     then

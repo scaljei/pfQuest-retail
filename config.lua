@@ -243,7 +243,7 @@ for _, current in pairs(tocs) do
   end
 end
 
--- Safety fallback: if path still nil, derive from this file's location
+-- Safety fallback: if path still nil, derive from self file's location
 if not pfQuestConfig.path then
   pfQuestConfig.path = "Interface\\AddOns\\pfQuest-retail"
   pfQuestConfig.version = "unknown"

@@ -12,7 +12,7 @@ local minimapbreakers = {
 local compatnamefake = CreateFrame("Frame")
 compatnamefake:RegisterEvent("PLAYER_ENTERING_WORLD")
 compatnamefake:SetScript("OnEvent", function(self)
-  -- only run once on login (retail: use self, not implicit this)
+  -- only run once on login (retail: use self, not implicit self)
   self:UnregisterAllEvents()
 
   -- C_AddOns replaces GetNumAddOns/GetAddOnInfo in retail 11.x
@@ -29,7 +29,7 @@ compatnamefake:SetScript("OnEvent", function(self)
 end)
 
 -- checking for control key is very time expensive in 1.12
--- this loop puts it into one place and only updates it every .2 seconds
+-- self loop puts it into one place and only updates it every .2 seconds
 -- it also only updates the key if the mouse is over a relevant frame
 local controlkey = CreateFrame("Frame", "pfQuestControlKey", UIParent)
 controlkey:SetScript("OnUpdate", function(self)
@@ -651,7 +651,7 @@ function pfMap:GetNodes(addon, title)
 end
 
 function pfMap:DeleteNode(addon, title)
-  -- Reset node log count for this addon so next update logs fresh
+  -- Reset node log count for self addon so next update logs fresh
   if pfMap._nodeLogCount and addon then
     pfMap._nodeLogCount[addon] = nil
   end
@@ -694,8 +694,8 @@ function pfMap:DeleteNode(addon, title)
 end
 
 function pfMap:NodeClick(self)
-  -- retail: OnClick passes (self, button); legacy used implicit "this"
-  local btn = self or this
+  -- retail: OnClick passes (self, button); legacy used implicit "self"
+  local btn = self or self
   if IsShiftKeyDown() then
     if btn.questid and btn.texture and btn.layer < 5 then
       -- mark questnode as done
@@ -725,7 +725,7 @@ function pfMap:NodeClick(self)
 end
 
 function pfMap:NodeEnter(self)
-  local btn = self or this
+  local btn = self or self
 
   -- Disable blob tooltips where still applicable (WotLK / early retail)
   if compat.client >= 30300 and WorldMapPOIFrame and WorldMapPOIFrame.allowBlobTooltip ~= nil then
@@ -772,7 +772,7 @@ function pfMap:NodeEnter(self)
 end
 
 function pfMap:NodeLeave(self)
-  local btn = self or this
+  local btn = self or self
 
   if compat.client >= 30300 and WorldMapPOIFrame and WorldMapPOIFrame.allowBlobTooltip ~= nil then
     WorldMapPOIFrame.allowBlobTooltip = true
@@ -1054,7 +1054,7 @@ function pfMap:UpdateNodes()
 end
 
 local coord_cache = {}
-local _mmState = {}  -- replaces implicit "this" storage
+local _mmState = {}  -- replaces implicit "self" storage
 function pfMap:UpdateMinimap()
   -- check for disabled minimap nodes
   if pfQuest_config["minimapnodes"] == "0" then
@@ -1213,7 +1213,7 @@ pfMap:SetScript("OnEvent", function(self, event)
     local zoneName = (pfZoneID and pfDB["zones"]["loc"] and pfDB["zones"]["loc"][pfZoneID]) or GetRealZoneText() or "?"
     pfQuest:Debug("|cff33ffccZone|r " .. event .. " |cffaaaaaa[uiMapID=" .. tostring(zone) .. " pfID=" .. tostring(pfZoneID) .. " " .. zoneName .. "]|r")
     if not WorldMapFrame:IsShown() then
-      -- SetMapToCurrentZone removed in retail; C_Map handles this automatically
+      -- SetMapToCurrentZone removed in retail; C_Map handles self automatically
       if SetMapToCurrentZone then SetMapToCurrentZone() end
     end
   end
