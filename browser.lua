@@ -618,7 +618,7 @@ pfBrowser:SetScript("OnMouseUp",function(self)
   self:StopMovingOrSizing()
 end)
 
-pfBrowser:SetScript("OnUpdate", function()
+pfBrowser:SetScript("OnUpdate", function(self)
   -- multi-select handling
   if not self.selectState and IsControlKeyDown() and GetMouseFocus() and GetMouseFocus().pfResultButton then
     for id, frame in pairs(pfBrowser.tabs) do
@@ -664,7 +664,7 @@ pfBrowser.close.texture:ClearAllPoints()
 pfBrowser.close.texture:SetVertexColor(1,.25,.25,1)
 pfBrowser.close.texture:SetPoint("TOPLEFT", pfBrowser.close, "TOPLEFT", 4, -4)
 pfBrowser.close.texture:SetPoint("BOTTOMRIGHT", pfBrowser.close, "BOTTOMRIGHT", -4, 4)
-pfBrowser.close:SetScript("OnClick", function()
+pfBrowser.close:SetScript("OnClick", function(self)
   self:GetParent():Hide()
 end)
 EnableTooltips(pfBrowser.close, {
@@ -721,7 +721,7 @@ SelectView(pfBrowser.tabs["units"])
 
 pfBrowser.input = CreateFrame("EditBox", "pfQuestBrowserSearch", pfBrowser)
 pfBrowser.input:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
-pfBrowser.input:SetFontObject("GameFontDisable")
+pfBrowser.input:SetFontObject(GameFontDisable)
 pfBrowser.input:SetAutoFocus(false)
 pfBrowser.input:SetText(pfQuest_Loc["Search"])
 pfBrowser.input:SetJustifyH("LEFT")
@@ -774,19 +774,19 @@ pfBrowser.input.clearButton:SetScript("OnClick", function()
   pfBrowser.input:ClearFocus()
 end)
 
-pfBrowser.input:SetScript("OnEscapePressed", function() self:ClearFocus() end)
-pfBrowser.input:SetScript("OnEnterPressed", function() self:ClearFocus() end)
-pfBrowser.input:SetScript("OnEditFocusGained", function()
+pfBrowser.input:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+pfBrowser.input:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+pfBrowser.input:SetScript("OnEditFocusGained", function(self)
   self:HighlightText()
-  self:SetFontObject("GameFontWhite")
+  if GameFontWhite then self:SetFontObject(GameFontWhite) end
   self.searchIcon:SetVertexColor(1.0, 1.0, 1.0)
   if self:GetText() == pfQuest_Loc["Search"] then self:SetText("") end
   self.clearButton:Show()
 end)
 
-pfBrowser.input:SetScript("OnEditFocusLost", function()
+pfBrowser.input:SetScript("OnEditFocusLost", function(self)
   self:HighlightText(0, 0)
-  self:SetFontObject("GameFontDisable")
+  if GameFontDisable then self:SetFontObject(GameFontDisable) end
   self.searchIcon:SetVertexColor(0.6, 0.6, 0.6)
   if self:GetText() == "" then
     self:SetText(pfQuest_Loc["Search"])
@@ -795,7 +795,7 @@ pfBrowser.input:SetScript("OnEditFocusLost", function()
 end)
 
 -- This script updates all the search tabs when the search text changes
-pfBrowser.input:SetScript("OnTextChanged", function()
+pfBrowser.input:SetScript("OnTextChanged", function(self)
   local text = self:GetText()
   if (text == pfQuest_Loc["Search"]) then text = "" end
 
