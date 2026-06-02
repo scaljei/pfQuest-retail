@@ -256,11 +256,9 @@ pfQuest:SetScript("OnUpdate", function(self)
     end
   end
 
-  -- trigger questgiver update
-  if tsize(self.queue) == 0 then
-    self.updateQuestLog = true
-    self.updateQuestGivers = true
-  end
+  -- Note: do NOT re-trigger updateQuestLog here.
+  -- UpdateQuestlog sets updateQuestGivers when it detects quest changes.
+  -- Re-triggering here causes an infinite update loop.
 end)
 
 local questlog_flip, questlog_flop = {}, {}
@@ -348,6 +346,11 @@ numQuests = numQuests or 0
   -- clear next temporary questlog entries
   for k, v in pairs(pfQuest.questlog_tmp) do
     pfQuest.questlog_tmp[k] = nil
+  end
+
+  -- Only trigger giver update when something actually changed
+  if change then
+    pfQuest.updateQuestGivers = true
   end
 
   return change
