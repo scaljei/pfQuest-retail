@@ -223,17 +223,17 @@ do -- button panel
   end)
 end
 
-function tracker.ButtonEnter()
+function tracker.ButtonEnter(self)
   pfMap.highlight = self.title
-  ShowTooltip()
+  ShowTooltip(self)
 end
 
-function tracker.ButtonLeave()
+function tracker.ButtonLeave(self)
   pfMap.highlight = nil
-  HideTooltip()
+  HideTooltip(self)
 end
 
-function tracker.ButtonUpdate()
+function tracker.ButtonUpdate(self)
   local alpha = tonumber((pfQuest_config["trackeralpha"] or .2)) or .2
 
   if not self.alpha or self.alpha ~= alpha then
@@ -244,7 +244,7 @@ function tracker.ButtonUpdate()
 
   if pfMap.highlight and pfMap.highlight == self.title then
     if not self.highlight then
-      self.bg:SetTexture(1,1,1,math.max(.2, alpha))
+      self.bg:SetColorTexture(1,1,1,math.max(.2, alpha))
       self.bg:SetAlpha(math.max(.5, alpha))
       self.highlight = true
     end
@@ -255,7 +255,7 @@ function tracker.ButtonUpdate()
   end
 end
 
-function tracker.ButtonClick()
+function tracker.ButtonClick(self, delta)
   if delta == "RightButton" then
     for questid, data in pairs(pfQuest.questlog) do
       if data.title == self.title then
@@ -408,7 +408,7 @@ function tracker.ButtonEvent(self)
 
         if not self.objectives[i] then
           self.objectives[i] = self:CreateFontString(nil, "OVERLAY")
-          self.objectives[i]:SetFont(pfUI.font_default, fontsize)
+          self.objectives[i]:SetFont(pfUI.font_default or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", fontsize, "")
           self.objectives[i]:SetJustifyH("LEFT")
           self.objectives[i]:SetPoint("TOPLEFT", 20, -fontsize*i-6)
           self.objectives[i]:SetPoint("TOPRIGHT", -10, -fontsize*i-6)
@@ -565,7 +565,7 @@ function tracker.ButtonAdd(title, node)
     tracker.buttons[id].bg:SetAlpha(0)
 
     tracker.buttons[id].text = tracker.buttons[id]:CreateFontString(nil, "OVERLAY")
-    tracker.buttons[id].text:SetFont(pfUI.font_default, fontsize)
+    tracker.buttons[id].text:SetFont(pfUI.font_default or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", fontsize, "")
     tracker.buttons[id].text:SetJustifyH("LEFT")
     tracker.buttons[id].text:SetPoint("TOPLEFT", 16, -4)
     tracker.buttons[id].text:SetPoint("TOPRIGHT", -10, -4)
@@ -575,7 +575,9 @@ function tracker.ButtonAdd(title, node)
     tracker.buttons[id].icon:SetWidth(12)
     tracker.buttons[id].icon:SetHeight(12)
 
-    tracker.buttons[id]:RegisterEvent("QUEST_WATCH_UPDATE")
+    if not pcall(function() tracker.buttons[id]:RegisterEvent("QUEST_WATCH_UPDATE") end) then
+      pcall(function() tracker.buttons[id]:RegisterEvent("QUEST_LOG_UPDATE") end)
+    end
     tracker.buttons[id]:RegisterEvent("QUEST_LOG_UPDATE")
     tracker.buttons[id]:RegisterEvent("QUEST_FINISHED")
 
