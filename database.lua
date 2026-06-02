@@ -1946,40 +1946,95 @@ function pfDatabase:ScanServer()
 end
 
 function pfDatabase:QueryServer()
-  -- break here on incompatible versions
-  if not QueryQuestsCompleted then
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: Option is not available on your server.")
+  pfQuest_history = pfQuest_history or {}
+  local level = UnitLevel("player")
+  local now = time()
+  local found = 0
+
+  -- Method 1: retail batch API (fastest - single call returns all)
+  local completedQuests = GetQuestsCompleted and GetQuestsCompleted()
+  if type(completedQuests) == "table" and next(completedQuests) then
+    for questID, _ in pairs(completedQuests) do
+      if not pfQuest_history[questID] then found = found + 1 end
+      pfQuest_history[questID] = { now, level }
+    end
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: |cff33ff33" ..
+      found .. "|r quests marked completed via GetQuestsCompleted.")
+    pfQuest:ResetAll()
     return
   end
 
-  QueryQuestsCompleted()  -- Send the request to the server
-
-  local frame = CreateFrame("Frame")  -- Create a new frame
-  frame:RegisterEvent("QUEST_QUERY_COMPLETE")  -- Register the event on the frame
-
-  local function OnQuestQueryComplete()
-    frame:UnregisterEvent("QUEST_QUERY_COMPLETE")  -- Unregister the event once it's triggered
-
-    -- Retrieve completed quests after the QUEST_QUERY_COMPLETE event
-    local completedQuests = GetQuestsCompleted()
-
-    if type(completedQuests) == "table" then
-      for questID, _ in pairs(completedQuests) do
-        pfQuest_history[questID] = { time(), UnitLevel("player") }
+  -- Method 2: retail event-based query
+  if QueryQuestsCompleted then
+    QueryQuestsCompleted()
+    local qframe = CreateFrame("Frame")
+    qframe:RegisterEvent("QUEST_QUERY_COMPLETE")
+    qframe:SetScript("OnEvent", function(self)
+      self:UnregisterAllEvents()
+      local completed = GetQuestsCompleted and GetQuestsCompleted() or {}
+      for questID, _ in pairs(completed) do
+        if not pfQuest_history[questID] then found = found + 1 end
+        pfQuest_history[questID] = { now, level }
       end
-
-      -- Reset all quest markers after processing completed quests
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: |cff33ff33" ..
+        found .. "|r quests marked completed via QueryQuestsCompleted.")
       pfQuest:ResetAll()
-    elseif completedQuests == nil then
-      -- Handle the case where GetQuestsCompleted() returned nil
-      print("Error: GetQuestsCompleted() returned nil.")
-    else
-      -- Handle the case where GetQuestsCompleted() did not return a valid table
-      print("Error: GetQuestsCompleted() did not return a valid table. Value: ", completedQuests)
+    end)
+    return
+  end
+
+  -- Method 3: IsQuestFlaggedCompleted scan of entire pfDB
+  -- Checks every quest in the database in batches to avoid client freeze
+  local questIDs = {}
+  for questID in pairs(pfDB["quests"]["data"]) do
+    table.insert(questIDs, questID)
+  end
+
+  -- Also add retail quest IDs from pfQuest-retail-db if available
+  if pfDB["quests"]["loc"] then
+    for questID in pairs(pfDB["quests"]["loc"]) do
+      if not pfDB["quests"]["data"][questID] then
+        table.insert(questIDs, questID)
+      end
     end
   end
 
-  frame:SetScript("OnEvent", OnQuestQueryComplete)  -- Set the event handler
+  local total = #questIDs
+  local checked = 0
+  local batchSize = 500  -- check 500 per frame tick
+
+  DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: Scanning " ..
+    total .. " quests for completion status...")
+
+  local checkFn = C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted
+               or IsQuestFlaggedCompleted
+
+  if not checkFn then
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: |cffff3333No quest completion API available.|r")
+    return
+  end
+
+  local function processBatch()
+    local batchEnd = math.min(checked + batchSize, total)
+    for i = checked + 1, batchEnd do
+      local qid = questIDs[i]
+      if checkFn(qid) then
+        if not pfQuest_history[qid] then found = found + 1 end
+        pfQuest_history[qid] = { now, level }
+      end
+    end
+    checked = batchEnd
+
+    if checked < total then
+      C_Timer.After(0.05, processBatch)  -- yield to game engine between batches
+    else
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: |cff33ff33" ..
+        found .. "|r completed quests found out of " .. total .. " checked. Updating map...")
+      pfQuest:ResetAll()
+    end
+  end
+
+  processBatch()
 end
 
 C_Timer.After(0, function() if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa[diag] database.lua loaded|r") end end)

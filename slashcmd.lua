@@ -93,6 +93,25 @@ SlashCmdList["PFDB"] = function(input, editbox)
     return
   end
 
+  -- argument: queststatus (check single quest completion)
+  if (arg1 == "queststatus") and arg2 then
+    local qid = tonumber(arg2)
+    if qid then
+      local checkFn = C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted or IsQuestFlaggedCompleted
+      local done = checkFn and checkFn(qid)
+      local inLog = C_QuestLog and C_QuestLog.IsOnQuest and C_QuestLog.IsOnQuest(qid)
+      local title = (pfDB["quests"]["loc"][qid] and pfDB["quests"]["loc"][qid].T)
+                 or (type(pfDB["quests"]["loc"][qid]) == "string" and pfDB["quests"]["loc"][qid])
+                 or ("Quest #" .. qid)
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: " .. title)
+      DEFAULT_CHAT_FRAME:AddMessage("  Completed: " .. (done and "|cff33ff33YES|r" or "|cffff3333NO|r"))
+      DEFAULT_CHAT_FRAME:AddMessage("  In quest log: " .. (inLog and "|cff33ff33YES|r" or "|cffaaaaaa NO|r"))
+    else
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: Usage: /db queststatus <questID>")
+    end
+    return
+  end
+
   -- argument: quests
   if (arg1 == "quests") then
     pfDatabase:SearchQuests(meta)
@@ -330,6 +349,8 @@ SlashCmdList["PFDB"] = function(input, editbox)
 
     -- argument: query
   if (arg1 == "query") then
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: Starting quest completion scan...")
+    DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa(This checks all quests in the database against your character's completion history)")
     pfDatabase:QueryServer()
     return
   end
