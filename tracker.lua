@@ -114,7 +114,8 @@ tracker:SetScript("OnUpdate", function(self)
     local content = tracker.buttons[1] and not tracker.buttons[1].empty and true or nil
     local goal = ( content and not MouseIsOver(self) ) and 0 or not content and not MouseIsOver(self) and 0.5 or 1
     if ceil(alpha*10) ~= ceil(goal*10) then
-      self.backdrop:SetAlpha(alpha + ((goal - alpha) > 0 and .1 or (goal - alpha) < 0 and -.1 or 0))
+      local step = (goal - alpha) > 0 and .1 or (goal - alpha) < 0 and -.1 or 0
+      self.backdrop:SetAlpha(math.max(0, math.min(1, alpha + step)))
     end
   end
   -- Note: ObjectiveTrackerFrame (retail QuestWatchFrame) is Blizzard-protected;
