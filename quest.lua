@@ -118,6 +118,27 @@ pfQuest:SetScript("OnEvent", function(self, event, addonName)
         pfQuest.updateQuestGivers = true
         if pfMap then pfMap.queue_update = GetTime() end
       end)
+      -- Auto-populate quest history from GetQuestsCompleted on login.
+      -- Delay 5s to ensure the game has sent completed quest data.
+      -- This replaces needing to run /db query manually every session.
+      C_Timer.After(5, function()
+        if GetQuestsCompleted then
+          local completed = GetQuestsCompleted()
+          if type(completed) == "table" and next(completed) then
+            pfQuest_history = pfQuest_history or {}
+            local level = UnitLevel("player")
+            local now = time()
+            local found = 0
+            for questID, _ in pairs(completed) do
+              if not pfQuest_history[questID] then found = found + 1 end
+              pfQuest_history[questID] = { now, level }
+            end
+            if found > 0 then
+              pfQuest:Debug("|cff33ff33" .. found .. "|r new completed quests loaded from GetQuestsCompleted.")
+            end
+          end
+        end
+      end)
     else
       return
     end
@@ -171,9 +192,15 @@ pfQuest:SetScript("OnUpdate", function(self)
 
   if self.updateQuestLog == true and tsize(self.queue) == 0 then
     if not pfMap then return end
-    pfQuest:Debug("Update Quest|cff33ffcc Log")
-    pfQuest:UpdateQuestlog()
-    self.updateQuestLog = false
+    -- Throttle: don't re-process questlog more than once per 3s from event triggers
+    if self.updateQuestLogThrottle and self.updateQuestLogThrottle > GetTime() then
+      -- skip this tick but leave flag set so it fires after throttle expires
+    else
+      pfQuest:Debug("Update Quest|cff33ffcc Log")
+      pfQuest:UpdateQuestlog()
+      self.updateQuestLog = false
+      self.updateQuestLogThrottle = GetTime() + 3
+    end
   end
 
   if self.updateQuestGivers == true then
@@ -319,7 +346,7 @@ numQuests = numQuests or 0
       end
 
       found = found + 1
-      if found >= numQuests then
+      if numQuests > 0 and found >= numQuests then
         break
       end
     end

@@ -494,12 +494,16 @@ local customids = {
 -- Retail 11.x replacement for GetCurrentMapContinent() + GetCurrentMapZone().
 -- Returns the pfDB internal zone id for the player's current zone.
 -- ---------------------------------------------------------------------------
+-- Cosmic map ID and other non-zone root map IDs that appear during
+-- zone transitions or loading screens — skip these entirely.
+local INVALID_UIMAP_IDS = { [10004]=true, [946]=true, [1978]=true }
+
 function pfMap:GetCurrentMapID()
   if C_Map and C_Map.GetBestMapForUnit then
     local uiMapID = C_Map.GetBestMapForUnit("player")
-    if uiMapID then
+    if uiMapID and not INVALID_UIMAP_IDS[uiMapID] then
       local mapInfo = C_Map.GetMapInfo(uiMapID)
-      if mapInfo then
+      if mapInfo and mapInfo.name then
         return pfMap:GetMapIDByName(mapInfo.name)
       end
     end
@@ -960,6 +964,8 @@ end
 
 function pfMap:UpdateNodes()
   local _mapID = pfMap:GetCurrentMapID()
+  -- nil mapID means player is in a cosmic/transition zone — defer
+  if not _mapID then return end
   local _zoneName = (_mapID and pfDB["zones"]["loc"] and pfDB["zones"]["loc"][_mapID]) or "?"
   -- Try C_Map for retail zone names
   if _zoneName == "?" and _mapID and _mapID >= 10000 and pfQuest and pfQuest.retailZoneMapReverse then
@@ -1210,7 +1216,11 @@ if not pcall(function() pfMap:RegisterEvent("MAP_CLOSED") end) then end
 pfMap:SetScript("OnEvent", function(self, event)
   -- retail: track zone by C_Map uiMapID; legacy by GetCurrentMapZone()
   if C_Map and C_Map.GetBestMapForUnit then
-    zone = C_Map.GetBestMapForUnit("player")
+    local _rawZone = C_Map.GetBestMapForUnit("player")
+    -- Ignore cosmic/transition zone IDs that aren't real zones
+    if _rawZone and not INVALID_UIMAP_IDS[_rawZone] then
+      zone = _rawZone
+    end
   elseif GetCurrentMapZone then
     zone = GetCurrentMapZone()
   end

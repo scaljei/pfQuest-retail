@@ -96,7 +96,7 @@ tracker:SetScript("OnMouseUp",function(self)
 end)
 
 tracker:SetScript("OnUpdate", function(self)
-  if WorldMapFrame:IsShown() then
+  if WorldMapFrame and WorldMapFrame:IsShown() then
     if self.strata ~= "FULLSCREEN_DIALOG" then
       self:SetFrameStrata("FULLSCREEN_DIALOG")
       self.strata = "FULLSCREEN_DIALOG"
@@ -108,16 +108,17 @@ tracker:SetScript("OnUpdate", function(self)
     end
   end
 
-  local alpha = self.backdrop:GetAlpha()
-  local content = tracker.buttons[1] and not tracker.buttons[1].empty and true or nil
-  local goal = ( content and not MouseIsOver(self) ) and 0 or not content and not MouseIsOver(self) and 0.5 or 1
-  if ceil(alpha*10) ~= ceil(goal*10)then
-    self.backdrop:SetAlpha(alpha + ((goal - alpha) > 0 and .1 or (goal - alpha) < 0 and -.1 or 0))
+  -- Guard: backdrop child frame assigned a few lines after SetScript, so nil-safe
+  if self.backdrop then
+    local alpha = self.backdrop:GetAlpha()
+    local content = tracker.buttons[1] and not tracker.buttons[1].empty and true or nil
+    local goal = ( content and not MouseIsOver(self) ) and 0 or not content and not MouseIsOver(self) and 0.5 or 1
+    if ceil(alpha*10) ~= ceil(goal*10) then
+      self.backdrop:SetAlpha(alpha + ((goal - alpha) > 0 and .1 or (goal - alpha) < 0 and -.1 or 0))
+    end
   end
-
-  if pfQuestCompat.QuestWatchFrame:IsShown() then
-    pfQuestCompat.QuestWatchFrame:Hide()
-  end
+  -- Note: ObjectiveTrackerFrame (retail QuestWatchFrame) is Blizzard-protected;
+  -- hiding it raises a taint error 60x/sec. We do not manage that frame.
 end)
 
 tracker:SetScript("OnShow", function(self)
@@ -627,7 +628,7 @@ numQuests = numQuests or 0
       end
 
       found = found + 1
-      if found >= numQuests then
+      if numQuests > 0 and found >= numQuests then
         break
       end
     end

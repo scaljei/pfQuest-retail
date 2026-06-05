@@ -1951,74 +1951,97 @@ function pfDatabase:QueryServer()
   local now = time()
   local found = 0
 
-  -- Method 1: retail batch API (fastest - single call returns all)
-  local completedQuests = GetQuestsCompleted and GetQuestsCompleted()
-  if type(completedQuests) == "table" and next(completedQuests) then
-    for questID, _ in pairs(completedQuests) do
-      if not pfQuest_history[questID] then found = found + 1 end
-      pfQuest_history[questID] = { now, level }
+  local function applyCompleted(completed)
+    if type(completed) == "table" then
+      for questID, _ in pairs(completed) do
+        if not pfQuest_history[questID] then found = found + 1 end
+        pfQuest_history[questID] = { now, level }
+      end
     end
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: |cff33ff33" ..
-      found .. "|r quests marked completed via GetQuestsCompleted.")
-    pfQuest:ResetAll()
-    return
   end
 
-  -- Method 2: retail event-based query
+  local function reportAndReset(method)
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: |cff33ff33" ..
+      found .. "|r completed quests marked via " .. method .. ".")
+    -- UpdateNodes rather than ResetAll to avoid wiping questlog and causing
+    -- the update loop. ResetAll clears pfQuest.questlog which forces every
+    -- quest to re-appear as NEW on the next UpdateQuestlog scan.
+    if pfMap then pfMap:UpdateNodes() end
+  end
+
+  -- Method 1: GetQuestsCompleted (retail: synchronous, returns all at once)
+  -- Retry up to 3 times with 2s delay if empty (data may not be ready yet)
+  local function tryGetQuestsCompleted(attempt)
+    attempt = attempt or 1
+    local completedQuests = GetQuestsCompleted and GetQuestsCompleted()
+    if type(completedQuests) == "table" and next(completedQuests) then
+      applyCompleted(completedQuests)
+      reportAndReset("GetQuestsCompleted")
+      return true
+    elseif attempt < 3 then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: GetQuestsCompleted empty, retry " ..
+        attempt .. "/3 in 2s...")
+      C_Timer.After(2, function() tryGetQuestsCompleted(attempt + 1) end)
+      return false
+    end
+    return false
+  end
+
+  if GetQuestsCompleted then
+    if tryGetQuestsCompleted(1) then return end
+    -- If retry scheduled, also continue to method 2/3 below in parallel
+  end
+
+  -- Method 2: QueryQuestsCompleted + QUEST_QUERY_COMPLETE (classic/private server)
   if QueryQuestsCompleted then
     QueryQuestsCompleted()
     local qframe = CreateFrame("Frame")
     qframe:RegisterEvent("QUEST_QUERY_COMPLETE")
     qframe:SetScript("OnEvent", function(self)
       self:UnregisterAllEvents()
-      local completed = GetQuestsCompleted and GetQuestsCompleted() or {}
-      for questID, _ in pairs(completed) do
-        if not pfQuest_history[questID] then found = found + 1 end
-        pfQuest_history[questID] = { now, level }
-      end
-      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: |cff33ff33" ..
-        found .. "|r quests marked completed via QueryQuestsCompleted.")
-      pfQuest:ResetAll()
+      applyCompleted(GetQuestsCompleted and GetQuestsCompleted() or {})
+      reportAndReset("QueryQuestsCompleted")
     end)
     return
   end
 
-  -- Method 3: IsQuestFlaggedCompleted scan of entire pfDB
-  -- Checks every quest in the database in batches to avoid client freeze
-  local questIDs = {}
-  for questID in pairs(pfDB["quests"]["data"]) do
-    table.insert(questIDs, questID)
-  end
-
-  -- Also add retail quest IDs from pfQuest-retail-db if available
-  if pfDB["quests"]["loc"] then
-    for questID in pairs(pfDB["quests"]["loc"]) do
-      if not pfDB["quests"]["data"][questID] then
-        table.insert(questIDs, questID)
-      end
-    end
-  end
-
-  local total = #questIDs
-  local checked = 0
-  local batchSize = 500  -- check 500 per frame tick
-
-  DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: Scanning " ..
-    total .. " quests for completion status...")
-
-  local checkFn = C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted
-               or IsQuestFlaggedCompleted
+  -- Method 3: C_QuestLog.IsQuestFlaggedCompleted scan
+  -- Uses all known quest IDs: pfDB["quests"]["data"] + ["loc"] tables.
+  -- Note: for retail characters pfDB["quests"]["data"] contains classic
+  -- IDs (1-9665) which a retail character will not have completed.
+  -- The loc table may contain runtime-registered retail IDs.
+  local checkFn = (C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted)
+               or (type(IsQuestFlaggedCompleted) == "function" and IsQuestFlaggedCompleted)
+               or nil
 
   if not checkFn then
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: |cffff3333No quest completion API available.|r")
     return
   end
 
+  local seen = {}
+  local questIDs = {}
+  -- Prioritise loc table (contains runtime retail IDs too)
+  for questID in pairs(pfDB["quests"]["loc"] or {}) do
+    if not seen[questID] then seen[questID] = true; table.insert(questIDs, questID) end
+  end
+  for questID in pairs(pfDB["quests"]["data"] or {}) do
+    if not seen[questID] then seen[questID] = true; table.insert(questIDs, questID) end
+  end
+
+  local total = #questIDs
+  local checked = 0
+  local batchSize = 500
+
+  DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: Scanning " ..
+    total .. " quest IDs via IsQuestFlaggedCompleted...")
+
   local function processBatch()
     local batchEnd = math.min(checked + batchSize, total)
     for i = checked + 1, batchEnd do
       local qid = questIDs[i]
-      if checkFn(qid) then
+      local ok, result = pcall(checkFn, qid)
+      if ok and result then
         if not pfQuest_history[qid] then found = found + 1 end
         pfQuest_history[qid] = { now, level }
       end
@@ -2026,11 +2049,9 @@ function pfDatabase:QueryServer()
     checked = batchEnd
 
     if checked < total then
-      C_Timer.After(0.05, processBatch)  -- yield to game engine between batches
+      C_Timer.After(0.05, processBatch)
     else
-      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: |cff33ff33" ..
-        found .. "|r completed quests found out of " .. total .. " checked. Updating map...")
-      pfQuest:ResetAll()
+      reportAndReset("IsQuestFlaggedCompleted (" .. total .. " checked)")
     end
   end
 
