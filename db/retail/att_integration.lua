@@ -14,6 +14,14 @@
 -- sends fresh data.
 -- ============================================================
 
+-- Maximum questID accepted by C_QuestLog APIs (signed 32-bit integer)
+local INT32_MAX = 2147483647
+
+local function isValidQuestID(id)
+  local n = tonumber(id)
+  return n and n == math.floor(n) and n > 0 and n <= INT32_MAX
+end
+
 local function applyCompletedIDs(ids, source, level, now)
   pfQuest_history = pfQuest_history or {}
   local found = 0
@@ -21,14 +29,18 @@ local function applyCompletedIDs(ids, source, level, now)
     -- Indexed array form: {questID, questID, ...}
     if ids[1] then
       for _, questID in ipairs(ids) do
-        if not pfQuest_history[questID] then found = found + 1 end
-        pfQuest_history[questID] = pfQuest_history[questID] or { now, level }
+        if isValidQuestID(questID) then
+          if not pfQuest_history[questID] then found = found + 1 end
+          pfQuest_history[questID] = pfQuest_history[questID] or { now, level }
+        end
       end
     else
       -- Hash form: {[questID]=true, ...}
       for questID in pairs(ids) do
-        if not pfQuest_history[questID] then found = found + 1 end
-        pfQuest_history[questID] = pfQuest_history[questID] or { now, level }
+        if isValidQuestID(questID) then
+          if not pfQuest_history[questID] then found = found + 1 end
+          pfQuest_history[questID] = pfQuest_history[questID] or { now, level }
+        end
       end
     end
   end

@@ -104,7 +104,10 @@ local function UpdateEntry(self, index)
     self[index].text:SetText((collapsed[self[index].column] and "|cff338855" or "|cff33ffcc")..self[index].column)
     self[index]:Show()
   elseif self[index].id then
-    local qid = tonumber(self[index].id) or UNKNOWN
+    -- qid must be a valid signed 32-bit integer for C_QuestLog APIs.
+    -- tonumber() can return nil (string titles used as keys) or floats/large numbers.
+    local _raw = tonumber(self[index].id)
+    local qid = (_raw and _raw == math.floor(_raw) and _raw >= 0 and _raw <= 2147483647) and _raw or nil
     local name = (pfDB["quests"]["loc"][self[index].id] and pfDB["quests"]["loc"][self[index].id]["T"])
     -- For retail quest IDs not in the static DB, ask the client
     if not name and qid and C_QuestLog and C_QuestLog.GetTitleForQuestID then
