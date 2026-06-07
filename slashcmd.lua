@@ -426,6 +426,14 @@ SlashCmdList["PFDB"] = function(input, editbox)
       add("  wantedNames index: " .. wc .. " objective mob name(s) indexed"
         .. (wc > 0 and " (pins appear on first NPC sight)" or ""))
     end
+    -- npcCache (cross-session NPC position persistence)
+    if pfQuest_npcCache and type(pfQuest_npcCache) == "table" then
+      local cc = count(pfQuest_npcCache.data or {})
+      add("  npcCache (saved): " .. cc .. " NPC(s) from previous sessions"
+        .. (cc > 0 and " — units.data pre-seeded at login" or ""))
+    else
+      add("  npcCache (saved): empty — will be written on logout")
+    end
 
     -- ── 3. pfMap.nodes summary ────────────────────────────────────────────
     add(bar)

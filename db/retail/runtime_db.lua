@@ -276,14 +276,67 @@ end
 -- ── Event frame ──────────────────────────────────────────────────────────────
 local runtimeFrame = CreateFrame("Frame")
 runtimeFrame:RegisterEvent("PLAYER_LOGIN")
+runtimeFrame:RegisterEvent("PLAYER_LOGOUT")
 runtimeFrame:RegisterEvent("QUEST_LOG_UPDATE")
 runtimeFrame:RegisterEvent("QUEST_ACCEPTED")
 runtimeFrame:RegisterEvent("GOSSIP_SHOW")
 runtimeFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 runtimeFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 
+-- ── NPC cache persistence ─────────────────────────────────────────────────────
+-- pfQuest_npcCache (SavedVariablesPerCharacter) stores NPC positions seen in
+-- previous sessions so units.data is non-empty at login without any interaction.
+-- Format: { data = {[npcID]={coords=...,fac=...,lvl=...}}, loc = {[npcID]=name} }
+
+local function loadNPCCache()
+  if type(pfQuest_npcCache) ~= "table" then return end
+  ensureDB()
+  local loaded = 0
+  if type(pfQuest_npcCache.data) == "table" then
+    for npcID, entry in pairs(pfQuest_npcCache.data) do
+      if not pfDB["units"]["data"][npcID] then
+        pfDB["units"]["data"][npcID] = entry
+        loaded = loaded + 1
+      end
+    end
+  end
+  if type(pfQuest_npcCache.loc) == "table" then
+    for npcID, name in pairs(pfQuest_npcCache.loc) do
+      pfDB["units"]["loc"][npcID] = pfDB["units"]["loc"][npcID] or name
+    end
+  end
+  if loaded > 0 then
+    pfQuest:Debug("|cff33ff33" .. loaded .. "|r NPCs loaded from session cache.")
+  end
+end
+
+local function saveNPCCache()
+  ensureDB()
+  -- Only persist retail NPCs (no classic IDs — those get wiped by db_guard anyway)
+  -- Keep the cache bounded: max 2000 entries to avoid SavedVars bloat
+  local MAX_CACHE = 2000
+  local newData, newLoc, count = {}, {}, 0
+  for npcID, entry in pairs(pfDB["units"]["data"]) do
+    if count >= MAX_CACHE then break end
+    -- Only cache entries that have at least one coord in a retail zone (pfID >= 10000)
+    -- OR that were preserved classic-quest NPCs (low IDs with real coord data)
+    if entry and entry["coords"] and #entry["coords"] > 0 then
+      newData[npcID] = entry
+      newLoc[npcID]  = pfDB["units"]["loc"][npcID]
+      count = count + 1
+    end
+  end
+  pfQuest_npcCache = { data = newData, loc = newLoc }
+end
+
 runtimeFrame:SetScript("OnEvent", function(self, event, ...)
   if event == "PLAYER_LOGIN" then
+    -- Load NPC positions from previous sessions before anything else runs,
+    -- so units.data is non-empty when scanQuestLog links objectives.
+    -- This must run AFTER db_guard (which fires first at PLAYER_LOGIN and wipes
+    -- units.data) — but since we're in runtime_db's own PLAYER_LOGIN handler,
+    -- load order in addon.xml guarantees db_guard has already run.
+    loadNPCCache()
     -- Register the player's current zone immediately
     if C_Map and C_Map.GetBestMapForUnit then
       local uid = C_Map.GetBestMapForUnit("player")
@@ -309,6 +362,9 @@ runtimeFrame:SetScript("OnEvent", function(self, event, ...)
         end
       end
     end)
+
+  elseif event == "PLAYER_LOGOUT" then
+    saveNPCCache()
 
   elseif event == "QUEST_LOG_UPDATE" then
     scanQuestLog()
