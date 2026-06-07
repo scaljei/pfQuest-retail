@@ -23,8 +23,52 @@ local function isRetailClient()
 end
 
 local function wipeClassicDB()
-  -- Clear the large static tables entirely
-  -- zones and init structure are kept — needed for zone name resolution
+  -- Preserve classic DB entries for quests currently in the player's log.
+  -- If the player is on a classic quest (ID < 10000), its NPC start/end/obj
+  -- links from the static DB are the only source of that data.
+  local preserveQuests  = {}
+  local preserveUnits   = {}
+  local preserveObjects = {}
+
+  if C_QuestLog and C_QuestLog.GetNumQuestLogEntries then
+    local n = C_QuestLog.GetNumQuestLogEntries()
+    for i = 1, n do
+      local info = C_QuestLog.GetInfo(i)
+      if info and not info.isHeader and info.questID and info.questID < 10000 then
+        local qid = info.questID
+        -- Preserve quest data and loc
+        if pfDB["quests"]["data"][qid] then
+          preserveQuests[qid] = { data = pfDB["quests"]["data"][qid],
+                                  loc  = pfDB["quests"]["loc"][qid] }
+          -- Preserve all referenced unit IDs
+          local qd = pfDB["quests"]["data"][qid]
+          for _, section in ipairs({ "start", "end", "obj" }) do
+            if qd[section] and qd[section]["U"] then
+              for _, uid in ipairs(qd[section]["U"]) do
+                if pfDB["units"]["data"][uid] then
+                  preserveUnits[uid] = { data = pfDB["units"]["data"][uid],
+                                         loc  = pfDB["units"]["loc"][uid] }
+                end
+              end
+            end
+            if qd[section] and qd[section]["O"] then
+              for _, oid in ipairs(qd[section]["O"]) do
+                if pfDB["objects"]["data"][oid] then
+                  preserveObjects[oid] = { data = pfDB["objects"]["data"][oid],
+                                           loc  = pfDB["objects"]["loc"][oid] }
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  local preserved = 0
+  for _ in pairs(preserveQuests) do preserved = preserved + 1 end
+
+  -- Clear the large static tables
   pfDB["items"]          = { ["data"] = {}, ["loc"] = {} }
   pfDB["units"]          = { ["data"] = {}, ["loc"] = {} }
   pfDB["objects"]        = { ["data"] = {}, ["loc"] = {} }
@@ -33,11 +77,26 @@ local function wipeClassicDB()
   pfDB["quests-itemreq"] = { ["data"] = {}, ["loc"] = {} }
   pfDB["minimap"]        = {}
   pfDB["areatrigger"]    = {}
-  -- meta kept: small (24KB) and needed for SearchObjectSkill structure checks
+  -- meta kept: needed for SearchObjectSkill
+
+  -- Restore preserved active-quest entries
+  for qid, entry in pairs(preserveQuests) do
+    pfDB["quests"]["data"][qid] = entry.data
+    if entry.loc then pfDB["quests"]["loc"][qid] = entry.loc end
+  end
+  for uid, entry in pairs(preserveUnits) do
+    pfDB["units"]["data"][uid] = entry.data
+    if entry.loc then pfDB["units"]["loc"][uid] = entry.loc end
+  end
+  for oid, entry in pairs(preserveObjects) do
+    pfDB["objects"]["data"][oid] = entry.data
+    if entry.loc then pfDB["objects"]["loc"][oid] = entry.loc end
+  end
+
   collectgarbage("collect")
   DEFAULT_CHAT_FRAME:AddMessage(
-    "|cff33ffccpf|cffffffffQuest: Classic DB unloaded (retail client). " ..
-    "Quest data will be populated from live client + ATT integration.")
+    "|cff33ffccpf|cffffffffQuest: Classic DB unloaded (" .. preserved ..
+    " active quest(s) preserved). Retail quest data from live client.")
 end
 
 -- Pre-populate zone names from the zone bridge so UpdateNodes never shows '?'
@@ -94,6 +153,16 @@ guard:SetScript("OnEvent", function(self)
     if pfBrowser and pfBrowser.ReloadDB then
       pfBrowser.ReloadDB()
     end
+    -- Safety net: re-scan quest log after all PLAYER_LOGIN handlers have run.
+    -- runtime_db registers its PLAYER_LOGIN before db_guard (earlier in addon.xml),
+    -- but with the corrected load order db_guard fires first. This deferred rescan
+    -- ensures quest data is populated even if load order changes again.
+    C_Timer.After(0, function()
+      if pfRetailRuntime and pfRetailRuntime.scanQuestLog then
+        pfRetailRuntime.scanQuestLog()
+      end
+      if pfMap then pfMap.queue_update = GetTime() end
+    end)
   else
     pfQuestRetail_ClassicDBLoaded = true
   end
