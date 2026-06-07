@@ -291,6 +291,24 @@ runtimeFrame:SetScript("OnEvent", function(self, event, ...)
     end
     -- Scan quest log on login
     scanQuestLog()
+    -- Pre-fetch zone dimensions for all quest-related zones (#6).
+    -- C_QuestLog.GetQuestUiMapID returns the uiMapID for a quest's zone — call it
+    -- for every active quest so registerZone stores real GetMapRects data instead
+    -- of the 4266x2844 placeholder. Deferred 2s so the game is fully loaded.
+    C_Timer.After(2, function()
+      if not (C_QuestLog and C_QuestLog.GetNumQuestLogEntries) then return end
+      local n = C_QuestLog.GetNumQuestLogEntries()
+      for i = 1, n do
+        local info = C_QuestLog.GetInfo(i)
+        if info and not info.isHeader and info.questID then
+          -- GetQuestUiMapID returns the primary zone uiMapID for the quest
+          local uid = C_QuestLog.GetQuestUiMapID and C_QuestLog.GetQuestUiMapID(info.questID)
+          if uid and uid > 0 then
+            registerZone(uid)
+          end
+        end
+      end
+    end)
 
   elseif event == "QUEST_LOG_UPDATE" then
     scanQuestLog()
