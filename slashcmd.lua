@@ -420,6 +420,12 @@ SlashCmdList["PFDB"] = function(input, editbox)
     else
       add("  (pfDatabase.GetUpvalueStatus not available)")
     end
+    -- wantedNames index (objective mob names awaiting NPC interaction)
+    if pfRetailRuntime and pfRetailRuntime.wantedNames then
+      local wc = count(pfRetailRuntime.wantedNames)
+      add("  wantedNames index: " .. wc .. " objective mob name(s) indexed"
+        .. (wc > 0 and " (pins appear on first NPC sight)" or ""))
+    end
 
     -- ── 3. pfMap.nodes summary ────────────────────────────────────────────
     add(bar)
@@ -444,8 +450,9 @@ SlashCmdList["PFDB"] = function(input, editbox)
           add("  -> No quests in pfDB yet (runtime_db scan pending or failed)")
         elseif ucount == 0 then
           add("  -> " .. qcount .. " quests known but units.data=0")
-          add("     Nodes appear once you target or mouse over objective NPCs.")
-          add("     After interacting with any mob, run /db dbinfo to see units grow.")
+          add("     Nodes appear once objective NPCs enter your view (nameplates),")
+          add("     or when you target/mouse over them. Move toward quest area.")
+          add("     After any NPC interaction, run /db dbinfo to see units grow.")
         else
           add("  -> " .. qcount .. " quests + " .. ucount .. " units registered")
           add("     No NPC-quest links yet. Links form as objective mob names match units.")
