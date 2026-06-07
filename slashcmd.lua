@@ -381,129 +381,149 @@ SlashCmdList["PFDB"] = function(input, editbox)
   end
 
 
-  -- argument: dbinfo — live DB state snapshot for diagnosing data population issues
+  -- argument: dbinfo — live DB state snapshot in a copyable window
   if (arg1 == "dbinfo") then
     local function count(t)
       if type(t) ~= "table" then return 0 end
       local n = 0; for _ in pairs(t) do n = n + 1 end; return n
     end
-    local function msg(s) DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: " .. s) end
-    local bar = "|cffaaaaaa----------------------------------------|r"
+    local lines = {}
+    local function add(s) table.insert(lines, s) end
+    local bar = "----------------------------------------"
 
-    msg(bar)
-    msg("|cffffff00=== pfQuest DB State Snapshot ===|r")
-    msg(bar)
+    add("=== pfQuest DB State Snapshot (" .. date("%H:%M:%S") .. ") ===")
+    add(bar)
 
     -- ── 1. pfDB table sizes ──────────────────────────────────────────────
-    msg("|cffffff00pfDB table sizes:|r")
+    add("pfDB table sizes:")
     local dbtables = { "quests", "units", "objects", "items", "zones", "refloot", "minimap", "meta", "areatrigger" }
     for _, name in ipairs(dbtables) do
       if pfDB[name] then
         if name == "minimap" or name == "areatrigger" then
-          msg("  pfDB[" .. name .. "]: " .. count(pfDB[name]) .. " entries")
+          add(string.format("  pfDB[%-12s]: %d entries", name, count(pfDB[name])))
         else
           local dc = count(pfDB[name]["data"] or {})
-          local lc = count(pfDB[name]["loc"] or {})
-          msg("  pfDB[" .. name .. "].data=" .. dc .. "  .loc=" .. lc)
+          local lc = count(pfDB[name]["loc"]  or {})
+          add(string.format("  pfDB[%-12s]: data=%-6d  loc=%d", name, dc, lc))
         end
       else
-        msg("  pfDB[" .. name .. "]: |cffff3333NIL|r")
+        add("  pfDB[" .. name .. "]: NIL")
       end
     end
 
-    -- ── 2. Upvalue identity check — are database.lua locals stale? ──────
-    msg(bar)
-    msg("|cffffff00Upvalue identity (database.lua):|r")
-    if pfDatabase and pfDatabase.CheckUpvalues then
-      pfDatabase:CheckUpvalues()
+    -- ── 2. Upvalue identity (are database.lua locals stale?) ─────────────
+    add(bar)
+    add("Upvalue identity (database.lua locals vs live pfDB):")
+    if pfDatabase and pfDatabase.GetUpvalueStatus then
+      local status = pfDatabase:GetUpvalueStatus()
+      for _, row in ipairs(status) do add("  " .. row) end
     else
-      msg("  |cffaaaaaa(pfDatabase.CheckUpvalues not available — add to database.lua)|r")
-      msg("  Workaround: pfDatabase.Reload() forces upvalue refresh")
+      add("  (pfDatabase.GetUpvalueStatus not available)")
     end
 
-    -- ── 3. pfMap.nodes summary ───────────────────────────────────────────
-    msg(bar)
-    msg("|cffffff00pfMap.nodes summary:|r")
+    -- ── 3. pfMap.nodes summary ────────────────────────────────────────────
+    add(bar)
+    add("pfMap.nodes (render queue):")
     if pfMap and pfMap.nodes then
       local totalNodes = 0
       for addon, zoneData in pairs(pfMap.nodes) do
         local addonNodes = 0
-        for zoneID, coordData in pairs(zoneData) do
-          for coords, titleData in pairs(coordData) do
+        for _, coordData in pairs(zoneData) do
+          for _, titleData in pairs(coordData) do
             for _ in pairs(titleData) do addonNodes = addonNodes + 1 end
           end
         end
         totalNodes = totalNodes + addonNodes
-        msg("  [" .. tostring(addon) .. "] " .. addonNodes .. " nodes across " .. count(zoneData) .. " zones")
+        add(string.format("  [%-10s] %d nodes in %d zones", addon, addonNodes, count(zoneData)))
       end
-      msg("  Total: " .. totalNodes .. " nodes")
+      add("  Total: " .. totalNodes .. " nodes")
     else
-      msg("  |cffff3333pfMap.nodes not available|r")
+      add("  pfMap.nodes not available")
     end
 
-    -- ── 4. Current zone and its nodes ────────────────────────────────────
-    msg(bar)
-    msg("|cffffff00Current zone:|r")
+    -- ── 4. Current zone ───────────────────────────────────────────────────
+    add(bar)
+    add("Current zone:")
     local curMapID = pfMap and pfMap:GetCurrentMapID()
-    local curZoneName = curMapID and pfDB["zones"]["loc"] and pfDB["zones"]["loc"][curMapID] or "?"
-    msg("  pfID=" .. tostring(curMapID) .. "  name=" .. tostring(curZoneName))
+    local curZoneName = (curMapID and pfDB["zones"] and pfDB["zones"]["loc"] and pfDB["zones"]["loc"][curMapID]) or "?"
+    add("  pfID=" .. tostring(curMapID) .. "  name=" .. tostring(curZoneName))
     if curMapID and pfMap and pfMap.nodes then
       local zoneNodeCount = 0
-      for addon, zoneData in pairs(pfMap.nodes) do
+      for _, zoneData in pairs(pfMap.nodes) do
         if zoneData[curMapID] then
-          for coords, titleData in pairs(zoneData[curMapID]) do
-            for _ in pairs(titleData) do zoneNodeCount = zoneNodeCount + 1 end
+          for _, coordData in pairs(zoneData[curMapID]) do
+            for _ in pairs(coordData) do zoneNodeCount = zoneNodeCount + 1 end
           end
         end
       end
-      msg("  Nodes in current zone: " .. zoneNodeCount)
+      add("  Nodes in current zone: " .. zoneNodeCount)
     end
 
-    -- ── 5. pfQuest_history ───────────────────────────────────────────────
-    msg(bar)
-    msg("|cffffff00pfQuest_history:|r")
-    local histCount = count(pfQuest_history or {})
-    msg("  " .. histCount .. " completed quest IDs stored")
+    -- ── 5. pfQuest_history ────────────────────────────────────────────────
+    add(bar)
+    add("pfQuest_history: " .. count(pfQuest_history or {}) .. " completed quest IDs")
 
-    -- ── 6. retailZoneMap ─────────────────────────────────────────────────
-    msg(bar)
-    msg("|cffffff00retailZoneMap:|r")
-    if pfQuest and pfQuest.retailZoneMap and type(pfQuest.retailZoneMap) == "table" then
-      msg("  " .. count(pfQuest.retailZoneMap) .. " uiMapID→pfID mappings installed")
-      -- show current zone's mapping
+    -- ── 6. retailZoneMap ──────────────────────────────────────────────────
+    add(bar)
+    add("retailZoneMap:")
+    if pfQuest and type(pfQuest.retailZoneMap) == "table" then
+      add("  " .. count(pfQuest.retailZoneMap) .. " uiMapID->pfID mappings installed")
       if C_Map and C_Map.GetBestMapForUnit then
-        local uid = C_Map.GetBestMapForUnit("player")
+        local uid  = C_Map.GetBestMapForUnit("player")
         local pfid = pfQuest.retailZoneMap[uid]
-        msg("  Player uiMapID=" .. tostring(uid) .. " → pfID=" .. tostring(pfid))
+        add("  Player uiMapID=" .. tostring(uid) .. " -> pfID=" .. tostring(pfid))
       end
     elseif pfQuest and pfQuest.retailZoneMap == 0 then
-      msg("  |cffff3333retailZoneMap=0 (zone bridge not installed — pfQuest-retail-db missing?)|r")
+      add("  retailZoneMap=0 (zone bridge not installed / pfQuest-retail-db missing)")
     else
-      msg("  |cffff3333retailZoneMap not available|r")
+      add("  retailZoneMap not available")
     end
 
-    -- ── 7. World map canvas check ─────────────────────────────────────────
-    msg(bar)
-    msg("|cffffff00World map canvas:|r")
+    -- ── 7. World map canvas ────────────────────────────────────────────────
+    add(bar)
+    add("World map canvas:")
     local canvas = WorldMapButton
       or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child)
     if canvas then
-      msg("  Found: " .. tostring(canvas:GetName() or "(unnamed)") ..
-          "  size=" .. math.floor(canvas:GetWidth() or 0) .. "x" .. math.floor(canvas:GetHeight() or 0))
+      add(string.format("  Found: %s  size=%dx%d",
+        tostring(canvas:GetName() or "(unnamed)"),
+        math.floor(canvas:GetWidth()  or 0),
+        math.floor(canvas:GetHeight() or 0)))
     else
-      msg("  |cffff3333Canvas not found — WorldMapButton=nil, ScrollContainer.Child=nil|r")
-      msg("  Nodes cannot be positioned on world map")
+      add("  NOT FOUND — WorldMapButton=nil, ScrollContainer.Child=nil")
+      add("  World map pins cannot be positioned without a valid canvas")
     end
 
-    -- ── 8. pfDB.Reload status ─────────────────────────────────────────────
-    msg(bar)
-    msg("|cffffff00Classic DB loaded: |r" ..
-      (pfQuestRetail_ClassicDBLoaded and "|cff33ff33YES|r" or "|cffaaaaaa NO (retail client — wiped at login)|r"))
-    msg("|cffffff00pfDatabase.Reload exists: |r" ..
-      (pfDatabase and pfDatabase.Reload and "|cff33ff33YES|r" or "|cffff3333NO|r"))
+    -- ── 8. minimap sizes for current zone ────────────────────────────────
+    add(bar)
+    add("Minimap dimensions for current zone:")
+    if curMapID and pfDB["minimap"] then
+      local mm = pfDB["minimap"][curMapID]
+      if mm then
+        add(string.format("  pfDB[minimap][%d] = { %.1f, %.1f }", curMapID, mm[1] or 0, mm[2] or 0))
+      else
+        add("  No entry for pfID=" .. tostring(curMapID) .. " (placeholder 4266.7x2844.4 will be used)")
+      end
+    else
+      add("  pfDB.minimap not available")
+    end
 
-    msg(bar)
-    msg("Run |cff33ffcc/db dbinfo|r again after zone change or quest update to refresh.")
+    -- ── 9. Classic DB / Reload status ────────────────────────────────────
+    add(bar)
+    add("Classic DB loaded: " .. (pfQuestRetail_ClassicDBLoaded and "YES" or "NO (wiped at login — retail client)"))
+    add("pfDatabase.Reload:  " .. (pfDatabase and pfDatabase.Reload  and "available" or "MISSING"))
+    add(bar)
+    add("Run /db dbinfo again after zone change or quest update to refresh.")
+
+    -- Show in copyable window via diagnostic infrastructure
+    if pfDiag and pfDiag.showWindow then
+      pfDiag.showWindow(lines)
+    else
+      -- fallback: print to chat if diagnostic window not available
+      for _, line in ipairs(lines) do
+        DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaa" .. line .. "|r")
+      end
+    end
     return
   end
 

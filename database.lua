@@ -350,40 +350,39 @@ end
 
 pfDatabase.Reload()
 
--- CheckUpvalues: reports whether database.lua local upvalues are pointing
--- to the same table objects as the current pfDB entries.
--- Called by /db dbinfo to diagnose stale-upvalue issues from db_guard.
-function pfDatabase:CheckUpvalues()
-  local function msg(s) DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: " .. s) end
-  local function same(a, b)
-    -- In Lua 5.1, rawequal checks reference identity for tables
-    return rawequal(a, b)
+-- GetUpvalueStatus: returns a table of plain-text lines describing whether
+-- database.lua local upvalues match the current pfDB tables.
+-- Used by /db dbinfo snapshot window.
+function pfDatabase:GetUpvalueStatus()
+  local lines = {}
+  local function count(t)
+    if type(t) ~= "table" then return 0 end
+    local n = 0; for _ in pairs(t) do n = n + 1 end; return n
   end
   local checks = {
-    { "quests",  quests,  pfDB["quests"] and pfDB["quests"]["data"]  },
-    { "units",   units,   pfDB["units"]  and pfDB["units"]["data"]   },
+    { "quests",  quests,  pfDB["quests"]  and pfDB["quests"]["data"]  },
+    { "units",   units,   pfDB["units"]   and pfDB["units"]["data"]   },
     { "objects", objects, pfDB["objects"] and pfDB["objects"]["data"] },
-    { "items",   items,   pfDB["items"]  and pfDB["items"]["data"]   },
-    { "zones",   zones,   pfDB["zones"]  and pfDB["zones"]["data"]   },
+    { "items",   items,   pfDB["items"]   and pfDB["items"]["data"]   },
+    { "zones",   zones,   pfDB["zones"]   and pfDB["zones"]["data"]   },
   }
   local allFresh = true
   for _, c in ipairs(checks) do
     local label, upval, live = c[1], c[2], c[3]
-    local fresh = same(upval, live)
+    local fresh = rawequal(upval, live)
     if not fresh then allFresh = false end
-    local upCount = 0; if type(upval) == "table" then for _ in pairs(upval) do upCount = upCount + 1 end end
-    local liveCount = 0; if type(live) == "table" then for _ in pairs(live) do liveCount = liveCount + 1 end end
-    msg(string.format("  %-8s upval=%s(%d)  live(%d)  %s",
-      label,
-      (type(upval) == "table" and "table" or tostring(upval)),
-      upCount, liveCount,
-      (fresh and "|cff33ff33FRESH|r" or "|cffff3333STALE — call pfDatabase.Reload()|r")))
+    local uc = count(upval)
+    local lc = count(live)
+    table.insert(lines, string.format("  %-8s  upval=%d  live=%d  %s",
+      label, uc, lc,
+      (fresh and "FRESH" or "STALE (call pfDatabase.Reload())")))
   end
   if allFresh then
-    msg("  |cff33ff33All upvalues are current.|r")
+    table.insert(lines, "  All upvalues are current.")
   else
-    msg("  |cffff3333Stale upvalues detected. Run: pfDatabase.Reload()|r")
+    table.insert(lines, "  STALE upvalues detected — pfDatabase.Reload() needed.")
   end
+  return lines
 end
 
 local bitraces = {

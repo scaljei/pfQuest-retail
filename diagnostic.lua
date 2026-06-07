@@ -221,5 +221,5 @@ SlashCmdList["PFDIAG"] = function(input)
   showDiagWindow(lines)
 end
 
-pfDiag = { log = dlog, err = derr }
+pfDiag = { log = dlog, err = derr, showWindow = showDiagWindow }
 dlog("diagnostic.lua loaded")
