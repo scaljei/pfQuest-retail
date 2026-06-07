@@ -115,44 +115,57 @@ local function registerNPC(npcID, name, uiMapID, x, y)
 end
 
 -- ── Quest registration ────────────────────────────────────────────────────────
-local function registerQuest(questID)
-  if not questID or pfRetailRuntime.populated[questID] then return end
-  if not (C_QuestLog and C_QuestLog.GetInfo) then return end
-
-  local info = C_QuestLog.GetInfo(questID)
-  if not info or info.isHeader then return end
+-- registerQuestFromInfo: core registration using an already-fetched info struct.
+-- C_QuestLog.GetInfo() takes a log INDEX not a questID, so callers must pass
+-- the info object directly rather than expecting this function to look it up.
+local function registerQuestFromInfo(info)
+  if not info or info.isHeader or not info.questID then return end
+  local questID = info.questID
+  if pfRetailRuntime.populated[questID] then return end
 
   ensureDB()
   pfRetailRuntime.populated[questID] = true
 
-  -- Register quest title
+  -- Register quest title and basic data
   pfDB["quests"]["loc"][questID] = pfDB["quests"]["loc"][questID]
-    or { ["T"] = info.title }
+    or { ["T"] = info.title or ("Quest " .. questID) }
   pfDB["quests"]["data"][questID] = pfDB["quests"]["data"][questID]
-    or { ["lvl"] = "??" }
+    or { ["lvl"] = info.level or "??" }
 
-  -- Get quest details for objective NPCs
+  -- Try to link objective NPCs by name-matching against registered units
   local objectives = C_QuestLog.GetQuestObjectives and C_QuestLog.GetQuestObjectives(questID)
   if objectives then
     for _, obj in ipairs(objectives) do
       if obj.type == "monster" and obj.text then
-        -- Extract mob name from objective text ("Kill X: 0/6" -> "X")
         local mobName = string.match(obj.text, "^([^:]+):")
         if mobName then
-          mobName = string.gsub(mobName, "^%s+", "")
-          mobName = string.gsub(mobName, "%s+$", "")
-          -- Try to find this NPC in the existing db by name
+          mobName = string.match(mobName, "^%s*(.-)%s*$")  -- trim
           for npcID, locName in pairs(pfDB["units"]["loc"]) do
             if locName == mobName then
-              -- Link quest to this NPC
               local qdata = pfDB["quests"]["data"][questID]
-              qdata["obj"] = qdata["obj"] or {}
-              table.insert(qdata["obj"], npcID)
+              qdata["obj"] = qdata["obj"] or { ["U"] = {} }
+              qdata["obj"]["U"] = qdata["obj"]["U"] or {}
+              table.insert(qdata["obj"]["U"], npcID)
               break
             end
           end
         end
       end
+    end
+  end
+end
+
+-- registerQuest: look up a questID in the current log and register it.
+-- Iterates log entries to find the matching index (GetInfo takes an index).
+local function registerQuest(questID)
+  if not questID or pfRetailRuntime.populated[questID] then return end
+  if not (C_QuestLog and C_QuestLog.GetNumQuestLogEntries) then return end
+  local n = C_QuestLog.GetNumQuestLogEntries()
+  for i = 1, n do
+    local info = C_QuestLog.GetInfo(i)
+    if info and info.questID == questID then
+      registerQuestFromInfo(info)
+      return
     end
   end
 end
@@ -164,7 +177,7 @@ local function scanQuestLog()
   for i = 1, n do
     local info = C_QuestLog.GetInfo(i)
     if info and not info.isHeader and info.questID then
-      registerQuest(info.questID)
+      registerQuestFromInfo(info)  -- pass info directly; avoids redundant index lookup
     end
   end
 end
