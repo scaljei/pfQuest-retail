@@ -26,18 +26,33 @@ local function registerZone(uiMapID)
   -- Ensure map tables exist (may not be initialized yet)
   pfQuest.retailZoneMap = type(pfQuest.retailZoneMap) == "table" and pfQuest.retailZoneMap or {}
   pfQuest.retailZoneMapReverse = type(pfQuest.retailZoneMapReverse) == "table" and pfQuest.retailZoneMapReverse or {}
-  -- Already mapped?
+  -- Already mapped via retailZoneMap?
   if pfQuest.retailZoneMap[uiMapID] then
     return pfQuest.retailZoneMap[uiMapID]
   end
-  -- Find next available pfID
+  local info = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(uiMapID)
+  if not info then return nil end
+  -- Check if classic DB already has this zone by name — reuse its pfID.
+  -- This prevents creating a duplicate pfID (e.g. 10000) for a zone that
+  -- is already known as pfID 331 (Ashenvale) in the classic zones table.
+  -- Without this, nodes get stored at pfID=10000 but GetCurrentMapID()
+  -- returns pfID=331 via the name-lookup path, so UpdateNodes finds nothing.
+  if pfDB["zones"] and pfDB["zones"]["loc"] then
+    for existingPfID, zoneName in pairs(pfDB["zones"]["loc"]) do
+      if zoneName == info.name then
+        -- Classic zone already has this name; reuse its pfID
+        pfQuest.retailZoneMap[uiMapID] = existingPfID
+        pfQuest.retailZoneMapReverse[existingPfID] = uiMapID
+        return existingPfID
+      end
+    end
+  end
+  -- No existing pfID found — allocate a new one in the retail range (>= 10000)
   local maxPfID = 10000
-  for _, v in pairs(pfQuest.retailZoneMap or {}) do
+  for _, v in pairs(pfQuest.retailZoneMap) do
     if v >= maxPfID then maxPfID = v + 1 end
   end
   local pfID = maxPfID
-  local info = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(uiMapID)
-  if not info then return nil end
 
   ensureDB()
   -- Register zone name (ensure loc table exists - database.lua may replace it)
@@ -269,3 +284,10 @@ pfRetailRuntime.registerZone  = registerZone
 pfRetailRuntime.registerNPC   = registerNPC
 pfRetailRuntime.registerQuest = registerQuest
 pfRetailRuntime.scanQuestLog  = scanQuestLog
+
+-- resetPopulated: clear the dedup cache so scanQuestLog re-registers all quests.
+-- Called by db_guard after wiping pfDB, otherwise the deferred rescan is a no-op
+-- because every questID is already marked as populated from the pre-wipe scan.
+pfRetailRuntime.resetPopulated = function()
+  pfRetailRuntime.populated = {}
+end

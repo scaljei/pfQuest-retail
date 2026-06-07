@@ -158,6 +158,12 @@ guard:SetScript("OnEvent", function(self)
     -- but with the corrected load order db_guard fires first. This deferred rescan
     -- ensures quest data is populated even if load order changes again.
     C_Timer.After(0, function()
+      -- Clear the dedup cache so scanQuestLog re-registers all quests.
+      -- Without this, every questID is already marked as populated from the
+      -- pre-wipe runtime_db PLAYER_LOGIN scan, making the rescan a no-op.
+      if pfRetailRuntime and pfRetailRuntime.resetPopulated then
+        pfRetailRuntime.resetPopulated()
+      end
       if pfRetailRuntime and pfRetailRuntime.scanQuestLog then
         pfRetailRuntime.scanQuestLog()
       end
