@@ -8,7 +8,10 @@ do -- minimap icon
 
   pfQuestIcon:SetWidth(31)
   pfQuestIcon:SetHeight(31)
-  pfQuestIcon:SetFrameLevel(9)
+  -- Retail: Minimap's frame level is dynamic; hardcoded 9 is often below Blizzard's
+  -- own tracking button children, which intercept clicks before pfQuestIcon sees them.
+  -- Set level relative to Minimap after UI loads so we're always on top.
+  pfQuestIcon:SetFrameLevel(9)  -- safe initial value; raised in PLAYER_ENTERING_WORLD below
   pfQuestIcon:SetHighlightTexture('Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight')
   pfQuestIcon:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 0, 0)
 
@@ -65,6 +68,10 @@ do -- minimap icon
     if pfQuest_config and pfQuest_config["minimapbutton"] == "0" then
       self:Hide()
     else
+      -- Raise frame level above all Minimap children (tracking buttons, borders, etc.)
+      -- Minimap:GetFrameLevel() is the parent base; +10 ensures we're always on top.
+      local parentLevel = Minimap.GetFrameLevel and Minimap:GetFrameLevel() or 0
+      self:SetFrameLevel(parentLevel + 10)
       self:Show()
     end
   end)
