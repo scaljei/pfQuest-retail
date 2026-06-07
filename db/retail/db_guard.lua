@@ -33,7 +33,7 @@ local function wipeClassicDB()
   pfDB["quests-itemreq"] = { ["data"] = {}, ["loc"] = {} }
   pfDB["minimap"]        = {}
   pfDB["areatrigger"]    = {}
-  pfDB["meta"]           = {}
+  -- meta kept: small (24KB) and needed for SearchObjectSkill structure checks
   collectgarbage("collect")
   DEFAULT_CHAT_FRAME:AddMessage(
     "|cff33ffccpf|cffffffffQuest: Classic DB unloaded (retail client). " ..

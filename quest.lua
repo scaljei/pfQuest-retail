@@ -268,12 +268,17 @@ pfQuest:SetScript("OnUpdate", function(self)
           (pfQuest_config["trackingmethod"] ~= 2 or compat.IsQuestWatched(entry[3]))
         then
           local meta = { ["addon"] = "PFQUEST", ["qlogid"] = entry[3] }
-          pfDatabase:SearchQuestID(entry[2], meta)
+          local ok, err = pcall(pfDatabase.SearchQuestID, pfDatabase, entry[2], meta)
+          if not ok then
+            pfQuest:Debug("|cffff3333SearchQuestID error: |r" .. tostring(err))
+          end
         end
       end
     end
 
-    -- remove entry from queue
+    -- remove entry from queue — done AFTER SearchQuestID so questlog is
+    -- already committed; a crash in SearchQuestID won't re-queue the entry
+    -- because questlog[questid] is set by UpdateQuestlog before we get here.
     pfQuest.queue[id] = nil
 
     -- only return when other entries exist

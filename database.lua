@@ -988,12 +988,14 @@ end
 function pfDatabase:SearchObjectSkill(id)
   if not id or not tonumber(id) then return end
   local skill, caption = nil, nil
+  local meta = pfDB["meta"]
+  if not meta then return end
 
-  if (pfDB["meta"]["herbs"][-id]) then
-    skill = pfDB["meta"]["herbs"][-id]
+  if meta["herbs"] and meta["herbs"][-id] then
+    skill = meta["herbs"][-id]
     caption = pfQuest_Loc["Herbalism"]
-  elseif (pfDB["meta"]["mines"][-id]) then
-    skill = pfDB["meta"]["mines"][-id]
+  elseif meta["mines"] and meta["mines"][-id] then
+    skill = meta["mines"][-id]
     caption = pfQuest_Loc["Mining"]
   end
 
