@@ -93,6 +93,31 @@ SlashCmdList["PFDB"] = function(input, editbox)
     return
   end
 
+  -- argument: att (force ATT/native quest completion sync)
+  if arg1 == "att" or arg1 == "attquery" then
+    if pfATTIntegration then
+      pfATTIntegration:Sync(false)
+      if pfATTIntegration:IsATTLoaded() then
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: AllTheThings detected — using ATT + native API sources.")
+      else
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: ATT not installed. Used C_QuestLog.GetAllCompletedQuestIDs only.")
+      end
+    else
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: ATT integration module not loaded.")
+    end
+    return
+  end
+
+  -- argument: classicdb (report Classic DB status)
+  if arg1 == "classicdb" then
+    if pfQuestRetail_ClassicDBLoaded then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: Classic DB is |cff33ff33LOADED|r. Disable via Settings > Load Classic Quest Database, then /reload.")
+    else
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: Classic DB is |cffaaaaaa UNLOADED|r (retail client). Enable in Settings + /reload.")
+    end
+    return
+  end
+
   -- argument: queststatus (check single quest completion)
   if (arg1 == "queststatus") and arg2 then
     local qid = tonumber(arg2)

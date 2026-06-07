@@ -1,11 +1,6 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
-  <!-- Always loaded: table structure + zone names (needed by all paths) -->
-  <Include file="..\db\init.lua"/>
-  <Include file="..\db\zones.lua"/>
-
-  <!-- Classic/TBC static DB (items, units, objects, quests, etc.)
-       Always loaded here; the Lua layer in db/retail/db_guard.lua
-       wipes these tables on retail clients to reclaim memory. -->
+  <!-- Classic/TBC static database — 12MB of NPC, quest, item, object data -->
+  <!-- Only loaded when pfQuestRetail_LoadClassicDB == true (set by version check) -->
   <Include file="..\db\items.lua"/>
   <Include file="..\db\units.lua"/>
   <Include file="..\db\objects.lua"/>

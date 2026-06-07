@@ -19,4 +19,6 @@
   <Include file="..\updatenotify.lua"/>
   <Script file="..\db\retail\zone_bridge.lua"/>
   <Script file="..\db\retail\runtime_db.lua"/>
+  <Script file="..\db\retail\db_guard.lua"/>
+  <Script file="..\db\retail\att_integration.lua"/>
 </Ui>

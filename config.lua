@@ -82,6 +82,8 @@ pfQuest_defconfig = {
     default = "1", type = "checkbox", config = "trackerlevel" },
   { text = L["Show Level On Quest Log"],
     default = "0", type = "checkbox", config = "questloglevel" },
+  { text = L["Load Classic Quest Database"],
+    default = "0", type = "checkbox", config = "classic_db" },
 
   { text = L["Questing"],
     default = nil, type = "header" },
