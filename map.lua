@@ -168,6 +168,8 @@ local function NodeAnimate(self, zoom, alpha, fps)
   self:EnableMouse(true)
   fpsmod = math.min(2/fps, 2)
   step = fpsmod/10
+  -- Clamp alpha to valid retail range; config values may be out of [0,1]
+  alpha = math.max(0, math.min(1, alpha or 1))
 
   -- update size
   if math.abs(cur_zoom - zoom) < 3 then

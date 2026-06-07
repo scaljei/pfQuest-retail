@@ -236,7 +236,7 @@ function tracker.ButtonLeave(self)
 end
 
 function tracker.ButtonUpdate(self)
-  local alpha = tonumber((pfQuest_config["trackeralpha"] or .2)) or .2
+  local alpha = math.max(0, math.min(1, tonumber((pfQuest_config["trackeralpha"] or .2)) or .2))
 
   if not self.alpha or self.alpha ~= alpha then
     self.bg:SetColorTexture(0,0,0,alpha)
