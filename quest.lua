@@ -298,13 +298,17 @@ function pfQuest:UpdateQuestlog()
   -- initialize flip flop if not yet defined
   pfQuest.questlog_tmp = pfQuest.questlog_tmp or questlog_flip
 
-  local _, numQuests = (C_QuestLog and C_QuestLog.GetNumQuestLogEntries and C_QuestLog.GetNumQuestLogEntries()) or (GetNumQuestLogEntries and GetNumQuestLogEntries()) or 0, 0
-numQuests = numQuests or 0
+  -- GetNumQuestLogEntries returns (numEntries, numQuests) in retail.
+  -- numEntries = total rows including headers; numQuests = actual quest count.
+  -- We must iterate up to numEntries because headers consume index slots.
+  local numEntries, numQuests = (C_QuestLog and C_QuestLog.GetNumQuestLogEntries and C_QuestLog.GetNumQuestLogEntries()) or (GetNumQuestLogEntries and GetNumQuestLogEntries()) or 0, 0
+  numEntries = numEntries or 0
+  numQuests = numQuests or 0
   local found = 0
   local change = nil
 
-  -- iterate over all quests
-  for qlogid=1,40 do
+  -- iterate over all quest log entries (headers + quests)
+  for qlogid=1, math.max(numEntries, 40) do
     local title, _, _, header, _, complete = compat.GetQuestLogTitle(qlogid)
     local objectives = compat.GetNumQuestLeaderBoards(qlogid)
     local watched, questid, state
