@@ -10,6 +10,11 @@
 
 pfRetailRuntime = pfRetailRuntime or {}
 pfRetailRuntime.populated = {}   -- track which questIDs we've already processed
+-- wantedNames: maps lowercase mob name → questID, populated at quest scan time.
+-- When registerNPC sees a name in this table it immediately links it as an objective
+-- and triggers a map update, so pins appear the moment the NPC is first observed
+-- rather than waiting for the next UpdateNodes poll cycle.
+pfRetailRuntime.wantedNames = {}
 
 -- ── Ensure pfDB tables exist ────────────────────────────────────────────────
 local function ensureDB()
@@ -112,6 +117,24 @@ local function registerNPC(npcID, name, uiMapID, x, y)
     if math.abs(c[1]-px) < 1 and math.abs(c[2]-py) < 1 and c[3] == pfZoneID then return end
   end
   table.insert(data["coords"], { px, py, pfZoneID, 0 })
+
+  -- If this NPC name matches a quest objective, link it immediately so
+  -- SearchQuestID's GetIDByName path finds it on the very next UpdateNodes call.
+  local lname = string.lower(name)
+  local questID = pfRetailRuntime.wantedNames[lname]
+  if questID and pfDB["quests"]["data"][questID] then
+    local qdata = pfDB["quests"]["data"][questID]
+    qdata["obj"] = qdata["obj"] or { ["U"] = {} }
+    qdata["obj"]["U"] = qdata["obj"]["U"] or {}
+    -- Only add if not already present
+    local already = false
+    for _, uid in ipairs(qdata["obj"]["U"]) do
+      if uid == npcID then already = true; break end
+    end
+    if not already then
+      table.insert(qdata["obj"]["U"], npcID)
+    end
+  end
 end
 
 -- ── Quest registration ────────────────────────────────────────────────────────
@@ -132,7 +155,9 @@ local function registerQuestFromInfo(info)
   pfDB["quests"]["data"][questID] = pfDB["quests"]["data"][questID]
     or { ["lvl"] = info.level or "??" }
 
-  -- Try to link objective NPCs by name-matching against registered units
+  -- Try to link objective NPCs by name-matching against registered units.
+  -- Also index objective mob names into wantedNames so registerNPC can link
+  -- them immediately when the NPC is first observed (target, nameplate, etc.)
   local objectives = C_QuestLog.GetQuestObjectives and C_QuestLog.GetQuestObjectives(questID)
   if objectives then
     for _, obj in ipairs(objectives) do
@@ -140,6 +165,9 @@ local function registerQuestFromInfo(info)
         local mobName = string.match(obj.text, "^([^:]+):")
         if mobName then
           mobName = string.match(mobName, "^%s*(.-)%s*$")  -- trim
+          -- Index name for fast future lookup by registerNPC
+          pfRetailRuntime.wantedNames[string.lower(mobName)] = questID
+          -- Also try to link immediately if already known
           for npcID, locName in pairs(pfDB["units"]["loc"]) do
             if locName == mobName then
               local qdata = pfDB["quests"]["data"][questID]
@@ -292,6 +320,42 @@ zoneChangeFrame:SetScript("OnEvent", function(self, event)
   end
 end)
 
+-- ── Nameplate hook: capture visible NPCs without requiring explicit targeting ─
+-- NAME_PLATE_UNIT_ADDED fires whenever a nameplate enters the player's view.
+-- This lets us register nearby NPC positions passively as the player moves around,
+-- building up units.data much faster than explicit target/mouseover alone.
+-- Guards: player units and invalid GUIDs are skipped; only creatures are stored.
+local nameplateFrame = CreateFrame("Frame")
+nameplateFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+nameplateFrame:SetScript("OnEvent", function(self, event, unitToken)
+  if not unitToken then return end
+  -- Skip player characters
+  if UnitIsPlayer(unitToken) then return end
+
+  local guid = UnitGUID(unitToken)
+  if not guid then return end
+  -- Extract NPC ID from GUID: "Creature-0-REALM-MAP-INST-NPCID-UNIQUE"
+  local _, _, _, _, _, id = string.match(guid, "(%a+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)")
+  id = tonumber(id)
+  if not id or id <= 0 then return end
+
+  local name = UnitName(unitToken)
+  if not name then return end
+
+  if not (C_Map and C_Map.GetBestMapForUnit) then return end
+  local uiMapID = C_Map.GetBestMapForUnit("player")
+  if not uiMapID then return end
+  local pos = C_Map.GetPlayerMapPosition(uiMapID, "player")
+  if not pos then return end
+  local x, y = pos:GetXY()
+  -- Nameplate position is approximate (player position), but still useful for
+  -- establishing which zone the NPC is in. x/y will be close enough for a pin.
+  registerNPC(id, name, uiMapID, x * 100, y * 100)
+
+  -- If this NPC matches a quest objective, trigger a node update
+  if pfMap then pfMap.queue_update = GetTime() end
+end)
+
 -- Make registration functions public so other modules can call them
 pfRetailRuntime.registerZone  = registerZone
 pfRetailRuntime.registerNPC   = registerNPC
@@ -303,4 +367,5 @@ pfRetailRuntime.scanQuestLog  = scanQuestLog
 -- because every questID is already marked as populated from the pre-wipe scan.
 pfRetailRuntime.resetPopulated = function()
   pfRetailRuntime.populated = {}
+  pfRetailRuntime.wantedNames = {}
 end
