@@ -13,12 +13,23 @@ local tooltip_limit = 5
 local search_limit = 512
 
 -- add database shortcuts
-local items = pfDB["items"]["data"]
-local units = pfDB["units"]["data"]
+local items   = pfDB["items"]["data"]
+local units   = pfDB["units"]["data"]
 local objects = pfDB["objects"]["data"]
 local refloot = pfDB["refloot"]["data"]
-local quests = pfDB["quests"]["data"]
-local zones = pfDB["zones"]["loc"]
+local quests  = pfDB["quests"]["data"]
+local zones   = pfDB["zones"]["loc"]
+
+-- ReloadDB: re-point upvalues to the current pfDB tables after db_guard wipe.
+pfBrowser = pfBrowser or {}
+pfBrowser.ReloadDB = function()
+  items   = pfDB["items"]["data"]
+  units   = pfDB["units"]["data"]
+  objects = pfDB["objects"]["data"]
+  refloot = pfDB["refloot"]["data"]
+  quests  = pfDB["quests"]["data"]
+  zones   = pfDB["zones"]["loc"]
+end
 
 local function ShowTooltip(self)
   if not self or not self.tooltips then return end

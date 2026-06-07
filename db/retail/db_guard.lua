@@ -73,9 +73,27 @@ guard:SetScript("OnEvent", function(self)
     return
   end
 
+  -- Initialize retailZoneMap/Reverse before anything uses them
+  pfQuest = pfQuest or {}
+  if type(pfQuest.retailZoneMap) ~= "table" then
+    pfQuest.retailZoneMap = {}
+  end
+  if type(pfQuest.retailZoneMapReverse) ~= "table" then
+    pfQuest.retailZoneMapReverse = {}
+  end
+
   if isRetailClient() then
     pfQuestRetail_ClassicDBLoaded = false
     wipeClassicDB()
+    -- Re-point database.lua local upvalues to the new empty tables
+    -- so searches iterate the live tables, not the old pre-wipe ones
+    if pfDatabase and pfDatabase.Reload then
+      pfDatabase.Reload()
+    end
+    -- Also refresh browser.lua upvalues if available
+    if pfBrowser and pfBrowser.ReloadDB then
+      pfBrowser.ReloadDB()
+    end
   else
     pfQuestRetail_ClassicDBLoaded = true
   end

@@ -23,8 +23,11 @@ end
 -- ── Zone registration ────────────────────────────────────────────────────────
 local function registerZone(uiMapID)
   if not uiMapID then return nil end
+  -- Ensure map tables exist (may not be initialized yet)
+  pfQuest.retailZoneMap = type(pfQuest.retailZoneMap) == "table" and pfQuest.retailZoneMap or {}
+  pfQuest.retailZoneMapReverse = type(pfQuest.retailZoneMapReverse) == "table" and pfQuest.retailZoneMapReverse or {}
   -- Already mapped?
-  if pfQuest.retailZoneMap and pfQuest.retailZoneMap[uiMapID] then
+  if pfQuest.retailZoneMap[uiMapID] then
     return pfQuest.retailZoneMap[uiMapID]
   end
   -- Find next available pfID

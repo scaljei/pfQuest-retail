@@ -484,14 +484,20 @@ SlashCmdList["PFDB"] = function(input, editbox)
     add("World map canvas:")
     local canvas = WorldMapButton
       or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child)
+    local mapOpen = WorldMapFrame and WorldMapFrame:IsShown()
     if canvas then
-      add(string.format("  Found: %s  size=%dx%d",
-        tostring(canvas:GetName() or "(unnamed)"),
-        math.floor(canvas:GetWidth()  or 0),
-        math.floor(canvas:GetHeight() or 0)))
+      local w = math.floor(canvas:GetWidth()  or 0)
+      local h = math.floor(canvas:GetHeight() or 0)
+      local sizeNote = (w == 0 and not mapOpen) and " (0x0 expected — map is closed)" or ""
+      add(string.format("  Found: %s  size=%dx%d%s",
+        tostring(canvas:GetName() or "(unnamed)"), w, h, sizeNote))
+      if w == 0 and mapOpen then
+        add("  WARNING: canvas has 0 width while map is open — pin positioning will fail")
+      end
     else
       add("  NOT FOUND — WorldMapButton=nil, ScrollContainer.Child=nil")
       add("  World map pins cannot be positioned without a valid canvas")
+      add("  Re-run /db dbinfo with the world map open to retest")
     end
 
     -- ── 8. minimap sizes for current zone ────────────────────────────────
