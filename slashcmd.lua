@@ -380,6 +380,133 @@ SlashCmdList["PFDB"] = function(input, editbox)
     return
   end
 
+
+  -- argument: dbinfo — live DB state snapshot for diagnosing data population issues
+  if (arg1 == "dbinfo") then
+    local function count(t)
+      if type(t) ~= "table" then return 0 end
+      local n = 0; for _ in pairs(t) do n = n + 1 end; return n
+    end
+    local function msg(s) DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: " .. s) end
+    local bar = "|cffaaaaaa----------------------------------------|r"
+
+    msg(bar)
+    msg("|cffffff00=== pfQuest DB State Snapshot ===|r")
+    msg(bar)
+
+    -- ── 1. pfDB table sizes ──────────────────────────────────────────────
+    msg("|cffffff00pfDB table sizes:|r")
+    local dbtables = { "quests", "units", "objects", "items", "zones", "refloot", "minimap", "meta", "areatrigger" }
+    for _, name in ipairs(dbtables) do
+      if pfDB[name] then
+        if name == "minimap" or name == "areatrigger" then
+          msg("  pfDB[" .. name .. "]: " .. count(pfDB[name]) .. " entries")
+        else
+          local dc = count(pfDB[name]["data"] or {})
+          local lc = count(pfDB[name]["loc"] or {})
+          msg("  pfDB[" .. name .. "].data=" .. dc .. "  .loc=" .. lc)
+        end
+      else
+        msg("  pfDB[" .. name .. "]: |cffff3333NIL|r")
+      end
+    end
+
+    -- ── 2. Upvalue identity check — are database.lua locals stale? ──────
+    msg(bar)
+    msg("|cffffff00Upvalue identity (database.lua):|r")
+    if pfDatabase and pfDatabase.CheckUpvalues then
+      pfDatabase:CheckUpvalues()
+    else
+      msg("  |cffaaaaaa(pfDatabase.CheckUpvalues not available — add to database.lua)|r")
+      msg("  Workaround: pfDatabase.Reload() forces upvalue refresh")
+    end
+
+    -- ── 3. pfMap.nodes summary ───────────────────────────────────────────
+    msg(bar)
+    msg("|cffffff00pfMap.nodes summary:|r")
+    if pfMap and pfMap.nodes then
+      local totalNodes = 0
+      for addon, zoneData in pairs(pfMap.nodes) do
+        local addonNodes = 0
+        for zoneID, coordData in pairs(zoneData) do
+          for coords, titleData in pairs(coordData) do
+            for _ in pairs(titleData) do addonNodes = addonNodes + 1 end
+          end
+        end
+        totalNodes = totalNodes + addonNodes
+        msg("  [" .. tostring(addon) .. "] " .. addonNodes .. " nodes across " .. count(zoneData) .. " zones")
+      end
+      msg("  Total: " .. totalNodes .. " nodes")
+    else
+      msg("  |cffff3333pfMap.nodes not available|r")
+    end
+
+    -- ── 4. Current zone and its nodes ────────────────────────────────────
+    msg(bar)
+    msg("|cffffff00Current zone:|r")
+    local curMapID = pfMap and pfMap:GetCurrentMapID()
+    local curZoneName = curMapID and pfDB["zones"]["loc"] and pfDB["zones"]["loc"][curMapID] or "?"
+    msg("  pfID=" .. tostring(curMapID) .. "  name=" .. tostring(curZoneName))
+    if curMapID and pfMap and pfMap.nodes then
+      local zoneNodeCount = 0
+      for addon, zoneData in pairs(pfMap.nodes) do
+        if zoneData[curMapID] then
+          for coords, titleData in pairs(zoneData[curMapID]) do
+            for _ in pairs(titleData) do zoneNodeCount = zoneNodeCount + 1 end
+          end
+        end
+      end
+      msg("  Nodes in current zone: " .. zoneNodeCount)
+    end
+
+    -- ── 5. pfQuest_history ───────────────────────────────────────────────
+    msg(bar)
+    msg("|cffffff00pfQuest_history:|r")
+    local histCount = count(pfQuest_history or {})
+    msg("  " .. histCount .. " completed quest IDs stored")
+
+    -- ── 6. retailZoneMap ─────────────────────────────────────────────────
+    msg(bar)
+    msg("|cffffff00retailZoneMap:|r")
+    if pfQuest and pfQuest.retailZoneMap and type(pfQuest.retailZoneMap) == "table" then
+      msg("  " .. count(pfQuest.retailZoneMap) .. " uiMapID→pfID mappings installed")
+      -- show current zone's mapping
+      if C_Map and C_Map.GetBestMapForUnit then
+        local uid = C_Map.GetBestMapForUnit("player")
+        local pfid = pfQuest.retailZoneMap[uid]
+        msg("  Player uiMapID=" .. tostring(uid) .. " → pfID=" .. tostring(pfid))
+      end
+    elseif pfQuest and pfQuest.retailZoneMap == 0 then
+      msg("  |cffff3333retailZoneMap=0 (zone bridge not installed — pfQuest-retail-db missing?)|r")
+    else
+      msg("  |cffff3333retailZoneMap not available|r")
+    end
+
+    -- ── 7. World map canvas check ─────────────────────────────────────────
+    msg(bar)
+    msg("|cffffff00World map canvas:|r")
+    local canvas = WorldMapButton
+      or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child)
+    if canvas then
+      msg("  Found: " .. tostring(canvas:GetName() or "(unnamed)") ..
+          "  size=" .. math.floor(canvas:GetWidth() or 0) .. "x" .. math.floor(canvas:GetHeight() or 0))
+    else
+      msg("  |cffff3333Canvas not found — WorldMapButton=nil, ScrollContainer.Child=nil|r")
+      msg("  Nodes cannot be positioned on world map")
+    end
+
+    -- ── 8. pfDB.Reload status ─────────────────────────────────────────────
+    msg(bar)
+    msg("|cffffff00Classic DB loaded: |r" ..
+      (pfQuestRetail_ClassicDBLoaded and "|cff33ff33YES|r" or "|cffaaaaaa NO (retail client — wiped at login)|r"))
+    msg("|cffffff00pfDatabase.Reload exists: |r" ..
+      (pfDatabase and pfDatabase.Reload and "|cff33ff33YES|r" or "|cffff3333NO|r"))
+
+    msg(bar)
+    msg("Run |cff33ffcc/db dbinfo|r again after zone change or quest update to refresh.")
+    return
+  end
+
   -- argument: <text>
   if (type(arg1)=="string") then
     if pfBrowser then

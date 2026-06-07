@@ -350,6 +350,42 @@ end
 
 pfDatabase.Reload()
 
+-- CheckUpvalues: reports whether database.lua local upvalues are pointing
+-- to the same table objects as the current pfDB entries.
+-- Called by /db dbinfo to diagnose stale-upvalue issues from db_guard.
+function pfDatabase:CheckUpvalues()
+  local function msg(s) DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: " .. s) end
+  local function same(a, b)
+    -- In Lua 5.1, rawequal checks reference identity for tables
+    return rawequal(a, b)
+  end
+  local checks = {
+    { "quests",  quests,  pfDB["quests"] and pfDB["quests"]["data"]  },
+    { "units",   units,   pfDB["units"]  and pfDB["units"]["data"]   },
+    { "objects", objects, pfDB["objects"] and pfDB["objects"]["data"] },
+    { "items",   items,   pfDB["items"]  and pfDB["items"]["data"]   },
+    { "zones",   zones,   pfDB["zones"]  and pfDB["zones"]["data"]   },
+  }
+  local allFresh = true
+  for _, c in ipairs(checks) do
+    local label, upval, live = c[1], c[2], c[3]
+    local fresh = same(upval, live)
+    if not fresh then allFresh = false end
+    local upCount = 0; if type(upval) == "table" then for _ in pairs(upval) do upCount = upCount + 1 end end
+    local liveCount = 0; if type(live) == "table" then for _ in pairs(live) do liveCount = liveCount + 1 end end
+    msg(string.format("  %-8s upval=%s(%d)  live(%d)  %s",
+      label,
+      (type(upval) == "table" and "table" or tostring(upval)),
+      upCount, liveCount,
+      (fresh and "|cff33ff33FRESH|r" or "|cffff3333STALE — call pfDatabase.Reload()|r")))
+  end
+  if allFresh then
+    msg("  |cff33ff33All upvalues are current.|r")
+  else
+    msg("  |cffff3333Stale upvalues detected. Run: pfDatabase.Reload()|r")
+  end
+end
+
 local bitraces = {
   [1] = "Human",
   [2] = "Orc",
