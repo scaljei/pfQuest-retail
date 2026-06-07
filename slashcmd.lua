@@ -437,9 +437,48 @@ SlashCmdList["PFDB"] = function(input, editbox)
         add(string.format("  [%-10s] %d nodes in %d zones", addon, addonNodes, count(zoneData)))
       end
       add("  Total: " .. totalNodes .. " nodes")
+      if totalNodes == 0 then
+        local ucount = count(pfDB["units"] and pfDB["units"]["data"] or {})
+        local qcount = count(pfDB["quests"] and pfDB["quests"]["data"] or {})
+        if qcount == 0 then
+          add("  -> No quests in pfDB yet (runtime_db scan pending or failed)")
+        elseif ucount == 0 then
+          add("  -> " .. qcount .. " quests known but units.data=0")
+          add("     Nodes appear once you target or mouse over objective NPCs.")
+          add("     After interacting with any mob, run /db dbinfo to see units grow.")
+        else
+          add("  -> " .. qcount .. " quests + " .. ucount .. " units registered")
+          add("     No NPC-quest links yet. Links form as objective mob names match units.")
+        end
+      end
     else
       add("  pfMap.nodes not available")
     end
+
+    -- ── 3b. Quest entry sample (first 5) ────────────────────────────────────
+    add(bar)
+    add("Quest DB sample (up to 5 entries):")
+    local qsample = 0
+    for qid, qdata in pairs(pfDB["quests"] and pfDB["quests"]["data"] or {}) do
+      if qsample >= 5 then break end
+      local loc = pfDB["quests"]["loc"] and pfDB["quests"]["loc"][qid]
+      local title = (loc and loc["T"]) or "?"
+      local parts = {}
+      if qdata["start"] then
+        table.insert(parts, "start:" .. (qdata["start"]["U"] and "U" or "") .. (qdata["start"]["O"] and "O" or ""))
+      end
+      if qdata["end"] then
+        table.insert(parts, "end:" .. (qdata["end"]["U"] and "U" or "") .. (qdata["end"]["O"] and "O" or ""))
+      end
+      if qdata["obj"] then
+        local ou = qdata["obj"]["U"] and ("#U=" .. #qdata["obj"]["U"]) or ""
+        table.insert(parts, "obj:" .. ou)
+      end
+      local links = #parts > 0 and table.concat(parts, " ") or "no NPC links"
+      add(string.format("  [%6d] lvl=%-4s %-30s %s", qid, tostring(qdata["lvl"] or "?"), title:sub(1,30), links))
+      qsample = qsample + 1
+    end
+    if qsample == 0 then add("  (empty)") end
 
     -- ── 4. Current zone ───────────────────────────────────────────────────
     add(bar)
