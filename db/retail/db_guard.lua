@@ -40,6 +40,24 @@ local function wipeClassicDB()
     "Quest data will be populated from live client + ATT integration.")
 end
 
+-- Pre-populate zone names from the zone bridge so UpdateNodes never shows '?'
+local function preCacheZoneNames()
+  if not (C_Map and C_Map.GetMapInfo) then return end
+  if not pfDB["zones"] then pfDB["zones"] = {} end
+  if not pfDB["zones"]["loc"] then pfDB["zones"]["loc"] = {} end
+  -- Iterate the installed zone bridge (installed by zone_bridge.lua)
+  local bridge = pfQuest and pfQuest.retailZoneMap
+  if not bridge or type(bridge) ~= "table" or bridge == 0 then return end
+  for uiMapID, pfID in pairs(bridge) do
+    if not pfDB["zones"]["loc"][pfID] then
+      local info = C_Map.GetMapInfo(uiMapID)
+      if info and info.name then
+        pfDB["zones"]["loc"][pfID] = info.name
+      end
+    end
+  end
+end
+
 -- Run after all DB files have loaded but before addon logic starts.
 -- PLAYER_LOGIN fires after SavedVariables are available.
 local guard = CreateFrame("Frame")
@@ -61,4 +79,7 @@ guard:SetScript("OnEvent", function(self)
   else
     pfQuestRetail_ClassicDBLoaded = true
   end
+
+  -- Pre-cache zone names regardless of client type
+  C_Timer.After(1, preCacheZoneNames)
 end)
