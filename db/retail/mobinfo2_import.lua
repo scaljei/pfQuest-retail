@@ -2,23 +2,21 @@
 -- ============================================================
 -- Supports two generations of MobInfo2:
 --
--- LEGACY (kc8pnd/MobInfo2, v2.97 and earlier — Classic only):
---   SavedVariable: MobInfoDB
---   Key format:   "MobName:Level" → { ml="x1/y1/x2/y2/c/z", ... }
---   Coordinates:  0–100 percentages; z = classic zone ID = pfQuest pfID
---   Limitation:   keyed by name+level, requires reverse lookup via units.loc
---
 -- MODERN (ileclerk CurseForge v11.0+, retail-compatible):
---   SavedVariable: MI2_MobDB (MobInfoDB deprecated/reset)
---   Key format:   npcID (integer) → { loc={ uiMapID, x, y, ... }, ... }
---   Coordinates:  0–1 fractions from C_Map.GetPlayerMapPosition (×100 = pfQuest)
---   Advantage:    direct npcID key, retail uiMapIDs, no name lookup needed
+--   SavedVariable: MI2_DB
+--   Structure:    MI2_DB.location[npcID][uiMapID] = {{x,y},{x,y},...}
+--   Coordinates:  0–100 percentages (GetPlayerMapPosition×100) = pfQuest scale
+--   Key:          npcID directly — no name lookup needed
+--   Zone:         retail uiMapID → pfZoneID via pfQuest.retailZoneMap
 --
--- Both paths write into pfDB["units"]["data"][npcID]["coords"] and link
--- matched mobs to wantedNames quest objectives immediately.
+-- LEGACY (kc8pnd/MobInfo2, v2.97, Classic only):
+--   SavedVariable: MobInfoDB
+--   Structure:    MobInfoDB["Name:Level"] = { ml="x1/y1/x2/y2/c/z" }
+--   Coordinates:  0–100 percentages; z = classic zone ID = pfQuest pfID
+--   Key:          name resolved via pfDB["units"]["loc"] reverse index
 -- ============================================================
 
--- ── Shared helper ─────────────────────────────────────────────────────────────
+-- ── Shared helpers ────────────────────────────────────────────────────────────
 local function linkToQuest(npcID, name)
   if not (pfRetailRuntime and pfRetailRuntime.wantedNames and name) then return end
   local questID = pfRetailRuntime.wantedNames[string.lower(name)]
@@ -27,7 +25,7 @@ local function linkToQuest(npcID, name)
   qdata["obj"] = qdata["obj"] or { ["U"] = {} }
   qdata["obj"]["U"] = qdata["obj"]["U"] or {}
   for _, uid in ipairs(qdata["obj"]["U"]) do
-    if uid == npcID then return end  -- already linked
+    if uid == npcID then return end
   end
   table.insert(qdata["obj"]["U"], npcID)
 end
@@ -39,54 +37,48 @@ local function ensureUnit(npcID)
 end
 
 local function addCoord(npcID, x, y, pfZoneID)
-  local data = pfDB["units"]["data"][npcID]
-  for _, c in ipairs(data["coords"]) do
+  local coords = pfDB["units"]["data"][npcID]["coords"]
+  for _, c in ipairs(coords) do
     if c[3] == pfZoneID and math.abs(c[1]-x) < 2 and math.abs(c[2]-y) < 2 then
       return false  -- duplicate
     end
   end
-  table.insert(data["coords"], { x, y, pfZoneID, 0 })
+  table.insert(coords, { x, y, pfZoneID, 0 })
   return true
 end
 
--- ── Modern MobInfo2 import (ileclerk, retail-compatible) ──────────────────────
--- Key: npcID (integer) → { loc={ uiMapID=N, x=0.xx, y=0.xx } } or similar.
--- The exact structure isn't publicly documented but likely matches what
--- C_Map.GetPlayerMapPosition + UnitGUID produce. We probe several plausible
--- field layouts and fall back gracefully if the structure differs.
+-- ── Modern MI2_DB import (ileclerk v11.0+, retail) ───────────────────────────
+-- MI2_DB.location[npcID] = {
+--   zone  = { zoneID, uiMapID },       -- primary zone hint
+--   [uiMapID] = { {x,y}, {x,y}, ... }  -- coord list per map, 0-100 scale
+-- }
 local function importModern()
-  -- New DB name — ileclerk said MobInfoDB is "reset/no longer used"
-  -- Common choices: MI2_MobDB, MobInfo2DB, MI2DB
-  local candidates = { MI2_MobDB, MobInfo2DB, MI2DB }
-  local db = nil
-  for _, t in ipairs(candidates) do
-    if type(t) == "table" then db = t; break end
-  end
-  if not db then return 0 end
+  if type(MI2_DB) ~= "table" then return 0 end
+  local locDB = MI2_DB.location
+  if type(locDB) ~= "table" then return 0 end
+  if not (pfQuest and pfQuest.retailZoneMap) then return 0 end
 
   local imported = 0
-  for key, entry in pairs(db) do
-    local npcID = tonumber(key)
-    if npcID and type(entry) == "table" then
-      -- Probe common location field names
-      local loc = entry.loc or entry.location or entry.pos
-      if type(loc) == "table" then
-        local uiMapID = loc.uiMapID or loc.mapID or loc.map
-        local x = loc.x or loc.x1
-        local y = loc.y or loc.y1
-        if uiMapID and x and y then
-          -- Convert retail uiMapID → pfID via zone bridge
-          local pfZoneID = pfQuest.retailZoneMap and pfQuest.retailZoneMap[uiMapID]
+  for npcID, sourceData in pairs(locDB) do
+    npcID = tonumber(npcID)
+    if npcID and type(sourceData) == "table" then
+      -- Iterate every uiMapID sub-table (skip the "zone" hint key)
+      for mapID, coordList in pairs(sourceData) do
+        if type(mapID) == "number" and type(coordList) == "table" then
+          -- Resolve uiMapID → pfZoneID via the retail zone bridge
+          local pfZoneID = pfQuest.retailZoneMap[mapID]
           if pfZoneID then
-            -- Convert [0,1] fractions to [0,100] percentages if needed
-            if x <= 1 then x = x * 100 end
-            if y <= 1 then y = y * 100 end
             ensureUnit(npcID)
-            if addCoord(npcID, x, y, pfZoneID) then
-              imported = imported + 1
-              -- Also grab name from loc if present, for wantedNames linkage
-              local name = loc.name or (pfDB["units"]["loc"] and pfDB["units"]["loc"][npcID])
-              linkToQuest(npcID, name)
+            for _, coord in ipairs(coordList) do
+              local x, y = coord[1], coord[2]
+              if x and y and not (x == 0 and y == 0) then
+                if addCoord(npcID, x, y, pfZoneID) then
+                  imported = imported + 1
+                  -- Link to quest objectives if this npcID is wanted
+                  local name = pfDB["units"]["loc"] and pfDB["units"]["loc"][npcID]
+                  linkToQuest(npcID, name)
+                end
+              end
             end
           end
         end
@@ -96,13 +88,13 @@ local function importModern()
   return imported
 end
 
--- ── Legacy MobInfo2 import (kc8pnd, Classic only) ─────────────────────────────
--- Key: "MobName:Level" → { ml="x1/y1/x2/y2/c/z" }
--- z = classic zone ID = pfQuest pfID (same numbering). Requires name→npcID lookup.
+-- ── Legacy MobInfoDB import (kc8pnd v2.97, Classic) ──────────────────────────
+-- MobInfoDB["Name:Level"] = { ml="x1/y1/x2/y2/continent/pfZoneID" }
+-- pfZoneID here is the classic zone ID which equals pfQuest's pfID directly.
 local function importLegacy()
   if type(MobInfoDB) ~= "table" then return 0 end
 
-  -- Build name→npcID reverse index from pfDB["units"]["loc"]
+  -- Build name → npcID reverse index from pfDB["units"]["loc"]
   local nameToID = {}
   for npcID, name in pairs(pfDB["units"]["loc"]) do
     if type(name) == "string" and name ~= "" then
@@ -117,8 +109,9 @@ local function importLegacy()
       local npcID = name and nameToID[name]
       if npcID then
         local x1,y1,x2,y2,c,z = string.match(mobInfo.ml,
-          "^(%d+)/(%d+)/(%d+)/(%d+)/(%d+)/(%d+)$")
+          "^(%d+%.?%d*)/(%d+%.?%d*)/(%d+%.?%d*)/(%d+%.?%d*)/(%d+)/(%d+)$")
         x1,y1,x2,y2,z = tonumber(x1),tonumber(y1),tonumber(x2),tonumber(y2),tonumber(z)
+        -- z is a classic zone pfID (1–9999)
         if z and z > 0 and z < 10000 and x1 and y1 then
           local x = (x1 + (x2 or x1)) / 2
           local y = (y1 + (y2 or y1)) / 2
@@ -144,15 +137,16 @@ local function importMobInfo2()
 
   if total > 0 then
     local parts = {}
-    if modernCount > 0 then table.insert(parts, modernCount .. " from modern DB") end
-    if legacyCount > 0 then table.insert(parts, legacyCount .. " from legacy DB") end
-    pfQuest:Debug("|cffaabbffMobInfo2|r: |cff33ff33" .. total .. "|r NPC coords imported ("
-      .. table.concat(parts, ", ") .. ")")
+    if modernCount > 0 then table.insert(parts, modernCount .. " from MI2_DB (retail)") end
+    if legacyCount > 0 then table.insert(parts, legacyCount .. " from MobInfoDB (legacy)") end
+    pfQuest:Debug("|cffaabbffMobInfo2|r: |cff33ff33" .. total
+      .. "|r NPC coord(s) imported (" .. table.concat(parts, ", ") .. ")")
     if pfMap then pfMap.queue_update = GetTime() end
   end
 end
 
--- Deferred 1s post-PLAYER_LOGIN: npcCache and scanQuestLog complete first
+-- Deferred 1s after PLAYER_LOGIN: npcCache and scanQuestLog complete first,
+-- meaning pfDB["units"]["loc"] and pfQuest.retailZoneMap are both populated.
 local mi2Frame = CreateFrame("Frame")
 mi2Frame:RegisterEvent("PLAYER_LOGIN")
 mi2Frame:SetScript("OnEvent", function(self)

@@ -120,10 +120,10 @@ SlashCmdList["PFDB"] = function(input, editbox)
 
   -- argument: mobinfo2 (import/status for MobInfo2 data)
   if arg1 == "mobinfo2" then
+    local hasModern = type(MI2_DB) == "table" and type(MI2_DB.location) == "table"
     local hasLegacy = type(MobInfoDB) == "table"
-    local hasModern = type(MI2_MobDB) == "table" or type(MobInfo2DB) == "table" or type(MI2DB) == "table"
-    if not hasLegacy and not hasModern then
-      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: MobInfo2 not found. Install MobInfo2 (CurseForge) and let it collect data first.")
+    if not hasModern and not hasLegacy then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: MobInfo2 not found. Install MobInfo2 (CurseForge) and log some mobs first.")
     elseif pfMobInfo2Import then
       local before = 0
       if pfDB and pfDB["units"] and pfDB["units"]["data"] then
@@ -477,19 +477,18 @@ SlashCmdList["PFDB"] = function(input, editbox)
       add("  npcCache (saved): empty — will be written on logout")
     end
     -- MobInfo2 integration
+    local mi2modern = type(MI2_DB) == "table" and type(MI2_DB.location) == "table"
     local mi2legacy = type(MobInfoDB) == "table"
-    local mi2modern = type(MI2_MobDB) == "table" or type(MobInfo2DB) == "table" or type(MI2DB) == "table"
-    if mi2legacy or mi2modern then
+    if mi2modern or mi2legacy then
       local parts = {}
       if mi2modern then
-        local mdb = MI2_MobDB or MobInfo2DB or MI2DB
-        local mc = 0; for _ in pairs(mdb) do mc = mc + 1 end
-        table.insert(parts, mc .. " records (modern/retail DB)")
+        local mc = 0; for _ in pairs(MI2_DB.location) do mc = mc + 1 end
+        table.insert(parts, mc .. " NPCs in MI2_DB (retail)")
       end
       if mi2legacy then
         local lc = 0
         for k in pairs(MobInfoDB) do if k ~= "DatabaseVersion:0" then lc = lc + 1 end end
-        if lc > 0 then table.insert(parts, lc .. " records (legacy/classic DB)") end
+        if lc > 0 then table.insert(parts, lc .. " mobs in MobInfoDB (legacy)") end
       end
       add("  MobInfo2: " .. table.concat(parts, " + ") .. " — /db mobinfo2 to re-import")
     else
