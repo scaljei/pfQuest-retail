@@ -116,7 +116,7 @@ local function UpdateEntry(self, index)
     name = name or tostring(self[index].id)
     local log = pfQuest_history[self[index].id][1]
     local level = pfQuest_history[self[index].id][2]
-    self[index].text:SetText("  |cffffffff" .. date("%H:%M:%S", log) .. "  |cffffcc00[" .. (name or UNKNOWN) .. "]|cffaaaaaa (" .. qid ..")")
+    self[index].text:SetText("  |cffffffff" .. date("%H:%M:%S", log) .. "  |cffffcc00[" .. (name or UNKNOWN) .. "]|cffaaaaaa (" .. tostring(qid or self[index].id) ..")")
     self[index]:Show()
   else
     self[index]:Hide()
