@@ -1,6 +1,5 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
   <Script file="..\diagnostic.lua"/>
-  <Script file="..\test_diagnostic.lua"/>
   <Include file="..\compat\pfUI.lua"/>
   <Include file="..\compat\client.lua"/>
   <Include file="..\overwrites.lua"/>

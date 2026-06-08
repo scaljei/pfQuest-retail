@@ -39,6 +39,46 @@ local BUILTIN_ZONES = {
   [747] = 10030,  -- The Broken Shore
   [750] = 10031,  -- Broken Isles
   [775] = 10032,  -- The Fel Hammer
+
+  -- Battle for Azeroth
+  [876] = 10033,  -- Zuldazar
+  [862] = 10034,  -- Nazmir
+  [863] = 10035,  -- Vol'dun
+  [895] = 10036,  -- Tiragarde Sound
+  [896] = 10037,  -- Drustvar
+  [942] = 10038,  -- Stormsong Valley
+  [1462] = 10039, -- Uldum (BfA)
+  [1463] = 10040, -- Vale of Eternal Blossoms (BfA)
+  [1527] = 10041, -- Nazjatar
+  [1530] = 10042, -- Mechagon Island
+
+  -- Shadowlands
+  [1525] = 10043, -- Oribos
+  [1533] = 10044, -- Bastion
+  [1536] = 10045, -- Maldraxxus
+  [1565] = 10046, -- Ardenweald
+  [1543] = 10047, -- Revendreth
+  [1970] = 10048, -- The Maw
+  [1960] = 10049, -- Zereth Mortis
+  [1961] = 10050, -- Korthia
+
+  -- Dragonflight
+  [2022] = 10051, -- The Waking Shores
+  [2023] = 10052, -- Ohn'ahran Plains
+  [2024] = 10053, -- The Azure Span
+  [2025] = 10054, -- Thaldraszus
+  [2112] = 10055, -- Zaralek Cavern
+  [2133] = 10056, -- Forbidden Reach
+  [2200] = 10057, -- Emerald Dream
+
+  -- The War Within (Khaz Algar) — interface 110105
+  [2248] = 10058, -- Isle of Dorn
+  [2214] = 10059, -- The Ringing Deeps
+  [2215] = 10060, -- Hallowfall
+  [2255] = 10061, -- Azj-Kahet
+  [2241] = 10062, -- Khaz Algar (continent)
+  [2256] = 10063, -- The City of Threads
+  [2257] = 10064, -- Nerubian Empire
 }
 
 -- ── Active zone table (replaced by db addon if installed) ───────────────
