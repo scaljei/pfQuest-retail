@@ -118,6 +118,25 @@ SlashCmdList["PFDB"] = function(input, editbox)
     return
   end
 
+  -- argument: npccache (manage NPC position cache)
+  if arg1 == "npccache" then
+    if arg2 == "clear" then
+      pfQuest_npcCache = nil
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: NPC cache cleared. Positions will rebuild from scratch on next login.")
+    else
+      local cc = (type(pfQuest_npcCache) == "table") and (pfQuest_npcCache.data and 0 or 0) or 0
+      if type(pfQuest_npcCache) == "table" and pfQuest_npcCache.data then
+        for _ in pairs(pfQuest_npcCache.data) do cc = cc + 1 end
+      end
+      local uc = 0
+      if pfDB and pfDB["units"] and pfDB["units"]["data"] then
+        for _ in pairs(pfDB["units"]["data"]) do uc = uc + 1 end
+      end
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: NPC cache — " .. cc .. " saved, " .. uc .. " in session. Use /db npccache clear to reset.")
+    end
+    return
+  end
+
   -- argument: queststatus (check single quest completion)
   if (arg1 == "queststatus") and arg2 then
     local qid = tonumber(arg2)
