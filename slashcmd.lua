@@ -118,6 +118,27 @@ SlashCmdList["PFDB"] = function(input, editbox)
     return
   end
 
+  -- argument: mobinfo2 (import/status for MobInfo2 data)
+  if arg1 == "mobinfo2" then
+    if type(MobInfoDB) ~= "table" then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: MobInfo2 not found — install MobInfo2 and log some mobs first.")
+    elseif pfMobInfo2Import then
+      local before = 0
+      if pfDB and pfDB["units"] and pfDB["units"]["data"] then
+        for _ in pairs(pfDB["units"]["data"]) do before = before + 1 end
+      end
+      pfMobInfo2Import()
+      local after = 0
+      if pfDB and pfDB["units"] and pfDB["units"]["data"] then
+        for _ in pairs(pfDB["units"]["data"]) do after = after + 1 end
+      end
+      DEFAULT_CHAT_FRAME:AddMessage(string.format(
+        "|cff33ffccpf|cffffffffQuest: MobInfo2 import done — units.data %d → %d (+%d).",
+        before, after, after - before))
+    end
+    return
+  end
+
   -- argument: npccache (manage NPC position cache)
   if arg1 == "npccache" then
     if arg2 == "clear" then
@@ -452,6 +473,14 @@ SlashCmdList["PFDB"] = function(input, editbox)
         .. (cc > 0 and " — units.data pre-seeded at login" or ""))
     else
       add("  npcCache (saved): empty — will be written on logout")
+    end
+    -- MobInfo2 integration
+    if type(MobInfoDB) == "table" then
+      local mi2count = 0
+      for k in pairs(MobInfoDB) do if k ~= "DatabaseVersion:0" then mi2count = mi2count + 1 end end
+      add("  MobInfo2: " .. mi2count .. " mob record(s) available — /db mobinfo2 to re-import")
+    else
+      add("  MobInfo2: not installed (optional — adds historic NPC coords)")
     end
 
     -- ── 3. pfMap.nodes summary ────────────────────────────────────────────

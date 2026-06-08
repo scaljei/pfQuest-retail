@@ -20,4 +20,5 @@
   <Script file="..\db\retail\db_guard.lua"/>
   <Script file="..\db\retail\runtime_db.lua"/>
   <Script file="..\db\retail\att_integration.lua"/>
+  <Script file="..\db\retail\mobinfo2_import.lua"/>
 </Ui>
