@@ -120,8 +120,10 @@ SlashCmdList["PFDB"] = function(input, editbox)
 
   -- argument: mobinfo2 (import/status for MobInfo2 data)
   if arg1 == "mobinfo2" then
-    if type(MobInfoDB) ~= "table" then
-      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: MobInfo2 not found — install MobInfo2 and log some mobs first.")
+    local hasLegacy = type(MobInfoDB) == "table"
+    local hasModern = type(MI2_MobDB) == "table" or type(MobInfo2DB) == "table" or type(MI2DB) == "table"
+    if not hasLegacy and not hasModern then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: MobInfo2 not found. Install MobInfo2 (CurseForge) and let it collect data first.")
     elseif pfMobInfo2Import then
       local before = 0
       if pfDB and pfDB["units"] and pfDB["units"]["data"] then
@@ -475,10 +477,21 @@ SlashCmdList["PFDB"] = function(input, editbox)
       add("  npcCache (saved): empty — will be written on logout")
     end
     -- MobInfo2 integration
-    if type(MobInfoDB) == "table" then
-      local mi2count = 0
-      for k in pairs(MobInfoDB) do if k ~= "DatabaseVersion:0" then mi2count = mi2count + 1 end end
-      add("  MobInfo2: " .. mi2count .. " mob record(s) available — /db mobinfo2 to re-import")
+    local mi2legacy = type(MobInfoDB) == "table"
+    local mi2modern = type(MI2_MobDB) == "table" or type(MobInfo2DB) == "table" or type(MI2DB) == "table"
+    if mi2legacy or mi2modern then
+      local parts = {}
+      if mi2modern then
+        local mdb = MI2_MobDB or MobInfo2DB or MI2DB
+        local mc = 0; for _ in pairs(mdb) do mc = mc + 1 end
+        table.insert(parts, mc .. " records (modern/retail DB)")
+      end
+      if mi2legacy then
+        local lc = 0
+        for k in pairs(MobInfoDB) do if k ~= "DatabaseVersion:0" then lc = lc + 1 end end
+        if lc > 0 then table.insert(parts, lc .. " records (legacy/classic DB)") end
+      end
+      add("  MobInfo2: " .. table.concat(parts, " + ") .. " — /db mobinfo2 to re-import")
     else
       add("  MobInfo2: not installed (optional — adds historic NPC coords)")
     end
