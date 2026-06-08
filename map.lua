@@ -1129,8 +1129,15 @@ function pfMap:UpdateMinimap()
   -- For retail zones the placeholder size is 4266.7 x 2844.4.
   -- If no entry exists at all, use the retail default so pins still appear.
   local _sizes = minimap_sizes[mapID] or (mapID and mapID >= 10000 and { 4266.7, 2844.4 })
-  local mapWidth  = _sizes and _sizes[1] or 0
-  local mapHeight = _sizes and _sizes[2] or 0
+  local mapWidth  = (_sizes and _sizes[1]) or 0
+  local mapHeight = (_sizes and _sizes[2]) or 0
+
+  -- If dimensions are unknown, skip minimap rendering for this zone to avoid
+  -- division-by-zero (xScale=0) producing inf positions for all pins.
+  if mapWidth == 0 or mapHeight == 0 then
+    for _, pin in pairs(pfMap.mpins) do pin:Hide() end
+    return
+  end
 
   local xScale = mapZoom / mapWidth
   local yScale = mapZoom / mapHeight
