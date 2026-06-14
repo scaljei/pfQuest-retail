@@ -168,7 +168,7 @@ SlashCmdList["PFDB"] = function(input, editbox)
       table.insert(lines, "No quests with objectives found.")
     end
     if pfDiag and pfDiag.showWindow then
-      pfDiag.showWindow("Quest Objective Dump", table.concat(lines, "\n"))
+      pfDiag.showWindow(lines)
     else
       for _, l in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(l) end
     end
