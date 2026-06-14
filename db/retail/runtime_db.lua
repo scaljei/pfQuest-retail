@@ -162,15 +162,20 @@ local function registerQuestFromInfo(info)
   if objectives then
     for _, obj in ipairs(objectives) do
       if obj.type == "monster" and obj.text then
-        -- Retail format: "0/5 Mob Name" (count prefix, no colon separator)
+        -- Retail format: "0/5 Mob Name slain" (count prefix + optional trailing verb)
         -- Classic format: "Mob Name: 0/5" (name before colon)
         -- Try retail format first, fall back to classic.
         local mobName = string.match(obj.text, "^%d+/%d+%s+(.+)$")
                      or string.match(obj.text, "^([^:]+):")
         if mobName then
           mobName = string.match(mobName, "^%s*(.-)%s*$")  -- trim
-          -- Skip pure action phrases (contain no capitalised proper noun pattern)
-          -- by checking the name is non-empty; false positives don't hurt.
+          -- Strip known trailing action verbs added by retail objective formatting.
+          -- e.g. "Slagmaw slain" -> "Slagmaw", "Troop defeated" -> "Troop"
+          mobName = string.match(mobName, "^(.-)%s+slain$")
+               or string.match(mobName, "^(.-)%s+killed$")
+               or string.match(mobName, "^(.-)%s+defeated$")
+               or string.match(mobName, "^(.-)%s+destroyed$")
+               or mobName
           -- Index name for fast future lookup by registerNPC
           pfRetailRuntime.wantedNames[string.lower(mobName)] = questID
           -- Also try to link immediately if already known
