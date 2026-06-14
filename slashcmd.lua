@@ -143,52 +143,54 @@ SlashCmdList["PFDB"] = function(input, editbox)
 
   -- argument: mi2dump (inspect MI2_DB structure to find name fields)
   if arg1 == "mi2dump" then
-    if type(MI2_DB) ~= "table" then
-      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: MI2_DB not found.")
-      return
+    local lines = { "=== MI2 Link Diagnostic ===" }
+    local function add(s) table.insert(lines, s) end
+
+    -- 1. classicNPCNames snapshot
+    local cnn = pfQuest and pfQuest.classicNPCNames
+    if cnn then
+      local c = 0; for _ in pairs(cnn) do c = c + 1 end
+      add("classicNPCNames: " .. c .. " entries")
+    else
+      add("classicNPCNames: NIL (db_guard snapshot not built)")
     end
-    local lines = { "=== MI2_DB Structure ===" }
-    -- Top-level keys
-    local keys = {}
-    for k in pairs(MI2_DB) do table.insert(keys, tostring(k)) end
-    table.sort(keys)
-    table.insert(lines, "Top-level keys: " .. table.concat(keys, ", "))
-    -- Sample first entry of each sub-table
-    for _, k in ipairs(keys) do
-      local v = MI2_DB[k]
-      if type(v) == "table" then
-        local count = 0
-        local sample = nil
-        for id, entry in pairs(v) do
-          count = count + 1
-          if not sample then sample = { id = id, entry = entry } end
-          if count >= 3 then break end
-        end
-        table.insert(lines, string.format("  [%s]: %d+ entries", k, count))
-        if sample then
-          table.insert(lines, string.format("    sample key: %s  type(val)=%s",
-            tostring(sample.id), type(sample.entry)))
-          if type(sample.entry) == "table" then
-            local ekeys = {}
-            for ek in pairs(sample.entry) do table.insert(ekeys, tostring(ek)) end
-            table.sort(ekeys)
-            table.insert(lines, "    entry keys: " .. table.concat(ekeys, ", "))
-            -- Show first few values
-            for _, ek in ipairs(ekeys) do
-              local ev = sample.entry[ek]
-              if type(ev) ~= "table" then
-                table.insert(lines, string.format("      [%s] = %s", ek, tostring(ev)))
-              else
-                table.insert(lines, string.format("      [%s] = table(%d)", ek, #ev))
-              end
-              if _ >= 6 then break end
+
+    -- 2. wantedNames
+    local wn = pfRetailRuntime and pfRetailRuntime.wantedNames
+    if wn then
+      local c = 0; for _ in pairs(wn) do c = c + 1 end
+      add("wantedNames: " .. c .. " entries")
+      -- Show all wanted names and whether classicNPCNames resolves them
+      for name, questID in pairs(wn) do
+        local npcID = cnn and cnn[name]
+        add(string.format("  '%s' (q%d) -> npcID=%s", name, questID, tostring(npcID)))
+      end
+    else
+      add("wantedNames: NIL")
+    end
+
+    -- 3. retailZoneMap coverage for MI2 coords
+    local rzm = pfQuest and pfQuest.retailZoneMap
+    local rzmCount = 0
+    if rzm then for _ in pairs(rzm) do rzmCount = rzmCount + 1 end end
+    add("retailZoneMap: " .. rzmCount .. " uiMapID->pfID mappings")
+
+    -- 4. How many MI2 coords are in mapped zones
+    if type(MI2_DB) == "table" and type(MI2_DB.location) == "table" and rzm then
+      local total, mapped = 0, 0
+      for _, sourceData in pairs(MI2_DB.location) do
+        if type(sourceData) == "table" then
+          for mapID, coordList in pairs(sourceData) do
+            if type(mapID) == "number" and type(coordList) == "table" then
+              total = total + 1
+              if rzm[mapID] then mapped = mapped + 1 end
             end
-          elseif type(sample.entry) == "string" then
-            table.insert(lines, "    sample val: " .. sample.entry)
           end
         end
       end
+      add(string.format("MI2 zone coverage: %d/%d coord-sets in mapped zones", mapped, total))
     end
+
     if pfDiag and pfDiag.showWindow then
       pfDiag.showWindow(lines)
     else
