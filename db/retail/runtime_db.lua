@@ -210,6 +210,38 @@ local function scanQuestLog()
   end
 end
 
+-- ── Back-link already-registered NPCs against wantedNames ───────────────────
+-- loadNPCCache() runs before scanQuestLog(), so cached NPCs are registered
+-- before wantedNames is populated. Call this once after scanQuestLog() to link
+-- any cached NPC whose name matches a quest objective.
+local function linkCachedNPCs()
+  if not next(pfRetailRuntime.wantedNames) then return end
+  local linked = 0
+  for npcID, name in pairs(pfDB["units"]["loc"]) do
+    if name then
+      local lname = string.lower(name)
+      local questID = pfRetailRuntime.wantedNames[lname]
+      if questID and pfDB["quests"]["data"][questID] then
+        local qdata = pfDB["quests"]["data"][questID]
+        qdata["obj"] = qdata["obj"] or { ["U"] = {} }
+        qdata["obj"]["U"] = qdata["obj"]["U"] or {}
+        local already = false
+        for _, uid in ipairs(qdata["obj"]["U"]) do
+          if uid == npcID then already = true; break end
+        end
+        if not already then
+          table.insert(qdata["obj"]["U"], npcID)
+          linked = linked + 1
+        end
+      end
+    end
+  end
+  if linked > 0 then
+    pfQuest:Debug("|cff33ff33" .. linked .. "|r cached NPC(s) linked to quest objectives.")
+    if pfMap then pfMap.queue_update = GetTime() end
+  end
+end
+
 -- ── Intercept NPC interactions to capture coordinates ──────────────────────
 local function onNPCInteraction()
   local unit = "npc"
@@ -344,6 +376,9 @@ runtimeFrame:SetScript("OnEvent", function(self, event, ...)
     end
     -- Scan quest log on login
     scanQuestLog()
+    -- Back-link any cached NPCs whose names match quest objectives.
+    -- Must run after scanQuestLog() which populates wantedNames.
+    linkCachedNPCs()
     -- Pre-fetch zone dimensions for all quest-related zones (#6).
     -- C_QuestLog.GetQuestUiMapID returns the uiMapID for a quest's zone — call it
     -- for every active quest so registerZone stores real GetMapRects data instead
@@ -368,6 +403,7 @@ runtimeFrame:SetScript("OnEvent", function(self, event, ...)
 
   elseif event == "QUEST_LOG_UPDATE" then
     scanQuestLog()
+    linkCachedNPCs()
     if pfMap then pfMap.queue_update = GetTime() end
 
   elseif event == "QUEST_ACCEPTED" then
