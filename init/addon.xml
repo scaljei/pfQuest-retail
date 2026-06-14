@@ -21,4 +21,5 @@
   <Script file="..\db\retail\runtime_db.lua"/>
   <Script file="..\db\retail\att_integration.lua"/>
   <Script file="..\db\retail\mobinfo2_import.lua"/>
+  <Script file="..\db\retail\harvester.lua"/>
 </Ui>

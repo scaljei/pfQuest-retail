@@ -141,6 +141,29 @@ SlashCmdList["PFDB"] = function(input, editbox)
     return
   end
 
+  -- argument: harvester (import from Wowhead Looter wlUnit SavedVariable)
+  if arg1 == "harvester" then
+    if type(wlUnit) ~= "table" then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: Wowhead Looter not found (wlUnit missing). Install it from CurseForge.")
+      return
+    end
+    if pfHarvester and pfHarvester.importWowheadLooter then
+      local before = 0
+      if pfDB and pfDB["units"] and pfDB["units"]["data"] then
+        for _ in pairs(pfDB["units"]["data"]) do before = before + 1 end
+      end
+      pfHarvester.importWowheadLooter()
+      local after = 0
+      if pfDB and pfDB["units"] and pfDB["units"]["data"] then
+        for _ in pairs(pfDB["units"]["data"]) do after = after + 1 end
+      end
+      DEFAULT_CHAT_FRAME:AddMessage(string.format(
+        "|cff33ffccpf|cffffffffQuest: Wowhead Looter import done — units.data %d → %d (+%d).",
+        before, after, after - before))
+    end
+    return
+  end
+
   if arg1 == "npccache" then
     if arg2 == "clear" then
       pfQuest_npcCache = nil
@@ -492,6 +515,15 @@ SlashCmdList["PFDB"] = function(input, editbox)
       add("  MobInfo2: " .. table.concat(parts, " + ") .. " — /db mobinfo2 to re-import")
     else
       add("  MobInfo2: not installed (optional — adds historic NPC coords)")
+    end
+
+    -- Wowhead Looter harvester
+    if type(wlUnit) == "table" then
+      local wlCount = 0
+      for _ in pairs(wlUnit) do wlCount = wlCount + 1 end
+      add("  Wowhead Looter: " .. wlCount .. " NPCs in wlUnit — /db harvester to re-import")
+    else
+      add("  Wowhead Looter: not installed (optional — adds NPC coords from your session history)")
     end
 
     -- ── 3. pfMap.nodes summary ────────────────────────────────────────────
