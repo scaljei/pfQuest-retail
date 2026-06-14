@@ -153,7 +153,7 @@ local function registerQuestFromInfo(info)
   pfDB["quests"]["loc"][questID] = pfDB["quests"]["loc"][questID]
     or { ["T"] = info.title or ("Quest " .. questID) }
   pfDB["quests"]["data"][questID] = pfDB["quests"]["data"][questID]
-    or { ["lvl"] = info.level or "??" }
+    or { ["lvl"] = tonumber(info.level) or 0 }
 
   -- Try to link objective NPCs by name-matching against registered units.
   -- Also index objective mob names into wantedNames so registerNPC can link
@@ -259,7 +259,7 @@ local function onQuestAccepted(questID)
           registerNPC(id, UnitName(unit), uiMapID, x*100, y*100)
           -- Link as quest starter
           ensureDB()
-          pfDB["quests"]["data"][questID] = pfDB["quests"]["data"][questID] or { ["lvl"]="??" }
+          pfDB["quests"]["data"][questID] = pfDB["quests"]["data"][questID] or { ["lvl"]=0 }
           pfDB["quests"]["data"][questID]["start"] = pfDB["quests"]["data"][questID]["start"] or {}
           pfDB["quests"]["data"][questID]["start"]["U"] = { id }
         end
