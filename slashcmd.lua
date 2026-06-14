@@ -141,6 +141,62 @@ SlashCmdList["PFDB"] = function(input, editbox)
     return
   end
 
+  -- argument: mi2dump (inspect MI2_DB structure to find name fields)
+  if arg1 == "mi2dump" then
+    if type(MI2_DB) ~= "table" then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: MI2_DB not found.")
+      return
+    end
+    local lines = { "=== MI2_DB Structure ===" }
+    -- Top-level keys
+    local keys = {}
+    for k in pairs(MI2_DB) do table.insert(keys, tostring(k)) end
+    table.sort(keys)
+    table.insert(lines, "Top-level keys: " .. table.concat(keys, ", "))
+    -- Sample first entry of each sub-table
+    for _, k in ipairs(keys) do
+      local v = MI2_DB[k]
+      if type(v) == "table" then
+        local count = 0
+        local sample = nil
+        for id, entry in pairs(v) do
+          count = count + 1
+          if not sample then sample = { id = id, entry = entry } end
+          if count >= 3 then break end
+        end
+        table.insert(lines, string.format("  [%s]: %d+ entries", k, count))
+        if sample then
+          table.insert(lines, string.format("    sample key: %s  type(val)=%s",
+            tostring(sample.id), type(sample.entry)))
+          if type(sample.entry) == "table" then
+            local ekeys = {}
+            for ek in pairs(sample.entry) do table.insert(ekeys, tostring(ek)) end
+            table.sort(ekeys)
+            table.insert(lines, "    entry keys: " .. table.concat(ekeys, ", "))
+            -- Show first few values
+            for _, ek in ipairs(ekeys) do
+              local ev = sample.entry[ek]
+              if type(ev) ~= "table" then
+                table.insert(lines, string.format("      [%s] = %s", ek, tostring(ev)))
+              else
+                table.insert(lines, string.format("      [%s] = table(%d)", ek, #ev))
+              end
+              if _ >= 6 then break end
+            end
+          elseif type(sample.entry) == "string" then
+            table.insert(lines, "    sample val: " .. sample.entry)
+          end
+        end
+      end
+    end
+    if pfDiag and pfDiag.showWindow then
+      pfDiag.showWindow(lines)
+    else
+      for _, l in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(l) end
+    end
+    return
+  end
+
   -- argument: objdump (dump raw GetQuestObjectives data for all active quests)
   if arg1 == "objdump" then
     if not (C_QuestLog and C_QuestLog.GetNumQuestLogEntries) then
