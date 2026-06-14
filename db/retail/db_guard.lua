@@ -167,6 +167,10 @@ guard:SetScript("OnEvent", function(self)
       if pfRetailRuntime and pfRetailRuntime.scanQuestLog then
         pfRetailRuntime.scanQuestLog()
       end
+      -- Back-link cached NPCs now that wantedNames is freshly populated.
+      if pfRetailRuntime and pfRetailRuntime.linkCachedNPCs then
+        pfRetailRuntime.linkCachedNPCs()
+      end
       if pfMap then pfMap.queue_update = GetTime() end
     end)
   else

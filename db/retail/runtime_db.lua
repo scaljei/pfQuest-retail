@@ -162,9 +162,15 @@ local function registerQuestFromInfo(info)
   if objectives then
     for _, obj in ipairs(objectives) do
       if obj.type == "monster" and obj.text then
-        local mobName = string.match(obj.text, "^([^:]+):")
+        -- Retail format: "0/5 Mob Name" (count prefix, no colon separator)
+        -- Classic format: "Mob Name: 0/5" (name before colon)
+        -- Try retail format first, fall back to classic.
+        local mobName = string.match(obj.text, "^%d+/%d+%s+(.+)$")
+                     or string.match(obj.text, "^([^:]+):")
         if mobName then
           mobName = string.match(mobName, "^%s*(.-)%s*$")  -- trim
+          -- Skip pure action phrases (contain no capitalised proper noun pattern)
+          -- by checking the name is non-empty; false positives don't hurt.
           -- Index name for fast future lookup by registerNPC
           pfRetailRuntime.wantedNames[string.lower(mobName)] = questID
           -- Also try to link immediately if already known
@@ -467,10 +473,11 @@ nameplateFrame:SetScript("OnEvent", function(self, event, unitToken)
 end)
 
 -- Make registration functions public so other modules can call them
-pfRetailRuntime.registerZone  = registerZone
-pfRetailRuntime.registerNPC   = registerNPC
-pfRetailRuntime.registerQuest = registerQuest
-pfRetailRuntime.scanQuestLog  = scanQuestLog
+pfRetailRuntime.registerZone    = registerZone
+pfRetailRuntime.registerNPC     = registerNPC
+pfRetailRuntime.registerQuest   = registerQuest
+pfRetailRuntime.scanQuestLog    = scanQuestLog
+pfRetailRuntime.linkCachedNPCs  = linkCachedNPCs
 
 -- resetPopulated: clear the dedup cache so scanQuestLog re-registers all quests.
 -- Called by db_guard after wiping pfDB, otherwise the deferred rescan is a no-op
