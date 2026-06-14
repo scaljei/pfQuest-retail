@@ -141,6 +141,40 @@ SlashCmdList["PFDB"] = function(input, editbox)
     return
   end
 
+  -- argument: objdump (dump raw GetQuestObjectives data for all active quests)
+  if arg1 == "objdump" then
+    if not (C_QuestLog and C_QuestLog.GetNumQuestLogEntries) then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: C_QuestLog not available.")
+      return
+    end
+    local lines = { "=== Quest Objective Dump ===" }
+    local n = C_QuestLog.GetNumQuestLogEntries()
+    local shown = 0
+    for i = 1, n do
+      local info = C_QuestLog.GetInfo(i)
+      if info and not info.isHeader and info.questID and shown < 10 then
+        local objs = C_QuestLog.GetQuestObjectives and C_QuestLog.GetQuestObjectives(info.questID)
+        if objs and #objs > 0 then
+          table.insert(lines, string.format("[%d] %s", info.questID, info.title or "?"))
+          for _, obj in ipairs(objs) do
+            table.insert(lines, string.format("  type=%s  text=%s  finished=%s",
+              tostring(obj.type), tostring(obj.text), tostring(obj.finished)))
+          end
+          shown = shown + 1
+        end
+      end
+    end
+    if shown == 0 then
+      table.insert(lines, "No quests with objectives found.")
+    end
+    if pfDiag and pfDiag.showWindow then
+      pfDiag.showWindow("Quest Objective Dump", table.concat(lines, "\n"))
+    else
+      for _, l in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(l) end
+    end
+    return
+  end
+
   -- argument: npccache (manage NPC position cache)
   if arg1 == "npccache" then
     if arg2 == "clear" then
