@@ -58,6 +58,35 @@ local function importModern()
   if type(locDB) ~= "table" then return 0 end
   if not (pfQuest and pfQuest.retailZoneMap) then return 0 end
 
+  -- Build a reverse index: npcID → name, using:
+  -- 1. pfDB["units"]["loc"] (names from current session / npcCache)
+  -- 2. pfQuest.classicNPCNames (snapshot of classic loc before wipe, for 81k names)
+  -- This lets linkToQuest match MI2 coords to quest objectives by name.
+  local function nameForID(npcID)
+    local n = pfDB["units"]["loc"] and pfDB["units"]["loc"][npcID]
+    if n then return n end
+    if pfQuest.classicNPCNames then
+      -- classicNPCNames is name→ID; need ID→name, so search wantedNames for match
+      -- Actually: check if wantedNames has a name whose classicNPCNames entry = npcID
+      -- This is O(N) per npcID — instead build reverse at import time below
+    end
+    return nil
+  end
+
+  -- Build a wanted-npcID set from classicNPCNames + wantedNames for O(1) lookup:
+  -- wantedNames = { [lowername] = questID }
+  -- classicNPCNames = { [lowername] = npcID }
+  -- Intersection: names in both tables → we want those npcIDs from MI2
+  local wantedIDs = {}  -- { [npcID] = { name=..., questID=... } }
+  if pfRetailRuntime and pfRetailRuntime.wantedNames and pfQuest.classicNPCNames then
+    for lname, questID in pairs(pfRetailRuntime.wantedNames) do
+      local npcID = pfQuest.classicNPCNames[lname]
+      if npcID then
+        wantedIDs[npcID] = { name = lname, questID = questID }
+      end
+    end
+  end
+
   local imported = 0
   for npcID, sourceData in pairs(locDB) do
     npcID = tonumber(npcID)
@@ -74,8 +103,12 @@ local function importModern()
               if x and y and not (x == 0 and y == 0) then
                 if addCoord(npcID, x, y, pfZoneID) then
                   imported = imported + 1
-                  -- Link to quest objectives if this npcID is wanted
+                  -- Try name from current session first, then wantedIDs index
                   local name = pfDB["units"]["loc"] and pfDB["units"]["loc"][npcID]
+                  if not name and wantedIDs[npcID] then
+                    name = wantedIDs[npcID].name
+                    pfDB["units"]["loc"][npcID] = name  -- persist for future lookups
+                  end
                   linkToQuest(npcID, name)
                 end
               end

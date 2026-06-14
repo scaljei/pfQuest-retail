@@ -68,6 +68,19 @@ local function wipeClassicDB()
   local preserved = 0
   for _ in pairs(preserveQuests) do preserved = preserved + 1 end
 
+  -- Build a name→npcID reverse index from the classic units.loc before wiping.
+  -- This lets MI2 import resolve npcID→name after the wipe, enabling
+  -- coord-to-quest linking without requiring the player to target each NPC.
+  -- Stored in pfQuest.classicNPCNames = { [lowercase_name] = npcID }
+  if pfDB["units"] and pfDB["units"]["loc"] then
+    pfQuest.classicNPCNames = {}
+    for npcID, name in pairs(pfDB["units"]["loc"]) do
+      if name then
+        pfQuest.classicNPCNames[string.lower(name)] = npcID
+      end
+    end
+  end
+
   -- Clear the large static tables
   pfDB["items"]          = { ["data"] = {}, ["loc"] = {} }
   pfDB["units"]          = { ["data"] = {}, ["loc"] = {} }
