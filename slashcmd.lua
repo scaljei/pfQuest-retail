@@ -166,6 +166,22 @@ SlashCmdList["PFDB"] = function(input, editbox)
 
   -- argument: pindump (inspect live world map pin state for debugging)
   -- argument: nptrace (toggle nameplate event tracing to confirm NAME_PLATE_UNIT_ADDED fires)
+  -- argument: guidcheck (show GUID of current target for debugging)
+  if arg1 == "guidcheck" then
+    local units = { "target", "mouseover", "npc" }
+    for _, u in ipairs(units) do
+      if UnitExists(u) then
+        local guid = UnitGUID(u)
+        local name = UnitName(u)
+        local kind = guid and string.match(guid, "^(%a+)-") or "?"
+        DEFAULT_CHAT_FRAME:AddMessage(string.format(
+          "|cff33ffccpf|cffffffffQuest: %s='%s'  guid=%s  kind=%s",
+          u, tostring(name), tostring(guid), kind))
+      end
+    end
+    return
+  end
+
   if arg1 == "nptrace" then
     if not pfNPTrace then
       pfNPTrace = { count = 0, frame = CreateFrame("Frame") }
