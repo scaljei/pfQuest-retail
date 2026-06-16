@@ -172,25 +172,52 @@ SlashCmdList["PFDB"] = function(input, editbox)
     local qid = tonumber(arg2) or 28374
     local lines = { "=== SearchQuestID Test [" .. qid .. "] ===" }
     local function add(s) table.insert(lines, s) end
-    -- Count nodes before
+    -- Find qlogid for this questID
+    local qlogid = nil
+    local n = C_QuestLog and C_QuestLog.GetNumQuestLogEntries and C_QuestLog.GetNumQuestLogEntries() or 0
+    for i = 1, n do
+      local info = C_QuestLog.GetInfo(i)
+      if info and not info.isHeader and info.questID == qid then
+        qlogid = i
+        break
+      end
+    end
+    add("qlogid for questID "..qid..": "..tostring(qlogid))
+    if qlogid then
+      local complete = C_QuestLog.IsComplete and C_QuestLog.IsComplete(qid)
+      local objs = compat.GetQuestObjectives(qlogid)
+      add("IsComplete: "..tostring(complete))
+      add("GetNumQuestLeaderBoards: "..tostring(#objs))
+      for i, o in ipairs(objs) do
+        add("  obj["..i.."]: text='"..tostring(o[1]).."' type="..tostring(o[2]).." done="..tostring(o[3]))
+      end
+    end
+    -- Test without qlogid
+    pfMap:DeleteNode("PFQUEST", "Weeding the Lawn")
     local before = 0
     if pfMap and pfMap.nodes then
       for a,ad in pairs(pfMap.nodes) do for m,md in pairs(ad) do for c,_ in pairs(md) do before=before+1 end end end
     end
-    add("nodes before: " .. before)
-    -- Run SearchQuestID
-    local meta = { ["addon"] = "PFQUEST" }
-    local ok, err = pcall(pfDatabase.SearchQuestID, pfDatabase, qid, meta)
-    add("SearchQuestID ok=" .. tostring(ok) .. (ok and "" or " err="..tostring(err)))
-    -- Count nodes after
-    local after = 0
+    add("--- Test WITHOUT qlogid ---")
+    local meta1 = { ["addon"] = "PFQUEST" }
+    local ok1, err1 = pcall(pfDatabase.SearchQuestID, pfDatabase, qid, meta1)
+    local after1 = 0
     if pfMap and pfMap.nodes then
-      for a,ad in pairs(pfMap.nodes) do for m,md in pairs(ad) do for c,cd in pairs(md) do
-        after=after+1
-        for title,_ in pairs(cd) do add("  node: addon="..a.." map="..m.." coords="..c.." title="..title) end
-      end end end
+      for a,ad in pairs(pfMap.nodes) do for m,md in pairs(ad) do for c,_ in pairs(md) do after1=after1+1 end end end
     end
-    add("nodes after: " .. after)
+    add("ok="..tostring(ok1).." nodes: "..before.." -> "..after1)
+    -- Test WITH qlogid
+    pfMap:DeleteNode("PFQUEST", "Weeding the Lawn")
+    if qlogid then
+      add("--- Test WITH qlogid="..qlogid.." ---")
+      local meta2 = { ["addon"] = "PFQUEST", ["qlogid"] = qlogid }
+      local ok2, err2 = pcall(pfDatabase.SearchQuestID, pfDatabase, qid, meta2)
+      local after2 = 0
+      if pfMap and pfMap.nodes then
+        for a,ad in pairs(pfMap.nodes) do for m,md in pairs(ad) do for c,_ in pairs(md) do after2=after2+1 end end end
+      end
+      add("ok="..tostring(ok2)..(ok2 and "" or " err="..tostring(err2)).." nodes: -> "..after2)
+    end
     if pfDiag and pfDiag.showWindow then pfDiag.showWindow(lines)
     else for _,l in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(l) end end
     return
