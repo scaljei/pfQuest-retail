@@ -176,8 +176,12 @@ SlashCmdList["PFDB"] = function(input, editbox)
         local guid = UnitGUID(u)
         local name = UnitName(u) or "?"
         local kind = guid and string.match(guid, "^(%a+)-") or "?"
-        local _, _, _, _, _, rawID = guid and string.match(guid,
-          "(%a+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)") or nil
+        local rawID
+        if guid then
+          local a,b,c,d,e,f,g = string.match(guid,
+            "(%a+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)")
+          rawID = f
+        end
         local npcID = tonumber(rawID)
         add(string.format("unit='%s'  name='%s'  kind=%s  npcID=%s",
           u, name, kind, tostring(npcID)))
