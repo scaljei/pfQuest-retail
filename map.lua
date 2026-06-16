@@ -1048,17 +1048,19 @@ function pfMap:UpdateNodes()
             pfQuest.tracker.ButtonAdd(title, node)
           end
 
-          local _mapCanvas = WorldMapButton
-            or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child)
-            or WorldMapFrame
-          -- In TWW, ScrollContainer.Child is the zoomable content frame whose
-          -- GetHeight() returns the full zoomed content height (e.g. 3883px),
-          -- not the visible viewport. Use the viewport (ScrollContainer) for
-          -- Y so pins land at the correct percentage position on screen.
+          -- TWW world map layout:
+          --   ScrollContainer (697x465, the visible viewport)
+          --     Child (1002x668, the pannable/zoomable content)
+          -- Pins are parented to Child. Position is percentage of Child size,
+          -- anchored to Child TOPLEFT. This is correct — the Child scrolls
+          -- inside the ScrollContainer and carries the pins with it.
+          -- Use Child dimensions for both axes (GetWidth correct, use it for H too
+          -- since Child maintains the map's aspect ratio at all zoom levels).
+          local _sc    = WorldMapFrame and WorldMapFrame.ScrollContainer
+          local _child = _sc and _sc.Child
+          local _mapCanvas = _child or WorldMapButton or WorldMapFrame
           local _canvasW = _mapCanvas:GetWidth()
-          local _canvasH = (WorldMapFrame and WorldMapFrame.ScrollContainer
-            and WorldMapFrame.ScrollContainer:GetHeight())
-            or _mapCanvas:GetHeight()
+          local _canvasH = _mapCanvas:GetHeight()
           x = x / 100 * _canvasW
           y = y / 100 * _canvasH
 

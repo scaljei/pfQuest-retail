@@ -180,7 +180,9 @@ SlashCmdList["PFDB"] = function(input, editbox)
       add("ScrollContainer children:")
       for i, f in ipairs({sc:GetChildren()}) do
         local n = f:GetName() or "(unnamed)"
-        add(string.format("  [%d] %s  %dx%d  shown=%s", i, n, f:GetWidth(), f:GetHeight(), tostring(f:IsShown())))
+        add(string.format("  [%d] %s  %dx%d  shown=%s  strata=%s  level=%d",
+          i, n, f:GetWidth(), f:GetHeight(), tostring(f:IsShown()),
+          tostring(f:GetFrameStrata()), f:GetFrameLevel()))
         if i >= 8 then add("  ..."); break end
       end
     end
@@ -194,8 +196,8 @@ SlashCmdList["PFDB"] = function(input, editbox)
         local px, py = p:GetCenter()
         local fl = p:GetFrameLevel()
         local parent = p:GetParent() and p:GetParent():GetName() or "unnamed"
-        add(string.format("  pin[%d]: shown=%s  center=%.0f,%.0f  level=%d  parent=%s  color=%s",
-          i, tostring(shown), px or 0, py or 0, fl or 0, parent, tostring(p.color)))
+        add(string.format("  pin[%d]: shown=%s  center=%.0f,%.0f  level=%d  strata=%s  parent=%s  color=%s",
+          i, tostring(shown), px or 0, py or 0, fl or 0, tostring(p:GetFrameStrata()), parent, tostring(p.color)))
       end
     end
     -- Node data
