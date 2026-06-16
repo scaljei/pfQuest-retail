@@ -937,12 +937,18 @@ function pfMap:UpdateNode(frame, node, color, obj, distance)
       frame.tex:SetVertexColor(r,g,b,1)
     else
       frame.tex:SetTexture(pfQuestConfig.path.."\\img\\node")
-      -- On minimap, boost dark colors to a minimum brightness so pins are visible
+      -- On minimap, normalize colors to full brightness while preserving hue,
+      -- so pins are always vivid regardless of the str2rgb hash value.
+      -- This prevents dark/grey pins on the dark minimap background.
       if obj == "minimap" then
-        local minBright = 0.55
-        r = math.max(r, minBright)
-        g = math.max(g, minBright)
-        b = math.max(b, minBright)
+        local maxChan = math.max(r, g, b)
+        if maxChan > 0 then
+          r = r / maxChan
+          g = g / maxChan
+          b = b / maxChan
+        else
+          r, g, b = 1, 1, 0  -- fallback: yellow
+        end
       end
       frame.tex:SetVertexColor(r,g,b,1)
     end
