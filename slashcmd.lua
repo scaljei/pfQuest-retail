@@ -168,6 +168,25 @@ SlashCmdList["PFDB"] = function(input, editbox)
   -- argument: nptrace (toggle nameplate event tracing to confirm NAME_PLATE_UNIT_ADDED fires)
   -- argument: guidcheck (show GUID and registration status of current target)
   -- argument: searchtest (directly call SearchQuestID for quest 28374 and show node result)
+  -- argument: wantednames (dump current wantedNames index)
+  if arg1 == "wantednames" then
+    local lines = { "=== wantedNames Index ===" }
+    local wn = pfRetailRuntime and pfRetailRuntime.wantedNames
+    if not wn then
+      table.insert(lines, "pfRetailRuntime.wantedNames: NIL")
+    else
+      local count = 0
+      for name, questID in pairs(wn) do
+        count = count + 1
+        table.insert(lines, string.format("  '%s' -> questID=%d", name, questID))
+      end
+      table.insert(lines, "Total: " .. count .. " entries")
+    end
+    if pfDiag and pfDiag.showWindow then pfDiag.showWindow(lines)
+    else for _, l in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(l) end end
+    return
+  end
+
   if arg1 == "searchtest" then
     local qid = tonumber(arg2) or 28374
     local lines = { "=== SearchQuestID Test [" .. qid .. "] ===" }
