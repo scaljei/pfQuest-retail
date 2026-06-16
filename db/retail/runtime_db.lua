@@ -257,37 +257,87 @@ local function linkCachedNPCs()
 end
 
 -- ── Intercept NPC interactions to capture coordinates ──────────────────────
-local function onNPCInteraction()
-  local unit = "npc"
-  if not UnitExists(unit) then unit = "target" end
-  if not UnitExists(unit) then return end
-  if UnitIsPlayer(unit) then return end
+local function onNPCInteraction(unit)
+  -- Accept explicit unit token or try common tokens in priority order
+  local tokens = unit and { unit } or { "npc", "mouseover", "target" }
+  for _, u in ipairs(tokens) do
+    if UnitExists(u) and not UnitIsPlayer(u) then
+      local guid = UnitGUID(u)
+      if not guid then break end
+      local _, _, _, _, _, id = string.match(guid, "(%a+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)")
+      id = tonumber(id)
+      if not id or id <= 0 then break end
+      local name = UnitName(u)
+      if not name then break end
+      local level = UnitLevel(u)
+      if not (C_Map and C_Map.GetBestMapForUnit) then break end
+      local uiMapID = C_Map.GetBestMapForUnit("player")
+      if not uiMapID then break end
+      local pos = C_Map.GetPlayerMapPosition(uiMapID, "player")
+      if not pos then break end
+      local x, y = pos:GetXY()
+      registerNPC(id, name, uiMapID, x * 100, y * 100, level)
+      return  -- registered successfully, done
+    end
+  end
+end
 
-  local npcID = UnitGUID(unit)
-  if not npcID then return end
-  -- GUID format: "Creature-0-REALM-MAP-INSTANCE-NPCID-UNIQUE"
-  local _, _, _, _, _, id = string.match(npcID, "(%a+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)")
-  id = tonumber(id)
-  if not id or id <= 0 then return end
-
-  local name = UnitName(unit)
-  if not name then return end
-
-  local level = UnitLevel(unit)
-
-  -- Get position
-  if not (C_Map and C_Map.GetBestMapForUnit) then return end
-  local uiMapID = C_Map.GetBestMapForUnit("player")
+-- ── Poll C_NamePlate for all visible nameplates ───────────────────────────────
+-- NAME_PLATE_UNIT_ADDED doesn't always fire reliably in TWW (requires the
+-- frame to load before plates appear). Poll all active nameplates on a
+-- throttled OnUpdate instead — fires for every visible nameplate each second.
+local nameplateFrame = CreateFrame("Frame")
+nameplateFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+local npLastScan = 0
+nameplateFrame:SetScript("OnUpdate", function(self, elapsed)
+  local now = GetTime()
+  if now - npLastScan < 1 then return end
+  npLastScan = now
+  if not (C_NamePlate and C_NamePlate.GetNamePlates) then return end
+  local plates = C_NamePlate.GetNamePlates()
+  if not plates then return end
+  local uiMapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
   if not uiMapID then return end
   local pos = C_Map.GetPlayerMapPosition(uiMapID, "player")
   if not pos then return end
   local x, y = pos:GetXY()
   x, y = x * 100, y * 100
-
-  registerNPC(id, name, uiMapID, x, y, level)
-end
-
--- ── Intercept quest acceptance to link quest giver NPCs ─────────────────────
+  for _, plate in ipairs(plates) do
+    local unit = plate.namePlateUnitToken
+    if unit and UnitExists(unit) and not UnitIsPlayer(unit) then
+      local guid = UnitGUID(unit)
+      if guid then
+        local _, _, _, _, _, id = string.match(guid, "(%a+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)")
+        id = tonumber(id)
+        if id and id > 0 then
+          local name = UnitName(unit)
+          if name then
+            registerNPC(id, name, uiMapID, x, y, UnitLevel(unit))
+          end
+        end
+      end
+    end
+  end
+end)
+nameplateFrame:SetScript("OnEvent", function(self, event, unitToken)
+  -- NAME_PLATE_UNIT_ADDED: register immediately when a plate appears
+  if not unitToken or not UnitExists(unitToken) then return end
+  if UnitIsPlayer(unitToken) then return end
+  local guid = UnitGUID(unitToken)
+  if not guid then return end
+  local _, _, _, _, _, id = string.match(guid, "(%a+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)")
+  id = tonumber(id)
+  if not id or id <= 0 then return end
+  local name = UnitName(unitToken)
+  if not name then return end
+  local uiMapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
+  if not uiMapID then return end
+  local pos = C_Map.GetPlayerMapPosition(uiMapID, "player")
+  if not pos then return end
+  local x, y = pos:GetXY()
+  registerNPC(id, name, uiMapID, x * 100, y * 100, UnitLevel(unitToken))
+  if pfMap then pfMap.queue_update = GetTime() end
+end)
 local function onQuestAccepted(questID)
   if not questID then return end
 
@@ -426,9 +476,12 @@ runtimeFrame:SetScript("OnEvent", function(self, event, ...)
     local questID = ...
     onQuestAccepted(questID)
 
-  elseif event == "GOSSIP_SHOW" or event == "PLAYER_TARGET_CHANGED"
-      or event == "UPDATE_MOUSEOVER_UNIT" then
-    onNPCInteraction()
+  elseif event == "GOSSIP_SHOW" then
+    onNPCInteraction("npc")
+  elseif event == "PLAYER_TARGET_CHANGED" then
+    onNPCInteraction("target")
+  elseif event == "UPDATE_MOUSEOVER_UNIT" then
+    onNPCInteraction("mouseover")
   end
 end)
 
