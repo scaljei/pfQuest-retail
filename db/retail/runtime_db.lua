@@ -173,12 +173,30 @@ local function registerQuestFromInfo(info)
         if mobName then
           mobName = string.match(mobName, "^%s*(.-)%s*$")  -- trim
           -- Strip known trailing action verbs added by retail objective formatting.
-          -- e.g. "Slagmaw slain" -> "Slagmaw", "Troop defeated" -> "Troop"
+          -- e.g. "Slagmaw slain" -> "Slagmaw", "Lashers checked" -> "Lashers"
           mobName = string.match(mobName, "^(.-)%s+slain$")
                or string.match(mobName, "^(.-)%s+killed$")
                or string.match(mobName, "^(.-)%s+defeated$")
                or string.match(mobName, "^(.-)%s+destroyed$")
+               or string.match(mobName, "^(.-)%s+checked$")
+               or string.match(mobName, "^(.-)%s+collected$")
+               or string.match(mobName, "^(.-)%s+gathered$")
+               or string.match(mobName, "^(.-)%s+looted$")
+               or string.match(mobName, "^(.-)%s+freed$")
+               or string.match(mobName, "^(.-)%s+rescued$")
+               or string.match(mobName, "^(.-)%s+spoken to$")
+               or string.match(mobName, "^(.-)%s+escorted$")
+               or string.match(mobName, "^(.-)%s+found$")
                or mobName
+          -- Strip trailing plural 's' to match singular NPC names in units.loc
+          -- e.g. "Whisperwind Lashers" -> "Whisperwind Lasher"
+          -- Only strip if the result is >3 chars to avoid over-stripping
+          local singular = string.match(mobName, "^(.+[^s])s$")
+          if singular and #singular > 3 then
+            -- Index both plural and singular forms
+            pfRetailRuntime.wantedNames[string.lower(mobName)] = questID
+            mobName = singular
+          end
           -- Index name for fast future lookup by registerNPC
           pfRetailRuntime.wantedNames[string.lower(mobName)] = questID
           -- Also try to link immediately if already known
