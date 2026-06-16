@@ -632,10 +632,12 @@ end)
 
 pfBrowser:SetScript("OnUpdate", function(self)
   -- multi-select handling
-  if not self.selectState and IsControlKeyDown() and GetMouseFocus() and GetMouseFocus().pfResultButton then
+  -- GetMouseFocus was removed in TWW; GetMouseFoci returns a list of focused frames
+  local mouseFocus = GetMouseFoci and GetMouseFoci() and GetMouseFoci()[1] or nil
+  if not self.selectState and IsControlKeyDown() and mouseFocus and mouseFocus.pfResultButton then
     for id, frame in pairs(pfBrowser.tabs) do
       for id, button in pairs(frame.buttons) do
-        if button.name == GetMouseFocus().name then
+        if button.name == mouseFocus.name then
           button.tex:SetColorTexture(.3,1,.8,.4)
         end
       end
