@@ -88,7 +88,10 @@ local function wipeClassicDB()
   pfDB["refloot"]        = { ["data"] = {}, ["loc"] = {} }
   pfDB["quests"]         = { ["data"] = {}, ["loc"] = {} }
   pfDB["quests-itemreq"] = { ["data"] = {}, ["loc"] = {} }
-  pfDB["minimap"]        = {}
+  -- pfDB["minimap"] is intentionally NOT wiped: classic zone dimensions are
+  -- static reference data (not NPC/quest data). registerZone() adds retail
+  -- zone entries into the same table. Wiping it loses Felwood, Ashenvale etc.
+  -- and causes UpdateMinimap to skip all pins (minimap_sizes[mapID] = nil).
   pfDB["areatrigger"]    = {}
   -- meta kept: needed for SearchObjectSkill
 

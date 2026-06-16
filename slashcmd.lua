@@ -164,6 +164,51 @@ SlashCmdList["PFDB"] = function(input, editbox)
     return
   end
 
+  -- argument: pindump (inspect live world map pin state for debugging)
+  if arg1 == "pindump" then
+    local lines = { "=== Map Pin State ===" }
+    local function add(s) table.insert(lines, s) end
+    -- Canvas
+    local canvas = WorldMapButton
+      or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child)
+    add("Canvas: " .. (canvas and (canvas:GetWidth().."x"..canvas:GetHeight()) or "NIL"))
+    add("WorldMapFrame shown: " .. tostring(WorldMapFrame and WorldMapFrame:IsShown()))
+    -- Pins
+    local pinCount = pfMap.pins and #pfMap.pins or 0
+    add("pfMap.pins count: " .. pinCount)
+    for i = 1, math.min(pinCount, 10) do
+      local p = pfMap.pins[i]
+      if p then
+        local shown = p:IsShown()
+        local px, py = p:GetCenter()
+        local fl = p:GetFrameLevel()
+        local parent = p:GetParent() and p:GetParent():GetName() or "unnamed"
+        add(string.format("  pin[%d]: shown=%s  center=%.0f,%.0f  level=%d  parent=%s  color=%s",
+          i, tostring(shown), px or 0, py or 0, fl or 0, parent, tostring(p.color)))
+      end
+    end
+    -- Node data
+    local nodeCount = 0
+    local curMap = pfMap:GetCurrentMapID()
+    add("Current pfMapID: " .. tostring(curMap))
+    if pfMap.nodes then
+      for addon, aData in pairs(pfMap.nodes) do
+        for mapID, mData in pairs(aData) do
+          for coords, _ in pairs(mData) do
+            nodeCount = nodeCount + 1
+            if nodeCount <= 5 then
+              add(string.format("  node: addon=%s  mapID=%d  coords=%s", addon, mapID, coords))
+            end
+          end
+        end
+      end
+    end
+    add("Total node entries: " .. nodeCount)
+    if pfDiag and pfDiag.showWindow then pfDiag.showWindow(lines)
+    else for _, l in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(l) end end
+    return
+  end
+
   if arg1 == "npccache" then
     if arg2 == "clear" then
       pfQuest_npcCache = nil
