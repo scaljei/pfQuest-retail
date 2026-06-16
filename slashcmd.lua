@@ -203,12 +203,31 @@ SlashCmdList["PFDB"] = function(input, editbox)
             end
           end
           add(string.format("  units.loc:  %s", inLoc and ("YES ('"..inLoc.."')") or "NO"))
-          -- wantedNames check
-          local lname = string.lower(name)
-          local wn = pfRetailRuntime and pfRetailRuntime.wantedNames
+          -- Quest link check
           local linkedQuest = wn and wn[lname]
           add(string.format("  wantedNames['%s']: %s", lname,
             linkedQuest and ("questID="..linkedQuest) or "NO"))
+          if linkedQuest and pfDB and pfDB["quests"] and pfDB["quests"]["data"] then
+            local qdata = pfDB["quests"]["data"][linkedQuest]
+            if qdata then
+              local objU = qdata["obj"] and qdata["obj"]["U"]
+              if objU then
+                local found = false
+                for _, uid in ipairs(objU) do
+                  add(string.format("  quest[%d].obj.U contains npcID=%d %s",
+                    linkedQuest, uid, uid==npcID and "<-- THIS NPC" or ""))
+                  if uid == npcID then found = true end
+                end
+                if not found then
+                  add(string.format("  WARNING: npcID %d NOT in quest obj.U — link missing!", npcID))
+                end
+              else
+                add(string.format("  quest[%d].obj.U: NIL — link never formed!", linkedQuest))
+              end
+            else
+              add(string.format("  quest[%d]: NOT in pfDB.quests.data", linkedQuest))
+            end
+          end
         end
           -- Node check
           local nodeCount = 0
