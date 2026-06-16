@@ -167,6 +167,35 @@ SlashCmdList["PFDB"] = function(input, editbox)
   -- argument: pindump (inspect live world map pin state for debugging)
   -- argument: nptrace (toggle nameplate event tracing to confirm NAME_PLATE_UNIT_ADDED fires)
   -- argument: guidcheck (show GUID and registration status of current target)
+  -- argument: searchtest (directly call SearchQuestID for quest 28374 and show node result)
+  if arg1 == "searchtest" then
+    local qid = tonumber(arg2) or 28374
+    local lines = { "=== SearchQuestID Test [" .. qid .. "] ===" }
+    local function add(s) table.insert(lines, s) end
+    -- Count nodes before
+    local before = 0
+    if pfMap and pfMap.nodes then
+      for a,ad in pairs(pfMap.nodes) do for m,md in pairs(ad) do for c,_ in pairs(md) do before=before+1 end end end
+    end
+    add("nodes before: " .. before)
+    -- Run SearchQuestID
+    local meta = { ["addon"] = "PFQUEST" }
+    local ok, err = pcall(pfDatabase.SearchQuestID, pfDatabase, qid, meta)
+    add("SearchQuestID ok=" .. tostring(ok) .. (ok and "" or " err="..tostring(err)))
+    -- Count nodes after
+    local after = 0
+    if pfMap and pfMap.nodes then
+      for a,ad in pairs(pfMap.nodes) do for m,md in pairs(ad) do for c,cd in pairs(md) do
+        after=after+1
+        for title,_ in pairs(cd) do add("  node: addon="..a.." map="..m.." coords="..c.." title="..title) end
+      end end end
+    end
+    add("nodes after: " .. after)
+    if pfDiag and pfDiag.showWindow then pfDiag.showWindow(lines)
+    else for _,l in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(l) end end
+    return
+  end
+
   if arg1 == "guidcheck" then
     local lines = { "=== GUID / Registration Check ===" }
     local function add(s) table.insert(lines, s) end
