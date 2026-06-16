@@ -204,7 +204,24 @@ SlashCmdList["PFDB"] = function(input, editbox)
           add(string.format("  wantedNames['%s']: %s", lname,
             linkedQuest and ("questID="..linkedQuest) or "NO"))
         end
-        -- Zone info
+          -- Node check
+          local nodeCount = 0
+          if pfMap and pfMap.nodes then
+            for addon, aData in pairs(pfMap.nodes) do
+              for mapID, mData in pairs(aData) do
+                for coords, nData in pairs(mData) do
+                  for title, _ in pairs(nData) do
+                    if string.find(string.lower(title), string.lower(name), 1, true) then
+                      nodeCount = nodeCount + 1
+                      add(string.format("  node: addon=%s mapID=%d coords=%s title=%s",
+                        addon, mapID, coords, title))
+                    end
+                  end
+                end
+              end
+            end
+          end
+          if nodeCount == 0 then add("  nodes: NONE (not in pfMap.nodes)") end
         local uiMapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
         local pfZoneID = uiMapID and pfQuest and pfQuest.retailZoneMap and
           pfQuest.retailZoneMap[uiMapID]
