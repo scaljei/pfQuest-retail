@@ -165,6 +165,27 @@ SlashCmdList["PFDB"] = function(input, editbox)
   end
 
   -- argument: pindump (inspect live world map pin state for debugging)
+  -- argument: nptrace (toggle nameplate event tracing to confirm NAME_PLATE_UNIT_ADDED fires)
+  if arg1 == "nptrace" then
+    if not pfNPTrace then
+      pfNPTrace = { count = 0, frame = CreateFrame("Frame") }
+      pfNPTrace.frame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+      pfNPTrace.frame:SetScript("OnEvent", function(self, event, unitToken)
+        pfNPTrace.count = pfNPTrace.count + 1
+        local name = unitToken and UnitName(unitToken) or "?"
+        local guid = unitToken and UnitGUID(unitToken) or "?"
+        DEFAULT_CHAT_FRAME:AddMessage(string.format(
+          "|cff33ffccNPTrace|r [%d] %s  guid=%s", pfNPTrace.count, name, tostring(guid)))
+      end)
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: Nameplate trace ON — move near NPCs.")
+    else
+      pfNPTrace.frame:UnregisterAllEvents()
+      pfNPTrace = nil
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: Nameplate trace OFF.")
+    end
+    return
+  end
+
   if arg1 == "pindump" then
     local lines = { "=== Map Pin State ===" }
     local function add(s) table.insert(lines, s) end
