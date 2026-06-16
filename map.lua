@@ -1051,8 +1051,16 @@ function pfMap:UpdateNodes()
           local _mapCanvas = WorldMapButton
             or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child)
             or WorldMapFrame
-          x = x / 100 * _mapCanvas:GetWidth()
-          y = y / 100 * _mapCanvas:GetHeight()
+          -- In TWW, ScrollContainer.Child is the zoomable content frame whose
+          -- GetHeight() returns the full zoomed content height (e.g. 3883px),
+          -- not the visible viewport. Use the viewport (ScrollContainer) for
+          -- Y so pins land at the correct percentage position on screen.
+          local _canvasW = _mapCanvas:GetWidth()
+          local _canvasH = (WorldMapFrame and WorldMapFrame.ScrollContainer
+            and WorldMapFrame.ScrollContainer:GetHeight())
+            or _mapCanvas:GetHeight()
+          x = x / 100 * _canvasW
+          y = y / 100 * _canvasH
 
           pfMap.pins[i]:ClearAllPoints()
           pfMap.pins[i]:SetPoint("CENTER", _mapCanvas, "TOPLEFT", x, -y)
