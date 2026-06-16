@@ -461,6 +461,48 @@ SlashCmdList["PFDB"] = function(input, editbox)
     return
   end
 
+  -- argument: itemdump (inspect type=item objective state)
+  if arg1 == "itemdump" then
+    local lines = { "=== Item Objective State ===" }
+    local wi = pfRetailRuntime and pfRetailRuntime.wantedItems
+    if not wi then
+      table.insert(lines, "pfRetailRuntime.wantedItems: NIL")
+    else
+      local count = 0
+      for itemID, questID in pairs(wi) do
+        count = count + 1
+        local itemName = pfDB["items"] and pfDB["items"]["loc"] and pfDB["items"]["loc"][itemID] or "?"
+        local sources = pfDB["items"] and pfDB["items"]["data"] and pfDB["items"]["data"][itemID]
+        local srcCount = 0
+        if sources and sources["U"] then
+          for _ in pairs(sources["U"]) do srcCount = srcCount + 1 end
+        end
+        table.insert(lines, string.format(
+          "  itemID=%-7d questID=%-7d name='%s'  npcSources=%d",
+          itemID, questID, itemName, srcCount))
+        if sources and sources["U"] then
+          for npcID, _ in pairs(sources["U"]) do
+            local npcName = pfDB["units"] and pfDB["units"]["loc"] and pfDB["units"]["loc"][npcID] or "?"
+            local hasCoords = pfDB["units"] and pfDB["units"]["data"] and pfDB["units"]["data"][npcID]
+            table.insert(lines, string.format(
+              "    npcID=%-7d name='%s'  hasCoords=%s",
+              npcID, npcName, tostring(hasCoords ~= nil)))
+          end
+        end
+      end
+      table.insert(lines, "Total wanted items: " .. count)
+    end
+    -- Also show pfDB["items"] totals
+    local idata = pfDB["items"] and pfDB["items"]["data"] and 0 or nil
+    if idata then
+      for _ in pairs(pfDB["items"]["data"]) do idata = idata + 1 end
+      table.insert(lines, "pfDB.items.data total entries: " .. idata)
+    end
+    if pfDiag and pfDiag.showWindow then pfDiag.showWindow(lines)
+    else for _, l in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(l) end end
+    return
+  end
+
   -- argument: queststatus (check single quest completion)
   if (arg1 == "queststatus") and arg2 then
     local qid = tonumber(arg2)

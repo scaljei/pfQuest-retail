@@ -27,6 +27,7 @@ local BUTTONS = {
   { "pfDiag Errors", "pfdiag errors", "Show only errors from session log" },
   { "Scan",          "scan",        "Scan server for custom items" },
   { "Search Test",   "searchtest",  "SearchQuestID smoke-test (last active quest)" },
+  { "Item Dump",     "itemdump",    "Inspect type=item objective state and drop sources" },
 }
 
 -- ── helpers ───────────────────────────────────────────────────────────────

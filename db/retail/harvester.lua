@@ -178,6 +178,29 @@ lootFrame:SetScript("OnEvent", function(self, event)
   if not uiMapID then return end
   if not pfRetailRuntime or not pfRetailRuntime.registerNPC then return end
   pfRetailRuntime.registerNPC(npcID, name, uiMapID, x, y)
+
+  -- ── Item drop recording ──────────────────────────────────────────────────
+  -- Walk all loot slots. For each item that is a wanted quest objective
+  -- (in pfRetailRuntime.wantedItems), record npcID as a drop source.
+  -- This builds pfDB["items"]["data"][itemID]["U"][npcID] on the fly,
+  -- giving SearchItemID the data it needs to place pins for type=item quests.
+  if pfRetailRuntime.registerItemDrop and pfRetailRuntime.wantedItems
+     and next(pfRetailRuntime.wantedItems) then
+    local numSlots = GetNumLootItems and GetNumLootItems() or 0
+    for i = 1, numSlots do
+      -- GetLootSlotInfo(slot) returns: texture, item, quantity, currencyID,
+      --   quality, locked, isQuestItem, questID, isActive
+      local _, itemLink, quantity, _, quality = GetLootSlotInfo(i)
+      if itemLink then
+        -- Extract itemID from link: |Hitem:12345:...|
+        local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
+        if itemID and pfRetailRuntime.wantedItems[itemID] then
+          pfRetailRuntime.registerItemDrop(npcID, itemID)
+        end
+      end
+    end
+  end
+
   if pfMap then pfMap.queue_update = GetTime() end
 end)
 

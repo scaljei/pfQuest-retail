@@ -15,14 +15,42 @@ pfRetailRuntime.populated = {}   -- track which questIDs we've already processed
 -- and triggers a map update, so pins appear the moment the NPC is first observed
 -- rather than waiting for the next UpdateNodes poll cycle.
 pfRetailRuntime.wantedNames = {}
+-- wantedItems: maps itemID → questID for type=item objectives.
+-- When the loot harvester records a drop (npcID drops itemID), it checks this
+-- table and writes pfDB["items"]["data"][itemID]["U"][npcID]=1 so SearchItemID
+-- can route the quest's item objective pins to that NPC's location.
+pfRetailRuntime.wantedItems = {}
 
--- ── Ensure pfDB tables exist ────────────────────────────────────────────────
+-- ensureItemDB: ensure pfDB["items"] has the standard sub-tables.
+-- ensureItemDB: ensure pfDB["items"] has the standard sub-tables.
 local function ensureDB()
   pfDB["units"]   = pfDB["units"]   or { ["data"]={}, ["loc"]={} }
   pfDB["objects"] = pfDB["objects"] or { ["data"]={}, ["loc"]={} }
   pfDB["quests"]  = pfDB["quests"]  or { ["data"]={}, ["loc"]={} }
   pfDB["zones"]   = pfDB["zones"]   or { ["data"]={}, ["loc"]={} }
   pfDB["minimap"] = pfDB["minimap"] or {}
+  pfDB["items"]   = pfDB["items"]   or { ["data"]={}, ["loc"]={} }
+end
+
+-- ── Item registration ─────────────────────────────────────────────────────────
+-- registerItemDrop(npcID, itemID): records that npcID drops itemID.
+-- Writes into pfDB["items"]["data"][itemID]["U"][npcID] = 1 (dropchance=1 = certain
+-- from the player's direct observation — not a statistical estimate).
+-- SearchItemID reads this table to route quest item objective pins.
+local function registerItemDrop(npcID, itemID)
+  if not npcID or not itemID or npcID <= 0 or itemID <= 0 then return end
+  ensureDB()
+  pfDB["items"]["data"][itemID] = pfDB["items"]["data"][itemID] or {}
+  pfDB["items"]["data"][itemID]["U"] = pfDB["items"]["data"][itemID]["U"] or {}
+  if pfDB["items"]["data"][itemID]["U"][npcID] then return end  -- already known
+  pfDB["items"]["data"][itemID]["U"][npcID] = 1  -- observed drop, treat as 100%
+  -- If this is a wanted item, trigger map update
+  if pfRetailRuntime.wantedItems[itemID] then
+    if pfMap then pfMap.queue_update = GetTime() end
+    pfQuest:Debug(string.format(
+      "|cffaabbffLoot harvest|r: itemID=%d dropped by npcID=%d (questID=%d)",
+      itemID, npcID, pfRetailRuntime.wantedItems[itemID]))
+  end
 end
 
 -- ── Zone registration ────────────────────────────────────────────────────────
@@ -208,6 +236,56 @@ local function registerQuestFromInfo(info)
               table.insert(qdata["obj"]["U"], npcID)
               break
             end
+          end
+        end
+      end
+
+      -- ── type=item: collection quest objectives ───────────────────────────
+      -- Retail text format: "0/5 Item Name" (no trailing verb)
+      -- Classic format: "Item Name: 0/5"
+      -- We resolve item name → itemID via C_Item.GetItemInfoInstant, register
+      -- the item in pfDB["items"], and index it in wantedItems so the loot
+      -- harvester can write NPC drop links the moment any source is looted.
+      if obj.type == "item" and obj.text then
+        local itemName = string.match(obj.text, "^%d+/%d+%s+(.+)$")
+                      or string.match(obj.text, "^([^:]+):")
+        if itemName then
+          itemName = string.match(itemName, "^%s*(.-)%s*$")  -- trim
+        end
+        if itemName and itemName ~= "" then
+          -- Resolve itemID from name (C_Item.GetItemInfoInstant works by name in retail)
+          local itemID = nil
+          if C_Item and C_Item.GetItemInfoInstant then
+            local info = C_Item.GetItemInfoInstant(itemName)
+            if info then itemID = info.itemID end
+          end
+          -- Fallback: GetItemInfoInstant global (older API)
+          if not itemID and GetItemInfoInstant then
+            local id = GetItemInfoInstant(itemName)
+            itemID = tonumber(id)
+          end
+          if itemID and itemID > 0 then
+            ensureDB()
+            -- Register item name in loc table
+            pfDB["items"]["loc"][itemID] = pfDB["items"]["loc"][itemID] or itemName
+            -- Ensure data entry exists
+            pfDB["items"]["data"][itemID] = pfDB["items"]["data"][itemID] or {}
+            -- Register item as a quest objective in pfDB["quests"]
+            local qdata = pfDB["quests"]["data"][questID]
+            qdata["obj"] = qdata["obj"] or {}
+            qdata["obj"]["I"] = qdata["obj"]["I"] or {}
+            local already = false
+            for _, iid in ipairs(qdata["obj"]["I"]) do
+              if iid == itemID then already = true; break end
+            end
+            if not already then
+              table.insert(qdata["obj"]["I"], itemID)
+            end
+            -- Index for loot harvester: when this itemID drops, link the source NPC
+            pfRetailRuntime.wantedItems[itemID] = questID
+            pfQuest:Debug(string.format(
+              "|cffaabbffItem objective|r: questID=%d itemID=%d '%s'",
+              questID, itemID, itemName))
           end
         end
       end
@@ -558,6 +636,7 @@ end)
 -- Make registration functions public so other modules can call them
 pfRetailRuntime.registerZone    = registerZone
 pfRetailRuntime.registerNPC     = registerNPC
+pfRetailRuntime.registerItemDrop = registerItemDrop
 pfRetailRuntime.registerQuest   = registerQuest
 pfRetailRuntime.scanQuestLog    = scanQuestLog
 pfRetailRuntime.linkCachedNPCs  = linkCachedNPCs
@@ -568,4 +647,5 @@ pfRetailRuntime.linkCachedNPCs  = linkCachedNPCs
 pfRetailRuntime.resetPopulated = function()
   pfRetailRuntime.populated = {}
   pfRetailRuntime.wantedNames = {}
+  pfRetailRuntime.wantedItems = {}
 end
