@@ -172,9 +172,12 @@ SlashCmdList["PFDB"] = function(input, editbox)
     local sc = WorldMapFrame and WorldMapFrame.ScrollContainer
     local child = sc and sc.Child
     add("WorldMapFrame:       " .. (WorldMapFrame and WorldMapFrame:GetWidth().."x"..WorldMapFrame:GetHeight() or "NIL"))
+    add("  screen pos TOPLEFT: " .. (WorldMapFrame and WorldMapFrame:GetLeft()..", "..WorldMapFrame:GetTop() or "NIL"))
     add("ScrollContainer:     " .. (sc and sc:GetWidth().."x"..sc:GetHeight() or "NIL"))
+    add("  screen pos TOPLEFT: " .. (sc and sc:GetLeft()..", "..sc:GetTop() or "NIL"))
     add("ScrollContainer.Child: " .. (child and child:GetWidth().."x"..child:GetHeight() or "NIL"))
-    add("WorldMapButton: " .. (WorldMapButton and WorldMapButton:GetWidth().."x"..WorldMapButton:GetHeight() or "NIL"))
+    add("  screen pos TOPLEFT: " .. (child and child:GetLeft()..", "..child:GetTop() or "NIL"))
+    add("UIParent: " .. UIParent:GetWidth().."x"..UIParent:GetHeight())
     -- Walk all children of ScrollContainer looking for the map art frame
     if sc then
       add("ScrollContainer children:")
