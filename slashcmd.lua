@@ -214,9 +214,11 @@ SlashCmdList["PFDB"] = function(input, editbox)
               if objU then
                 local found = false
                 for _, uid in ipairs(objU) do
-                  add(string.format("  quest[%d].obj.U contains npcID=%d %s",
-                    linkedQuest, uid, uid==npcID and "<-- THIS NPC" or ""))
-                  if uid == npcID then found = true end
+                  if uid ~= nil then
+                    add(string.format("  quest[%d].obj.U contains npcID=%s %s",
+                      linkedQuest, tostring(uid), uid==npcID and "<-- THIS NPC" or ""))
+                    if uid == npcID then found = true end
+                  end
                 end
                 if not found then
                   add(string.format("  WARNING: npcID %d NOT in quest obj.U — link missing!", npcID))
