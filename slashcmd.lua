@@ -170,93 +170,83 @@ SlashCmdList["PFDB"] = function(input, editbox)
   if arg1 == "guidcheck" then
     local lines = { "=== GUID / Registration Check ===" }
     local function add(s) table.insert(lines, s) end
-    local units = { "target", "mouseover", "npc" }
-    for _, u in ipairs(units) do
-      if UnitExists(u) then
+    local found_unit = false
+    for _, u in ipairs({ "target", "mouseover", "npc" }) do
+      if not found_unit and UnitExists(u) then
+        found_unit = true
         local guid = UnitGUID(u)
         local name = UnitName(u) or "?"
+        local lname = string.lower(name)
         local kind = guid and string.match(guid, "^(%a+)-") or "?"
-        local rawID
+        -- Parse npcID
+        local npcID = nil
         if guid then
-          local a,b,c,d,e,f,g = string.match(guid,
-            "(%a+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)")
-          add(string.format("  raw guid='%s'", tostring(guid)))
-          add(string.format("  match: a=%s b=%s c=%s d=%s e=%s f=%s g=%s",
-            tostring(a),tostring(b),tostring(c),tostring(d),
-            tostring(e),tostring(f),tostring(g)))
-          rawID = f
+          local a,b,c,d,e,f,g = string.match(guid, "(%a+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)")
+          add("  raw guid='"..tostring(guid).."'")
+          add("  match: a="..tostring(a).." b="..tostring(b).." c="..tostring(c).." d="..tostring(d).." e="..tostring(e).." f="..tostring(f).." g="..tostring(g))
+          npcID = tonumber(f)
         end
-        local npcID = tonumber(rawID)
-        add(string.format("unit='%s'  name='%s'  kind=%s  npcID=%s",
-          u, name, kind, tostring(npcID)))
-        -- Registration status
+        add("unit='"..u.."'  name='"..name.."'  kind="..kind.."  npcID="..tostring(npcID))
+        -- Registration
         if npcID then
-          local inData = pfDB and pfDB["units"] and pfDB["units"]["data"] and
-            pfDB["units"]["data"][npcID]
-          local inLoc  = pfDB and pfDB["units"] and pfDB["units"]["loc"] and
-            pfDB["units"]["loc"][npcID]
-          add(string.format("  units.data: %s", inData and "YES (coords="..#inData["coords"]..")" or "NO"))
+          local inData = pfDB and pfDB["units"] and pfDB["units"]["data"] and pfDB["units"]["data"][npcID]
+          local inLoc  = pfDB and pfDB["units"] and pfDB["units"]["loc"]  and pfDB["units"]["loc"][npcID]
+          add("  units.data: "..(inData and ("YES (coords="..#inData["coords"]..") lvl="..tostring(inData["lvl"])) or "NO"))
           if inData and inData["coords"] then
             for ci, coord in ipairs(inData["coords"]) do
-              add(string.format("    coord[%d]: x=%.2f y=%.2f pfZone=%s",
-                ci, coord[1] or 0, coord[2] or 0, tostring(coord[3])))
+              add("    coord["..ci.."]: x="..string.format("%.2f",coord[1] or 0).." y="..string.format("%.2f",coord[2] or 0).." pfZone="..tostring(coord[3]))
             end
           end
-          add(string.format("  units.loc:  %s", inLoc and ("YES ('"..inLoc.."')") or "NO"))
-          -- Quest link check
+          add("  units.loc: "..(inLoc and ("YES ('"..inLoc.."')") or "NO"))
+          -- wantedNames
+          local wn = pfRetailRuntime and pfRetailRuntime.wantedNames
           local linkedQuest = wn and wn[lname]
-          add(string.format("  wantedNames['%s']: %s", lname,
-            linkedQuest and ("questID="..linkedQuest) or "NO"))
-          if linkedQuest and pfDB and pfDB["quests"] and pfDB["quests"]["data"] then
-            local qdata = pfDB["quests"]["data"][linkedQuest]
+          add("  wantedNames['"..lname.."']: "..(linkedQuest and ("questID="..tostring(linkedQuest)) or "NO"))
+          if linkedQuest then
+            local qdata = pfDB and pfDB["quests"] and pfDB["quests"]["data"] and pfDB["quests"]["data"][linkedQuest]
             if qdata then
               local objU = qdata["obj"] and qdata["obj"]["U"]
               if objU then
-                local found = false
+                local linked = false
                 for _, uid in ipairs(objU) do
-                  if uid ~= nil then
-                    add(string.format("  quest[%d].obj.U contains npcID=%s %s",
-                      linkedQuest, tostring(uid), uid==npcID and "<-- THIS NPC" or ""))
-                    if uid == npcID then found = true end
+                  if uid then
+                    add("  quest["..linkedQuest.."].obj.U: npcID="..tostring(uid)..(uid==npcID and " <-- THIS NPC" or ""))
+                    if uid == npcID then linked = true end
                   end
                 end
-                if not found then
-                  add(string.format("  WARNING: npcID %d NOT in quest obj.U — link missing!", npcID))
-                end
+                if not linked then add("  WARNING: npcID "..tostring(npcID).." NOT in obj.U — link missing!") end
               else
-                add(string.format("  quest[%d].obj.U: NIL — link never formed!", linkedQuest))
+                add("  quest["..tostring(linkedQuest).."].obj.U: NIL — link never formed!")
               end
             else
-              add(string.format("  quest[%d]: NOT in pfDB.quests.data", linkedQuest))
+              add("  quest["..tostring(linkedQuest).."]: NOT in pfDB.quests.data")
             end
           end
         end
-          -- Node check
-          local nodeCount = 0
-          if pfMap and pfMap.nodes then
-            for addon, aData in pairs(pfMap.nodes) do
-              for mapID, mData in pairs(aData) do
-                for coords, nData in pairs(mData) do
-                  for title, _ in pairs(nData) do
-                    if string.find(string.lower(title), string.lower(name), 1, true) then
-                      nodeCount = nodeCount + 1
-                      add(string.format("  node: addon=%s mapID=%d coords=%s title=%s",
-                        addon, mapID, coords, title))
-                    end
+        -- Node check
+        local nodeCount = 0
+        if pfMap and pfMap.nodes then
+          for addon, aData in pairs(pfMap.nodes) do
+            for mapID, mData in pairs(aData) do
+              for coords, nData in pairs(mData) do
+                for title, _ in pairs(nData) do
+                  if string.find(string.lower(title), lname, 1, true) then
+                    nodeCount = nodeCount + 1
+                    add("  node: addon="..addon.." mapID="..tostring(mapID).." coords="..coords.." title="..title)
                   end
                 end
               end
             end
           end
-          if nodeCount == 0 then add("  nodes: NONE (not in pfMap.nodes)") end
+        end
+        if nodeCount == 0 then add("  nodes: NONE (not in pfMap.nodes)") end
+        -- Zone
         local uiMapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
-        local pfZoneID = uiMapID and pfQuest and pfQuest.retailZoneMap and
-          pfQuest.retailZoneMap[uiMapID]
-        add(string.format("  player uiMapID=%s  pfZoneID=%s",
-          tostring(uiMapID), tostring(pfZoneID)))
-        break  -- first existing unit is enough
+        local pfZoneID = uiMapID and pfQuest and pfQuest.retailZoneMap and pfQuest.retailZoneMap[uiMapID]
+        add("  player uiMapID="..tostring(uiMapID).."  pfZoneID="..tostring(pfZoneID))
       end
     end
+    if not found_unit then add("No valid unit found (target/mouseover/npc)") end
     if pfDiag and pfDiag.showWindow then pfDiag.showWindow(lines)
     else for _, l in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(l) end end
     return
