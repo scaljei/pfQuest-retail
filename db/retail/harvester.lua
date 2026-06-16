@@ -50,9 +50,10 @@ local function registerFromUnit(unit)
   if not npcID or npcID <= 0 then return end
   local name = UnitName(unit)
   if not name or name == UNKNOWN then return end
+  local level = UnitLevel(unit)
   local uiMapID, x, y = getPlayerPos()
   if not uiMapID then return end
-  pfRetailRuntime.registerNPC(npcID, name, uiMapID, x, y)
+  pfRetailRuntime.registerNPC(npcID, name, uiMapID, x, y, level)
   if pfMap then pfMap.queue_update = GetTime() end
 end
 
@@ -145,7 +146,12 @@ combatFrame:SetScript("OnEvent", function(self, event)
   local uiMapID, x, y = getPlayerPos()
   if not uiMapID then return end
   if not pfRetailRuntime or not pfRetailRuntime.registerNPC then return end
-  pfRetailRuntime.registerNPC(npcID, destName, uiMapID, x, y)
+  -- Level: try target if it's still the dying unit
+  local level = nil
+  if UnitExists("target") and UnitGUID("target") == destGUID then
+    level = UnitLevel("target")
+  end
+  pfRetailRuntime.registerNPC(npcID, destName, uiMapID, x, y, level)
   if pfMap then pfMap.queue_update = GetTime() end
 end)
 

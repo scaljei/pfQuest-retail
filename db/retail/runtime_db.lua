@@ -93,7 +93,7 @@ local function registerZone(uiMapID)
 end
 
 -- ── NPC registration ─────────────────────────────────────────────────────────
-local function registerNPC(npcID, name, uiMapID, x, y)
+local function registerNPC(npcID, name, uiMapID, x, y, level)
   if not npcID or npcID <= 0 then return end
   ensureDB()
 
@@ -107,8 +107,11 @@ local function registerNPC(npcID, name, uiMapID, x, y)
   -- Add coord if not already present
   local data = pfDB["units"]["data"][npcID]
   if not data then
-    pfDB["units"]["data"][npcID] = { ["coords"]={}, ["fac"]="AH", ["lvl"]="??" }
+    pfDB["units"]["data"][npcID] = { ["coords"]={}, ["fac"]="AH", ["lvl"]=tonumber(level) or "??" }
     data = pfDB["units"]["data"][npcID]
+  elseif level and tonumber(level) and data["lvl"] == "??" then
+    -- Update level if we now know it and previously didn't
+    data["lvl"] = tonumber(level)
   end
 
   -- Check for duplicate
@@ -270,6 +273,8 @@ local function onNPCInteraction()
   local name = UnitName(unit)
   if not name then return end
 
+  local level = UnitLevel(unit)
+
   -- Get position
   if not (C_Map and C_Map.GetBestMapForUnit) then return end
   local uiMapID = C_Map.GetBestMapForUnit("player")
@@ -279,7 +284,7 @@ local function onNPCInteraction()
   local x, y = pos:GetXY()
   x, y = x * 100, y * 100
 
-  registerNPC(id, name, uiMapID, x, y)
+  registerNPC(id, name, uiMapID, x, y, level)
 end
 
 -- ── Intercept quest acceptance to link quest giver NPCs ─────────────────────
@@ -299,7 +304,7 @@ local function onQuestAccepted(questID)
         local pos = uiMapID and C_Map.GetPlayerMapPosition(uiMapID, "player")
         if pos then
           local x, y = pos:GetXY()
-          registerNPC(id, UnitName(unit), uiMapID, x*100, y*100)
+          registerNPC(id, UnitName(unit), uiMapID, x*100, y*100, UnitLevel(unit))
           -- Link as quest starter
           ensureDB()
           pfDB["quests"]["data"][questID] = pfDB["quests"]["data"][questID] or { ["lvl"]=0 }
@@ -463,6 +468,8 @@ nameplateFrame:SetScript("OnEvent", function(self, event, unitToken)
   local name = UnitName(unitToken)
   if not name then return end
 
+  local level = UnitLevel(unitToken)
+
   if not (C_Map and C_Map.GetBestMapForUnit) then return end
   local uiMapID = C_Map.GetBestMapForUnit("player")
   if not uiMapID then return end
@@ -471,7 +478,7 @@ nameplateFrame:SetScript("OnEvent", function(self, event, unitToken)
   local x, y = pos:GetXY()
   -- Nameplate position is approximate (player position), but still useful for
   -- establishing which zone the NPC is in. x/y will be close enough for a pin.
-  registerNPC(id, name, uiMapID, x * 100, y * 100)
+  registerNPC(id, name, uiMapID, x * 100, y * 100, level)
 
   -- If this NPC matches a quest objective, trigger a node update
   if pfMap then pfMap.queue_update = GetTime() end
