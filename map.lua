@@ -806,6 +806,9 @@ function pfMap:BuildNode(name, parent)
     f.defalpha = tonumber(pfQuest_config["minimaptransp"]) or 1
     f.defsize  = 14
     f.minimap  = true
+    -- In TWW, Minimap children at BACKGROUND strata are buried under the
+    -- minimap border and tracking overlays. Use MEDIUM so pins render on top.
+    f:SetFrameStrata("MEDIUM")
   end
 
   f:SetWidth(f.defsize)
@@ -934,12 +937,21 @@ function pfMap:UpdateNode(frame, node, color, obj, distance)
       frame.tex:SetVertexColor(r,g,b,1)
     else
       frame.tex:SetTexture(pfQuestConfig.path.."\\img\\node")
+      -- On minimap, boost dark colors to a minimum brightness so pins are visible
+      if obj == "minimap" then
+        local minBright = 0.55
+        r = math.max(r, minBright)
+        g = math.max(g, minBright)
+        b = math.max(b, minBright)
+      end
       frame.tex:SetVertexColor(r,g,b,1)
     end
   end
 
   if frame.updateLayer then
-    frame:SetFrameLevel((obj == "minimap" and 4 or 112) + frame.layer)
+    -- World map: high level to appear above map art (112+)
+    -- Minimap: use 200+ at MEDIUM strata to appear above all minimap overlays
+    frame:SetFrameLevel((obj == "minimap" and 200 or 112) + frame.layer)
   end
 
   if frame.updateTexture or frame.updateVertex or frame.updateColor or frame.updateLayer then
