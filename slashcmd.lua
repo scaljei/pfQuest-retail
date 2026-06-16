@@ -180,6 +180,10 @@ SlashCmdList["PFDB"] = function(input, editbox)
         if guid then
           local a,b,c,d,e,f,g = string.match(guid,
             "(%a+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)")
+          add(string.format("  raw guid='%s'", tostring(guid)))
+          add(string.format("  match: a=%s b=%s c=%s d=%s e=%s f=%s g=%s",
+            tostring(a),tostring(b),tostring(c),tostring(d),
+            tostring(e),tostring(f),tostring(g)))
           rawID = f
         end
         local npcID = tonumber(rawID)
