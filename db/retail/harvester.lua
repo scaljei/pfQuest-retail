@@ -175,12 +175,25 @@ lootFrame:SetScript("OnEvent", function(self, event)
   if pfMap then pfMap.queue_update = GetTime() end
 end)
 
--- ── 4. NPC service: MERCHANT_SHOW / TRAINER_SHOW ─────────────────────────────
+-- ── 4. NPC service: MERCHANT_SHOW / TRAINER_SHOW and other NPC interactions ──
+-- All events where a specific unit token is the interacting NPC.
+local serviceEvents = {
+  MERCHANT_SHOW       = "npc",
+  TRAINER_SHOW        = "npc",
+  AUCTION_HOUSE_SHOW  = "auctioneer",
+  BANKFRAME_OPENED    = "banker",
+  TAXIMAP_OPENED      = "taxi",
+  PET_STABLE_SHOW     = "stable",
+  BATTLEFIELDS_SHOW   = "battlemaster",
+  CONFIRM_BINDER      = "binder",
+}
 local serviceFrame = CreateFrame("Frame")
-serviceFrame:RegisterEvent("MERCHANT_SHOW")
-serviceFrame:RegisterEvent("TRAINER_SHOW")
+for event in pairs(serviceEvents) do
+  serviceFrame:RegisterEvent(event)
+end
 serviceFrame:SetScript("OnEvent", function(self, event)
-  registerFromUnit("npc")
+  local unit = serviceEvents[event]
+  if unit then registerFromUnit(unit) end
 end)
 
 -- ── 5. Nearby NPC speech ──────────────────────────────────────────────────────
@@ -192,6 +205,7 @@ local speechFrame = CreateFrame("Frame")
 speechFrame:RegisterEvent("CHAT_MSG_MONSTER_SAY")
 speechFrame:RegisterEvent("CHAT_MSG_MONSTER_YELL")
 speechFrame:RegisterEvent("CHAT_MSG_MONSTER_EMOTE")
+speechFrame:RegisterEvent("CHAT_MSG_MONSTER_WHISPER")
 speechFrame:SetScript("OnEvent", function(self, event, text, senderName, _, _, _, _, _, _, _, _, _, guid)
   if not guid or not senderName then return end
   local npcID = npcIDFromGUID(guid)
