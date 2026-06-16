@@ -180,7 +180,14 @@ SlashCmdList["PFDB"] = function(input, editbox)
     add("UIParent: " .. UIParent:GetWidth().."x"..UIParent:GetHeight())
     -- Walk all children of ScrollContainer looking for the map art frame
     if sc then
-      add("ScrollContainer children:")
+      if sc and child then
+      local offsetX = (child:GetLeft() or 0) - (sc:GetLeft() or 0)
+      local offsetY = (child:GetTop() or 0) - (sc:GetTop() or 0)
+      add(string.format("Child offset in SC: %.1f, %.1f  (0,0 = fully panned to top-left)", offsetX, offsetY))
+      add(string.format("Expected pin Y in SC viewport: %.1f%% * %.0f + %.1f = %.1fpx from SC top",
+        32.11, child:GetHeight(), -offsetY, 32.11/100*child:GetHeight() - offsetY))
+    end
+    add("ScrollContainer children:")
       for i, f in ipairs({sc:GetChildren()}) do
         local n = f:GetName() or "(unnamed)"
         add(string.format("  [%d] %s  %dx%d  shown=%s  strata=%s  level=%d",
