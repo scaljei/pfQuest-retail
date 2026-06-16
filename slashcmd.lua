@@ -166,19 +166,47 @@ SlashCmdList["PFDB"] = function(input, editbox)
 
   -- argument: pindump (inspect live world map pin state for debugging)
   -- argument: nptrace (toggle nameplate event tracing to confirm NAME_PLATE_UNIT_ADDED fires)
-  -- argument: guidcheck (show GUID of current target for debugging)
+  -- argument: guidcheck (show GUID and registration status of current target)
   if arg1 == "guidcheck" then
+    local lines = { "=== GUID / Registration Check ===" }
+    local function add(s) table.insert(lines, s) end
     local units = { "target", "mouseover", "npc" }
     for _, u in ipairs(units) do
       if UnitExists(u) then
         local guid = UnitGUID(u)
-        local name = UnitName(u)
+        local name = UnitName(u) or "?"
         local kind = guid and string.match(guid, "^(%a+)-") or "?"
-        DEFAULT_CHAT_FRAME:AddMessage(string.format(
-          "|cff33ffccpf|cffffffffQuest: %s='%s'  guid=%s  kind=%s",
-          u, tostring(name), tostring(guid), kind))
+        local _, _, _, _, _, rawID = guid and string.match(guid,
+          "(%a+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)-(%d+)") or nil
+        local npcID = tonumber(rawID)
+        add(string.format("unit='%s'  name='%s'  kind=%s  npcID=%s",
+          u, name, kind, tostring(npcID)))
+        -- Registration status
+        if npcID then
+          local inData = pfDB and pfDB["units"] and pfDB["units"]["data"] and
+            pfDB["units"]["data"][npcID]
+          local inLoc  = pfDB and pfDB["units"] and pfDB["units"]["loc"] and
+            pfDB["units"]["loc"][npcID]
+          add(string.format("  units.data: %s", inData and "YES (coords="..#inData["coords"]..")" or "NO"))
+          add(string.format("  units.loc:  %s", inLoc and ("YES ('"..inLoc.."')") or "NO"))
+          -- wantedNames check
+          local lname = string.lower(name)
+          local wn = pfRetailRuntime and pfRetailRuntime.wantedNames
+          local linkedQuest = wn and wn[lname]
+          add(string.format("  wantedNames['%s']: %s", lname,
+            linkedQuest and ("questID="..linkedQuest) or "NO"))
+        end
+        -- Zone info
+        local uiMapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
+        local pfZoneID = uiMapID and pfQuest and pfQuest.retailZoneMap and
+          pfQuest.retailZoneMap[uiMapID]
+        add(string.format("  player uiMapID=%s  pfZoneID=%s",
+          tostring(uiMapID), tostring(pfZoneID)))
+        break  -- first existing unit is enough
       end
     end
+    if pfDiag and pfDiag.showWindow then pfDiag.showWindow(lines)
+    else for _, l in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(l) end end
     return
   end
 
