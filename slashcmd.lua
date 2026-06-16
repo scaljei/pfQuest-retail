@@ -196,6 +196,12 @@ SlashCmdList["PFDB"] = function(input, editbox)
           local inLoc  = pfDB and pfDB["units"] and pfDB["units"]["loc"] and
             pfDB["units"]["loc"][npcID]
           add(string.format("  units.data: %s", inData and "YES (coords="..#inData["coords"]..")" or "NO"))
+          if inData and inData["coords"] then
+            for ci, coord in ipairs(inData["coords"]) do
+              add(string.format("    coord[%d]: x=%.2f y=%.2f pfZone=%s",
+                ci, coord[1] or 0, coord[2] or 0, tostring(coord[3])))
+            end
+          end
           add(string.format("  units.loc:  %s", inLoc and ("YES ('"..inLoc.."')") or "NO"))
           -- wantedNames check
           local lname = string.lower(name)
