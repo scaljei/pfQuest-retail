@@ -168,11 +168,22 @@ SlashCmdList["PFDB"] = function(input, editbox)
   if arg1 == "pindump" then
     local lines = { "=== Map Pin State ===" }
     local function add(s) table.insert(lines, s) end
-    -- Canvas
-    local canvas = WorldMapButton
-      or (WorldMapFrame and WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.Child)
-    add("Canvas: " .. (canvas and (canvas:GetWidth().."x"..canvas:GetHeight()) or "NIL"))
-    add("WorldMapFrame shown: " .. tostring(WorldMapFrame and WorldMapFrame:IsShown()))
+    -- Canvas frame dimensions
+    local sc = WorldMapFrame and WorldMapFrame.ScrollContainer
+    local child = sc and sc.Child
+    add("WorldMapFrame:       " .. (WorldMapFrame and WorldMapFrame:GetWidth().."x"..WorldMapFrame:GetHeight() or "NIL"))
+    add("ScrollContainer:     " .. (sc and sc:GetWidth().."x"..sc:GetHeight() or "NIL"))
+    add("ScrollContainer.Child: " .. (child and child:GetWidth().."x"..child:GetHeight() or "NIL"))
+    add("WorldMapButton: " .. (WorldMapButton and WorldMapButton:GetWidth().."x"..WorldMapButton:GetHeight() or "NIL"))
+    -- Walk all children of ScrollContainer looking for the map art frame
+    if sc then
+      add("ScrollContainer children:")
+      for i, f in ipairs({sc:GetChildren()}) do
+        local n = f:GetName() or "(unnamed)"
+        add(string.format("  [%d] %s  %dx%d  shown=%s", i, n, f:GetWidth(), f:GetHeight(), tostring(f:IsShown())))
+        if i >= 8 then add("  ..."); break end
+      end
+    end
     -- Pins
     local pinCount = pfMap.pins and #pfMap.pins or 0
     add("pfMap.pins count: " .. pinCount)
