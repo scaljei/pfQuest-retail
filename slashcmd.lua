@@ -216,6 +216,80 @@ SlashCmdList["PFDB"] = function(input, editbox)
     return
   end
 
+  if arg1 == "itemsearchtest" then
+    local itemID = tonumber(arg2)
+    local lines = { "=== SearchItemID Trace [" .. tostring(itemID) .. "] ===" }
+    local function add(s) table.insert(lines, s) end
+    if not itemID then
+      add("Usage: /db itemsearchtest <itemID>")
+    else
+      -- Step 1: raw data check (mirrors database.lua's internal `items` upvalue)
+      local rawEntry = pfDB["items"] and pfDB["items"]["data"] and pfDB["items"]["data"][itemID]
+      add("pfDB.items.data["..itemID.."]: "..tostring(rawEntry))
+      if rawEntry then
+        add("  rawEntry.U: "..tostring(rawEntry["U"]))
+        if rawEntry["U"] then
+          for npcID, chance in pairs(rawEntry["U"]) do
+            add("    npcID="..tostring(npcID).." chance="..tostring(chance))
+          end
+        end
+      end
+      add("pfDB.items.loc["..itemID.."]: "..tostring(pfDB["items"] and pfDB["items"]["loc"] and pfDB["items"]["loc"][itemID]))
+      add("pfQuest_config.mindropchance: "..tostring(pfQuest_config and pfQuest_config.mindropchance)
+        .." (tonumber="..tostring(tonumber(pfQuest_config and pfQuest_config.mindropchance))..")")
+
+      -- Step 2: call SearchItemID directly and inspect maps return value
+      local before = 0
+      if pfMap and pfMap.nodes then
+        for a,ad in pairs(pfMap.nodes) do for m,md in pairs(ad) do for c,_ in pairs(md) do before=before+1 end end end
+      end
+      local meta = { ["addon"] = "PFQUEST", ["quest"] = "ItemSearchTest" }
+      local ok, result = pcall(pfDatabase.SearchItemID, pfDatabase, itemID, meta)
+      local after = 0
+      if pfMap and pfMap.nodes then
+        for a,ad in pairs(pfMap.nodes) do for m,md in pairs(ad) do for c,_ in pairs(md) do after=after+1 end end end
+      end
+      add("SearchItemID call: ok="..tostring(ok))
+      if ok then
+        if type(result) == "table" then
+          local zoneParts = {}
+          for zoneID, prio in pairs(result) do
+            table.insert(zoneParts, tostring(zoneID).."="..tostring(prio))
+          end
+          add("  returned maps table: { "..table.concat(zoneParts, ", ").." }")
+          local mc = 0; for _ in pairs(result) do mc = mc + 1 end
+          add("  maps table zone count: "..mc)
+        else
+          add("  returned: "..tostring(result))
+        end
+      else
+        add("  ERROR: "..tostring(result))
+      end
+      add("nodes before="..before.." after="..after)
+
+      -- Step 3: check if a node now exists under this title in pfMap.nodes
+      local foundNode = false
+      if pfMap and pfMap.nodes then
+        for addonName, aData in pairs(pfMap.nodes) do
+          for mapID, mData in pairs(aData) do
+            for coords, cData in pairs(mData) do
+              for title, _ in pairs(cData) do
+                if title == "ItemSearchTest" then
+                  foundNode = true
+                  add("  FOUND node: addon="..addonName.." mapID="..tostring(mapID).." coords="..coords)
+                end
+              end
+            end
+          end
+        end
+      end
+      if not foundNode then add("  No node found with title 'ItemSearchTest'") end
+    end
+    if pfDiag and pfDiag.showWindow then pfDiag.showWindow(lines)
+    else for _,l in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(l) end end
+    return
+  end
+
   if arg1 == "searchtest" then
     local qid = tonumber(arg2) or 28374
     local lines = { "=== SearchQuestID Test [" .. qid .. "] ===" }
