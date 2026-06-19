@@ -28,6 +28,7 @@ local BUTTONS = {
   { "Scan",          "scan",        "Scan server for custom items" },
   { "Search Test",   "searchtest",  "SearchQuestID smoke-test (last active quest)" },
   { "Item Dump",     "itemdump",    "Inspect type=item objective state and drop sources" },
+  { "Loot Dump",     "lootdump",    "Inspect currently open loot window slots (run while looting)" },
 }
 
 -- ── helpers ───────────────────────────────────────────────────────────────

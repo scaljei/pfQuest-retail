@@ -158,6 +158,30 @@ end)
 -- ── 3. Loot: LOOT_OPENED ─────────────────────────────────────────────────────
 -- When the player opens a loot window on a creature, it's at their position.
 -- ─────────────────────────────────────────────────────────────────────────────
+-- scanLootSlotsForWantedItems(npcID): walks current loot window slots and
+-- records registerItemDrop(npcID, itemID) for any item matching wantedItems.
+-- Factored out so it can be called both immediately on LOOT_OPENED and via
+-- a short deferred retry, since GetLootSlotLink can occasionally return nil
+-- on the very first frame if item data hasn't been cached client-side yet.
+local function scanLootSlotsForWantedItems(npcID)
+  if not (pfRetailRuntime and pfRetailRuntime.registerItemDrop) then return end
+  if not pfRetailRuntime.wantedItems or not next(pfRetailRuntime.wantedItems) then return end
+  local numSlots = GetNumLootItems and GetNumLootItems() or 0
+  local found = 0
+  for i = 1, numSlots do
+    local itemLink = GetLootSlotLink and GetLootSlotLink(i)
+    if itemLink then
+      -- Extract itemID from link: |Hitem:12345:...|h[Name]|h
+      local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
+      if itemID and pfRetailRuntime.wantedItems[itemID] then
+        pfRetailRuntime.registerItemDrop(npcID, itemID)
+        found = found + 1
+      end
+    end
+  end
+  return found, numSlots
+end
+
 local lootFrame = CreateFrame("Frame")
 lootFrame:RegisterEvent("LOOT_OPENED")
 lootFrame:SetScript("OnEvent", function(self, event)
@@ -180,25 +204,19 @@ lootFrame:SetScript("OnEvent", function(self, event)
   pfRetailRuntime.registerNPC(npcID, name, uiMapID, x, y)
 
   -- ── Item drop recording ──────────────────────────────────────────────────
-  -- Walk all loot slots. For each item that is a wanted quest objective
-  -- (in pfRetailRuntime.wantedItems), record npcID as a drop source.
-  -- This builds pfDB["items"]["data"][itemID]["U"][npcID] on the fly,
-  -- giving SearchItemID the data it needs to place pins for type=item quests.
-  if pfRetailRuntime.registerItemDrop and pfRetailRuntime.wantedItems
-     and next(pfRetailRuntime.wantedItems) then
-    local numSlots = GetNumLootItems and GetNumLootItems() or 0
-    for i = 1, numSlots do
-      -- GetLootSlotInfo(slot) returns: texture, item, quantity, currencyID,
-      --   quality, locked, isQuestItem, questID, isActive
-      local _, itemLink, quantity, _, quality = GetLootSlotInfo(i)
-      if itemLink then
-        -- Extract itemID from link: |Hitem:12345:...|
-        local itemID = tonumber(string.match(itemLink, "item:(%d+)"))
-        if itemID and pfRetailRuntime.wantedItems[itemID] then
-          pfRetailRuntime.registerItemDrop(npcID, itemID)
-        end
+  -- GetLootSlotInfo(slot) returns the item NAME as a plain string — NOT a
+  -- hyperlink — so itemID can't be extracted from it. GetLootSlotLink(slot)
+  -- returns the real hyperlink (|Hitem:12345:...|h[Name]|h) needed here.
+  local found, numSlots = scanLootSlotsForWantedItems(npcID)
+  if found and found == 0 and numSlots and numSlots > 0
+     and pfRetailRuntime.wantedItems and next(pfRetailRuntime.wantedItems) then
+    -- Loot window has items but none matched on the first pass — slot links
+    -- can be nil for a frame if item data isn't cached yet. Retry once shortly.
+    C_Timer.After(0.3, function()
+      if numSlots == (GetNumLootItems and GetNumLootItems() or 0) then
+        scanLootSlotsForWantedItems(npcID)
       end
-    end
+    end)
   end
 
   if pfMap then pfMap.queue_update = GetTime() end
@@ -278,4 +296,5 @@ end)
 -- Expose for /db commands
 pfHarvester = {
   importWowheadLooter = importWowheadLooter,
+  scanLootSlotsForWantedItems = scanLootSlotsForWantedItems,
 }

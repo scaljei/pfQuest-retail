@@ -503,6 +503,35 @@ SlashCmdList["PFDB"] = function(input, editbox)
     return
   end
 
+  -- argument: lootdump (inspect the CURRENTLY OPEN loot window's slots)
+  -- Run this while a loot window is open to see exactly what GetLootSlotLink
+  -- returns for each slot, and whether any slot itemID matches wantedItems.
+  if arg1 == "lootdump" then
+    local lines = { "=== Loot Window Slot Dump ===" }
+    local numSlots = GetNumLootItems and GetNumLootItems() or 0
+    table.insert(lines, "GetNumLootItems(): " .. numSlots)
+    if numSlots == 0 then
+      table.insert(lines, "No loot window open (or it has no items).")
+    else
+      for i = 1, numSlots do
+        local texture, name, quantity = GetLootSlotInfo and GetLootSlotInfo(i)
+        local link = GetLootSlotLink and GetLootSlotLink(i)
+        local itemID = link and tonumber(string.match(link, "item:(%d+)"))
+        local wanted = itemID and pfRetailRuntime and pfRetailRuntime.wantedItems
+                       and pfRetailRuntime.wantedItems[itemID]
+        table.insert(lines, string.format(
+          "  slot[%d]: name='%s' qty=%s link=%s itemID=%s wantedFor=%s",
+          i, tostring(name), tostring(quantity), tostring(link),
+          tostring(itemID), tostring(wanted)))
+      end
+    end
+    local guid = GetLootSourceInfo and GetLootSourceInfo(1)
+    table.insert(lines, "Loot source GUID: " .. tostring(guid))
+    if pfDiag and pfDiag.showWindow then pfDiag.showWindow(lines)
+    else for _, l in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(l) end end
+    return
+  end
+
   -- argument: queststatus (check single quest completion)
   if (arg1 == "queststatus") and arg2 then
     local qid = tonumber(arg2)
