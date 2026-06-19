@@ -240,8 +240,35 @@ SlashCmdList["PFDB"] = function(input, editbox)
         add("  obj["..i.."]: text='"..tostring(o[1]).."' type="..tostring(o[2]).." done="..tostring(o[3]))
       end
     end
+
+    -- Direct inspection of pfDB["quests"]["data"][qid]["obj"] — this is the
+    -- raw data SearchQuestID reads from. Node-count diffs alone can't tell
+    -- us whether THIS quest's objective table is populated, since other
+    -- quests' nodes are counted in the same global pfMap.nodes total.
+    add("--- pfDB quests.data["..qid.."].obj ---")
+    local qdata = pfDB["quests"] and pfDB["quests"]["data"] and pfDB["quests"]["data"][qid]
+    if not qdata then
+      add("  quests.data["..qid.."]: NIL — quest not registered at all")
+    else
+      add("  qdata exists, lvl="..tostring(qdata["lvl"]))
+      if not qdata["obj"] then
+        add("  qdata.obj: NIL — no objectives registered")
+      else
+        for _, key in ipairs({ "U", "O", "I", "A" }) do
+          local t = qdata["obj"][key]
+          if t then
+            local parts = {}
+            for _, v in ipairs(t) do table.insert(parts, tostring(v)) end
+            add("  qdata.obj["..key.."] = { "..table.concat(parts, ", ").." }")
+          end
+        end
+        if not qdata["obj"]["I"] then
+          add("  qdata.obj.I: NIL — item objectives never written here")
+        end
+      end
+    end
+
     -- Test without qlogid
-    pfMap:DeleteNode("PFQUEST", "Weeding the Lawn")
     local before = 0
     if pfMap and pfMap.nodes then
       for a,ad in pairs(pfMap.nodes) do for m,md in pairs(ad) do for c,_ in pairs(md) do before=before+1 end end end
@@ -253,9 +280,8 @@ SlashCmdList["PFDB"] = function(input, editbox)
     if pfMap and pfMap.nodes then
       for a,ad in pairs(pfMap.nodes) do for m,md in pairs(ad) do for c,_ in pairs(md) do after1=after1+1 end end end
     end
-    add("ok="..tostring(ok1).." nodes: "..before.." -> "..after1)
+    add("ok="..tostring(ok1).." nodes: "..before.." -> "..after1.." err="..tostring(err1))
     -- Test WITH qlogid
-    pfMap:DeleteNode("PFQUEST", "Weeding the Lawn")
     if qlogid then
       add("--- Test WITH qlogid="..qlogid.." ---")
       local meta2 = { ["addon"] = "PFQUEST", ["qlogid"] = qlogid }
