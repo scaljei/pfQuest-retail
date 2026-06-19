@@ -10,6 +10,13 @@
 
 pfRetailRuntime = pfRetailRuntime or {}
 pfRetailRuntime.populated = {}   -- track which questIDs we've already processed
+-- objectivesIndexed: tracks which questIDs have had their objective text
+-- parsed into wantedNames/wantedItems. Kept separate from `populated` so a
+-- quest that was marked populated before this indexing code existed (i.e.
+-- by an older addon version) still gets its objectives indexed on the next
+-- scan, without forcing a full re-parse of every quest on every
+-- QUEST_LOG_UPDATE tick (which can fire many times per minute while questing).
+pfRetailRuntime.objectivesIndexed = {}
 -- wantedNames: maps lowercase mob name → questID, populated at quest scan time.
 -- When registerNPC sees a name in this table it immediately links it as an objective
 -- and triggers a map update, so pins appear the moment the NPC is first observed
@@ -175,22 +182,42 @@ end
 local function registerQuestFromInfo(info)
   if not info or info.isHeader or not info.questID then return end
   local questID = info.questID
-  if pfRetailRuntime.populated[questID] then return end
 
-  ensureDB()
-  pfRetailRuntime.populated[questID] = true
+  -- Quest title/level registration only needs to happen once per questID.
+  if not pfRetailRuntime.populated[questID] then
+    ensureDB()
+    pfRetailRuntime.populated[questID] = true
 
-  -- Register quest title and basic data
-  pfDB["quests"]["loc"][questID] = pfDB["quests"]["loc"][questID]
-    or { ["T"] = info.title or ("Quest " .. questID) }
-  pfDB["quests"]["data"][questID] = pfDB["quests"]["data"][questID]
-    or { ["lvl"] = tonumber(info.level) or 0 }
+    -- Register quest title and basic data
+    pfDB["quests"]["loc"][questID] = pfDB["quests"]["loc"][questID]
+      or { ["T"] = info.title or ("Quest " .. questID) }
+    pfDB["quests"]["data"][questID] = pfDB["quests"]["data"][questID]
+      or { ["lvl"] = tonumber(info.level) or 0 }
+  end
 
-  -- Try to link objective NPCs by name-matching against registered units.
-  -- Also index objective mob names into wantedNames so registerNPC can link
-  -- them immediately when the NPC is first observed (target, nameplate, etc.)
-  local objectives = C_QuestLog.GetQuestObjectives and C_QuestLog.GetQuestObjectives(questID)
-  if objectives then
+  -- Objective scanning (monster-name indexing + item-name indexing) only
+  -- needs to run once per questID to populate wantedNames/wantedItems —
+  -- re-running it on every QUEST_LOG_UPDATE (which fires frequently while
+  -- questing: kill credit, item pickup, turn-in, etc.) would re-parse every
+  -- active quest's objective text and re-scan all of units.loc each time,
+  -- which gets expensive with a large NPC database.
+  --
+  -- Tracked separately from `populated` (rather than folded into the guard
+  -- above) so that quests already marked populated from BEFORE this
+  -- indexing code existed — i.e. accepted in an earlier addon version —
+  -- still get their objectives indexed on the very next scan after update,
+  -- rather than being skipped forever.
+  if not pfRetailRuntime.objectivesIndexed[questID] then
+    pfRetailRuntime.objectivesIndexed[questID] = true
+    ensureDB()
+    pfDB["quests"]["data"][questID] = pfDB["quests"]["data"][questID]
+      or { ["lvl"] = tonumber(info.level) or 0 }
+
+    -- Try to link objective NPCs by name-matching against registered units.
+    -- Also index objective mob names into wantedNames so registerNPC can link
+    -- them immediately when the NPC is first observed (target, nameplate, etc.)
+    local objectives = C_QuestLog.GetQuestObjectives and C_QuestLog.GetQuestObjectives(questID)
+    if objectives then
     for _, obj in ipairs(objectives) do
       if obj.type == "monster" and obj.text then
         -- Retail format: "0/5 Mob Name slain" (count prefix + optional trailing verb)
@@ -291,6 +318,7 @@ local function registerQuestFromInfo(info)
           end
         end
       end
+    end
     end
   end
 end
@@ -648,6 +676,7 @@ pfRetailRuntime.linkCachedNPCs  = linkCachedNPCs
 -- because every questID is already marked as populated from the pre-wipe scan.
 pfRetailRuntime.resetPopulated = function()
   pfRetailRuntime.populated = {}
+  pfRetailRuntime.objectivesIndexed = {}
   pfRetailRuntime.wantedNames = {}
   pfRetailRuntime.wantedItems = {}
 end
