@@ -253,13 +253,15 @@ local function registerQuestFromInfo(info)
           itemName = string.match(itemName, "^%s*(.-)%s*$")  -- trim
         end
         if itemName and itemName ~= "" then
-          -- Resolve itemID from name (C_Item.GetItemInfoInstant works by name in retail)
+          -- Resolve itemID from name. C_Item.GetItemInfoInstant(itemName) returns
+          -- multiple values: itemID, itemType, itemSubType, itemEquipLoc, icon,
+          -- classID, subclassID — NOT a table. First return value is the itemID.
           local itemID = nil
           if C_Item and C_Item.GetItemInfoInstant then
-            local info = C_Item.GetItemInfoInstant(itemName)
-            if info then itemID = info.itemID end
+            itemID = C_Item.GetItemInfoInstant(itemName)
+            itemID = tonumber(itemID)
           end
-          -- Fallback: GetItemInfoInstant global (older API)
+          -- Fallback: GetItemInfoInstant global (older API, same return shape)
           if not itemID and GetItemInfoInstant then
             local id = GetItemInfoInstant(itemName)
             itemID = tonumber(id)
