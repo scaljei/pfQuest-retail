@@ -553,6 +553,59 @@ local function saveNPCCache()
   pfQuest_npcCache = { data = newData, loc = newLoc }
 end
 
+-- ── Item drop cache persistence ───────────────────────────────────────────────
+-- pfQuest_itemCache (SavedVariablesPerCharacter) stores observed item→NPC drop
+-- links across sessions. Without this, registerItemDrop's data lives only in
+-- pfDB["items"]["data"][itemID]["U"] for the current session — db_guard's
+-- PLAYER_LOGIN wipe (pfDB["items"] = {data={}, loc={}}) discards it on every
+-- /reload or relogin, just like it would for units.data if npcCache didn't
+-- exist. This mirrors that same npcCache pattern for item drop sources.
+-- Format: { data = {[itemID]={U={[npcID]=chance,...}}}, loc = {[itemID]=name} }
+
+local function loadItemCache()
+  if type(pfQuest_itemCache) ~= "table" then return end
+  ensureDB()
+  local loaded = 0
+  if type(pfQuest_itemCache.data) == "table" then
+    for itemID, entry in pairs(pfQuest_itemCache.data) do
+      if entry and type(entry["U"]) == "table" then
+        pfDB["items"]["data"][itemID] = pfDB["items"]["data"][itemID] or {}
+        pfDB["items"]["data"][itemID]["U"] = pfDB["items"]["data"][itemID]["U"] or {}
+        for npcID, chance in pairs(entry["U"]) do
+          if not pfDB["items"]["data"][itemID]["U"][npcID] then
+            pfDB["items"]["data"][itemID]["U"][npcID] = chance
+            loaded = loaded + 1
+          end
+        end
+      end
+    end
+  end
+  if type(pfQuest_itemCache.loc) == "table" then
+    for itemID, name in pairs(pfQuest_itemCache.loc) do
+      pfDB["items"]["loc"][itemID] = pfDB["items"]["loc"][itemID] or name
+    end
+  end
+  if loaded > 0 then
+    pfQuest:Debug("|cff33ff33" .. loaded .. "|r item drop link(s) loaded from session cache.")
+  end
+end
+
+local function saveItemCache()
+  ensureDB()
+  -- Keep the cache bounded: max 1000 items to avoid SavedVars bloat
+  local MAX_CACHE = 1000
+  local newData, newLoc, count = {}, {}, 0
+  for itemID, entry in pairs(pfDB["items"]["data"]) do
+    if count >= MAX_CACHE then break end
+    if entry and entry["U"] and next(entry["U"]) then
+      newData[itemID] = { ["U"] = entry["U"] }
+      newLoc[itemID]  = pfDB["items"]["loc"][itemID]
+      count = count + 1
+    end
+  end
+  pfQuest_itemCache = { data = newData, loc = newLoc }
+end
+
 runtimeFrame:SetScript("OnEvent", function(self, event, ...)
   if event == "PLAYER_LOGIN" then
     -- Load NPC positions from previous sessions before anything else runs,
@@ -561,6 +614,10 @@ runtimeFrame:SetScript("OnEvent", function(self, event, ...)
     -- units.data) — but since we're in runtime_db's own PLAYER_LOGIN handler,
     -- load order in addon.xml guarantees db_guard has already run.
     loadNPCCache()
+    -- Load item drop links from previous sessions before anything else runs,
+    -- for the same reason — db_guard wipes pfDB["items"] at login and this
+    -- restores observed npcID->itemID drop links from the cache.
+    loadItemCache()
     -- Register the player's current zone immediately
     if C_Map and C_Map.GetBestMapForUnit then
       local uid = C_Map.GetBestMapForUnit("player")
@@ -592,6 +649,7 @@ runtimeFrame:SetScript("OnEvent", function(self, event, ...)
 
   elseif event == "PLAYER_LOGOUT" then
     saveNPCCache()
+    saveItemCache()
 
   elseif event == "QUEST_LOG_UPDATE" then
     scanQuestLog()
@@ -667,6 +725,8 @@ end)
 pfRetailRuntime.registerZone    = registerZone
 pfRetailRuntime.registerNPC     = registerNPC
 pfRetailRuntime.registerItemDrop = registerItemDrop
+pfRetailRuntime.saveItemCache    = saveItemCache
+pfRetailRuntime.loadItemCache    = loadItemCache
 pfRetailRuntime.registerQuest   = registerQuest
 pfRetailRuntime.scanQuestLog    = scanQuestLog
 pfRetailRuntime.linkCachedNPCs  = linkCachedNPCs

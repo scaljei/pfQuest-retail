@@ -561,6 +561,43 @@ SlashCmdList["PFDB"] = function(input, editbox)
     return
   end
 
+  -- argument: itemcache (inspect/manage the cross-session item drop cache)
+  -- NOTE: pfQuest_itemCache is only written by saveItemCache(), which is
+  -- wired to PLAYER_LOGOUT. /reload does NOT fire PLAYER_LOGOUT, so item
+  -- drop links observed this session will NOT survive a /reload unless
+  -- explicitly saved first — use "/db itemcache save" before reloading
+  -- if you want to test persistence without a full relog.
+  if arg1 == "itemcache" then
+    if arg2 == "clear" then
+      pfQuest_itemCache = nil
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: Item drop cache cleared.")
+    elseif arg2 == "save" then
+      if pfRetailRuntime and pfRetailRuntime.saveItemCache then
+        pfRetailRuntime.saveItemCache()
+        local cc = 0
+        if type(pfQuest_itemCache) == "table" and pfQuest_itemCache.data then
+          for _ in pairs(pfQuest_itemCache.data) do cc = cc + 1 end
+        end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: Item drop cache saved manually — " .. cc .. " item(s). Safe to /reload now.")
+      else
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: saveItemCache not available.")
+      end
+    else
+      local cc = 0
+      if type(pfQuest_itemCache) == "table" and pfQuest_itemCache.data then
+        for _ in pairs(pfQuest_itemCache.data) do cc = cc + 1 end
+      end
+      local ic = 0
+      if pfDB and pfDB["items"] and pfDB["items"]["data"] then
+        for _, entry in pairs(pfDB["items"]["data"]) do
+          if entry and entry["U"] and next(entry["U"]) then ic = ic + 1 end
+        end
+      end
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest: Item drop cache — " .. cc .. " saved (from last logout), " .. ic .. " with drop sources in session. Use '/db itemcache save' before /reload to persist, or '/db itemcache clear' to reset.")
+    end
+    return
+  end
+
   -- argument: itemdump (inspect type=item objective state)
   if arg1 == "itemdump" then
     local lines = { "=== Item Objective State ===" }

@@ -29,6 +29,7 @@ local BUTTONS = {
   { "Search Test",   "searchtest",  "SearchQuestID smoke-test (last active quest)" },
   { "Item Dump",     "itemdump",    "Inspect type=item objective state and drop sources" },
   { "Loot Dump",     "lootdump",    "Inspect currently open loot window slots (run while looting)" },
+  { "Item Cache",    "itemcache",   "Show item drop cache state ('itemcache save' before /reload)" },
 }
 
 -- ── helpers ───────────────────────────────────────────────────────────────
